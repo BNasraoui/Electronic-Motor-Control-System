@@ -51,6 +51,9 @@
 // #include <ti/drivers/Watchdog.h>
 // #include <ti/drivers/WiFi.h>
 
+//Created libraries for sub-systems
+#include "sensors.h"
+
 /* Board Header file */
 #include "Board.h"
 
@@ -59,19 +62,72 @@
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
 
-/*
- *  ======== heartBeatFxn ========
- *  Toggle the Board_LED0. The Task_sleep is determined by arg0 which
- *  is configured for the heartBeat Task instance.
- */
-Void heartBeatFxn(UArg arg0, UArg arg1)
-{
+void ReadSensorsFxn() {
+    uint16_t rawData;
+    bool success = 0;
+    float luxFloat;
+    I2C_Handle opt3001;
+
+    //InitI2C_opt3001(opt3001);
+
+    uint8_t txBuffer[3];
+    I2C_Params      opt3001Params;
+    I2C_Transaction i2cTransaction;
+
+    /* Create I2C for usage */
+    I2C_Params_init(&opt3001Params);
+    opt3001Params.bitRate = I2C_400kHz;
+    opt3001 = I2C_open(0, &opt3001Params);
+    if (opt3001 == NULL) {
+        System_abort("Error Initializing Opt3001 I2C\n");
+    } else {
+    System_printf("IOpt3001 I2C Initialized!\n");
+    }
+
+    txBuffer[0] = REG_CONFIGURATION;
+    txBuffer[1] = 0xC4;
+    txBuffer[2] = 0x10;
+
+    i2cTransaction.slaveAddress = OPT3001_I2C_ADDRESS;
+    i2cTransaction.writeBuf = txBuffer;
+    i2cTransaction.writeCount = 3;
+    i2cTransaction.readBuf = NULL;
+    i2cTransaction.readCount = 0;
+
+    if (!(I2C_transfer(opt3001, &i2cTransaction))) {
+        System_abort("Bad I2C transfer!");
+    }
+
+//    GPIO_write(Board_LED1, Board_LED_ON);
+
+    System_flush();
+
     while (1) {
-        Task_sleep((unsigned int)arg0);
-        GPIO_toggle(Board_LED0);
+        GPIO_write(Board_LED1, Board_LED_ON);
+        success = SensorOpt3001Read(opt3001, &rawData);
+
+        if (success) {
+           SensorOpt3001Convert(rawData, &luxFloat);
+           int Lux = (int)luxFloat;
+
+            if (luxFloat < 40)
+               {
+                   System_printf("Low Light Event: %d Lux\n", Lux);
+               }
+               else if (luxFloat > 2600)
+               {
+                   System_printf("High Light Event: %d Lux\n", Lux);
+               }
+               else
+               {
+                   System_printf("%d Lux\n", Lux);
+               }
+
+        }
+        GPIO_write(Board_LED1, Board_LED_OFF);
+        System_flush();
     }
 }
-
 /*
  *  ======== main ========
  */
@@ -83,7 +139,7 @@ int main(void)
     Board_initGeneral();
     // Board_initEMAC();
     Board_initGPIO();
-    // Board_initI2C();
+    Board_initI2C();
     // Board_initSDSPI();
     // Board_initSPI();
     // Board_initUART();
@@ -92,12 +148,15 @@ int main(void)
     // Board_initWatchdog();
     // Board_initWiFi();
 
+    Board_initSensors();
+
     /* Construct heartBeat Task  thread */
     Task_Params_init(&taskParams);
-    taskParams.arg0 = 1000;
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
-    Task_construct(&task0Struct, (Task_FuncPtr)heartBeatFxn, &taskParams, NULL);
+    //taskParams.instance->name = "initI2C_opt3001";
+    taskParams.priority = 1;
+    Task_construct(&task0Struct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
 
     /* Turn on user LED  */
     GPIO_write(Board_LED0, Board_LED_ON);

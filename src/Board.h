@@ -52,6 +52,9 @@ extern "C" {
 #define Board_initWatchdog          EK_TM4C1294XL_initWatchdog
 #define Board_initWiFi              EK_TM4C1294XL_initWiFi
 
+//Our custom driver function
+#define Board_initSensors           EK_TM4C1294XL_initSensors
+
 #define Board_LED_ON                EK_TM4C1294XL_LED_ON
 #define Board_LED_OFF               EK_TM4C1294XL_LED_OFF
 #define Board_LED0                  EK_TM4C1294XL_D1

@@ -211,6 +211,15 @@ extern void EK_TM4C1294XL_initGPIO(void);
  */
 extern void EK_TM4C1294XL_initI2C(void);
 
+
+
+
+//This is our custom init function for sensors
+extern void EK_TM4C1294XL_initSensors(void);
+
+
+
+
 /*!
  *  @brief  Initialize board specific PWM settings
  *
