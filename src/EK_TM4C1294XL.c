@@ -347,7 +347,7 @@ const I2CTiva_HWAttrs i2cTivaHWAttrs[EK_TM4C1294XL_I2CCOUNT] = {
     {
         .baseAddr = I2C0_BASE,
         .intNum = INT_I2C0,
-        .intPriority = (~1)
+        .intPriority = (~2)
     },
     {
         .baseAddr = I2C8_BASE,

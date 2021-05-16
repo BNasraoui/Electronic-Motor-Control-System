@@ -41,7 +41,7 @@
 #include <ti/sysbios/knl/Task.h>
 
 /* TI-RTOS Header files */
-// #include <ti/drivers/EMAC.h>
+#include <ti/drivers/EMAC.h>
 #include <ti/drivers/GPIO.h>
 // #include <ti/drivers/I2C.h>
 // #include <ti/drivers/SDSPI.h>
@@ -51,112 +51,107 @@
 // #include <ti/drivers/Watchdog.h>
 // #include <ti/drivers/WiFi.h>
 
+#include "driverlib/gpio.h"
+
+/* Tiva C series macros header files */
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"
+
 //Created libraries for sub-systems
 #include "sensors.h"
+#include "driverlib/adc.h"
 
 /* Board Header file */
 #include "Board.h"
 
-#define TASKSTACKSIZE   512
+void OPT3001Fxn()
+{
+    UInt gateKey;
+    uint16_t  rawData = 0;
+    float     convertedLux = 0;
+    char      tempStr[40];
+    bool      success;
 
-Task_Struct task0Struct;
-Char task0Stack[TASKSTACKSIZE];
+    // Get and clear interrupt status.
+    uint32_t intStatus;
+   // intStatus = UARTIntStatus(0x4000C000);
+  //  UARTIntClear(0x4000C000, intStatus);
+
+    gateKey = GateHwi_enter(gateHwi);
+
+    //Read and convert OPT values
+    success = SensorOpt3001Read(opt3001, &rawData); // INT pin is cleared here
+
+    if (success) {
+        SensorOpt3001Convert(rawData, &convertedLux);
+    }
+
+    GateHwi_leave(gateHwi, gateKey);
+    //GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_2); // clear the interrupt
+}
+
+void ADC0_Read() {
+    uint32_t pui32ADC0Value[1];
+    ADCIntClear(ADC0_BASE, ADC_SEQ);
+    ADCSequenceDataGet(ADC0_BASE, ADC_SEQ , pui32ADC0Value);
+}
+
+void ADC1_Read() {
+    uint32_t pui32ADC1Value[1];
+    ADCIntClear(ADC1_BASE, ADC_SEQ);
+    ADCSequenceDataGet(ADC1_BASE, ADC_SEQ , pui32ADC1Value);
+}
 
 void ReadSensorsFxn() {
     uint16_t rawData;
-    bool success = 0;
+    bool success = false;
     float luxFloat;
-    I2C_Handle opt3001;
 
-    //InitI2C_opt3001(opt3001);
-
-    uint8_t txBuffer[3];
-    I2C_Params      opt3001Params;
-    I2C_Transaction i2cTransaction;
-
-    /* Create I2C for usage */
-    I2C_Params_init(&opt3001Params);
-    opt3001Params.bitRate = I2C_400kHz;
-    opt3001 = I2C_open(0, &opt3001Params);
-    if (opt3001 == NULL) {
-        System_abort("Error Initializing Opt3001 I2C\n");
-    } else {
-    System_printf("IOpt3001 I2C Initialized!\n");
-    }
-
-    txBuffer[0] = REG_CONFIGURATION;
-    txBuffer[1] = 0xC4;
-    txBuffer[2] = 0x10;
-
-    i2cTransaction.slaveAddress = OPT3001_I2C_ADDRESS;
-    i2cTransaction.writeBuf = txBuffer;
-    i2cTransaction.writeCount = 3;
-    i2cTransaction.readBuf = NULL;
-    i2cTransaction.readCount = 0;
-
-    if (!(I2C_transfer(opt3001, &i2cTransaction))) {
-        System_abort("Bad I2C transfer!");
-    }
-
-//    GPIO_write(Board_LED1, Board_LED_ON);
-
-    System_flush();
+    InitI2C_opt3001();
+    InitI2C_BMI160();
+    InitADC0_CurrentSense();
+    InitADC1_CurrentSense();
 
     while (1) {
         GPIO_write(Board_LED1, Board_LED_ON);
-        success = SensorOpt3001Read(opt3001, &rawData);
 
+        success = SensorOpt3001Read(opt3001, &rawData);
         if (success) {
            SensorOpt3001Convert(rawData, &luxFloat);
-           int Lux = (int)luxFloat;
-
-            if (luxFloat < 40)
-               {
-                   System_printf("Low Light Event: %d Lux\n", Lux);
-               }
-               else if (luxFloat > 2600)
-               {
-                   System_printf("High Light Event: %d Lux\n", Lux);
-               }
-               else
-               {
-                   System_printf("%d Lux\n", Lux);
-               }
-
         }
+
+        success = SensorBMI160Read(&rawData);
+
+        ADCProcessorTrigger(ADC1_BASE, ADC_SEQ);
+        ADCProcessorTrigger(ADC0_BASE, ADC_SEQ);
+
         GPIO_write(Board_LED1, Board_LED_OFF);
         System_flush();
     }
 }
+
 /*
  *  ======== main ========
  */
 int main(void)
 {
-    Task_Params taskParams;
-
     /* Call board init functions */
     Board_initGeneral();
-    // Board_initEMAC();
     Board_initGPIO();
     Board_initI2C();
-    // Board_initSDSPI();
-    // Board_initSPI();
-    // Board_initUART();
-    // Board_initUSB(Board_USBDEVICE);
-    // Board_initUSBMSCHFatFs();
-    // Board_initWatchdog();
-    // Board_initWiFi();
 
+    //This is the custom driver implementation init function
+    //That will use Fxn table etc
     Board_initSensors();
 
-    /* Construct heartBeat Task  thread */
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = TASKSTACKSIZE;
-    taskParams.stack = &task0Stack;
-    //taskParams.instance->name = "initI2C_opt3001";
-    taskParams.priority = 1;
-    Task_construct(&task0Struct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
+    InitialiseTasks();
+
+    //Create Hwi Gate Mutex
+    GateHwi_Params_init(&gHwiprms);
+    gateHwi = GateHwi_create(&gHwiprms, NULL);
+    if (gateHwi == NULL) {
+        System_abort("Gate Hwi create failed");
+    }
 
     /* Turn on user LED  */
     GPIO_write(Board_LED0, Board_LED_ON);

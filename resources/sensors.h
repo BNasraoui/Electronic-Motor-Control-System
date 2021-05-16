@@ -7,27 +7,38 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <xdc/runtime/Types.h>
+#include <xdc/runtime/System.h>
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
-#include <xdc/runtime/Types.h>
-#include <xdc/runtime/System.h>
 #include <ti/sysbios/hal/Hwi.h>
 #include <ti/sysbios/gates/GateHwi.h>
 
 /* TI-RTOS Header files */
 #include <ti/drivers/GPIO.h>
-#include <ti/drivers/I2C.h>
 #include <ti/drivers/UART.h>
+#include <ti/drivers/I2C.h>
+
+#include "driverlib/sysctl.h"
+#include "driverlib/gpio.h"
+#include "driverlib/interrupt.h"
+#include "driverlib/adc.h"
+
+/* Tiva C series macros header files */
+#include "inc/hw_ints.h"
+#include "inc/hw_memmap.h"
 
 /* Board Header file */
 #include "Board.h"
 
 //OPT3001 slave address
-#define OPT3001_I2C_ADDRESS             0x47
+#define OPT3001_SLAVE_ADDRESS             0x47
+#define GPIO_PORTP_BASE         0x40065000  // GPIO Port P
+#define GPIO_PIN_2              0x00000004  // GPIO pin 2
 
-/* Register addresses */
+/* OP3001 Register addresses */
 #define REG_RESULT                      0x00
 #define REG_CONFIGURATION               0x01
 #define REG_LOW_LIMIT                   0x02
@@ -43,12 +54,39 @@
 #define CONFIG_TEST                     0xCC10
 #define CONFIG_ENABLE                   0x10C4 // 100 ms, continuous
 #define CONFIG_DISABLE                  0x10C0 // 0xC010   - 100 ms, shutdown
+
 #define CONFIG_VAL                      0x10C4 // latched window-style comparison and INT pin reports active low
 #define LOW_LIMIT                       0xFF0F // Full-scale range (Lux) = 40.95
 #define HIGH_LIMIT                      0xFF6F // Full scale range (Lux) = 2620.80
+//#define LOW_LIMIT                       0x0FFF // Full-scale range (Lux) = 40.95
+//#define HIGH_LIMIT                      0x6FFF // Full scale range (Lux) = 2620.80
+
+#define BMI160_SLAVE_ADDRESS            0x69
 
 /* Bit values */
 #define DATA_RDY_BIT                    0x0080  // Data ready
+
+#define P2_VECTOR_NUM              94
+#define ADC0_SEQ1_VEC_NUM          31
+#define ADC1_SEQ1_VEC_NUM          63
+
+#define ADC_SEQ     1
+#define ADC_STEP    0
+
+#define TASKSTACKSIZE   512
+
+Task_Struct task0Struct;
+Char task0Stack[TASKSTACKSIZE];
+
+Hwi_Handle hwi_OPT3001;
+Hwi_Handle hwi_ADC0;
+Hwi_Handle hwi_ADC1;
+Hwi_Params hwiParams;
+GateHwi_Handle gateHwi;
+GateHwi_Params gHwiprms;
+
+I2C_Handle opt3001;
+I2C_Handle bmi160;
 
 typedef struct Sensors_Config      *Sensors_Handle;
 
@@ -104,13 +142,45 @@ typedef struct Sensors_Config {
     void         const *hwAttrs;
 } Sensors_Config;
 
-extern void InitI2C_opt3001(I2C_Handle* opt3001);
+extern void InitialiseTasks();
+
+extern void ReadSensorsFxn();
+
+extern void InitI2C_opt3001();
+
+extern void InitI2C_BMI160();
+
+extern void InitADC0_CurrentSense();
+
+extern void InitADC1_CurrentSense();
+
+extern void ADC0_Read();
+
+extern void ADC1_Read();
+
+extern void OPT3001_handler();
 
 extern bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData);
 
-extern bool ReadI2C(I2C_Handle opt3001, uint8_t ui8Reg, uint16_t *data);
+extern bool SensorBMI160Read(uint16_t *rawData);
 
 extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
+
+extern void SetLowLimit_OPT3001(I2C_Handle opt3001, uint16_t val);
+
+extern void SetHighLimit_OPT3001(I2C_Handle opt3001, uint16_t val);
+
+extern bool BufferReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t data[]);
+
+extern bool ReadI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint16_t *data);
+
+extern bool ReadByteI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
+
+extern bool WriteHalfwordI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
+
+extern bool WriteByteI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t data);
+
+extern void OPT3001Fxn();
 
 #endif // __TOUCH_H__
 

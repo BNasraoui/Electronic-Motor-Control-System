@@ -27,6 +27,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>drivers/bmi160.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/resources/bmi160.h</locationURI>
+		</link>
+		<link>
 			<name>drivers/sensors.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/resources/sensors.c</locationURI>
