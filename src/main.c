@@ -92,6 +92,7 @@ void ADC1_Read() {
 void ReadSensorsFxn() {
     UInt gateKey;
     uint16_t rawData;
+    uint16_t accelData[3];
     bool success = false;
     float luxFloat;
 
@@ -107,20 +108,16 @@ void ReadSensorsFxn() {
         success = SensorOpt3001Read(opt3001, &rawData);
         if (success) {
            SensorOpt3001Convert(rawData, &luxFloat);
-
            System_printf("LUX: %d\n", (int)luxFloat);
-           System_flush();
         }
 
         GateHwi_leave(gateHwi, gateKey);
 
-        success = SensorBMI160Read(&rawData);
-
-        ADCProcessorTrigger(ADC1_BASE, ADC_SEQ);
-        ADCProcessorTrigger(ADC0_BASE, ADC_SEQ);
+        success = SensorBMI160_GetAccelData(accelData);
+        System_printf("X: %d\t Y: %d\tZ: %d\n", accelData[0], accelData[1], accelData[2]);
+        System_flush();
 
         GPIO_write(Board_LED1, Board_LED_OFF);
-        System_flush();
     }
 }
 

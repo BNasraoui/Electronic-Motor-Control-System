@@ -25,6 +25,7 @@
 #include "driverlib/gpio.h"
 #include "driverlib/interrupt.h"
 #include "driverlib/adc.h"
+#include "driverlib/timer.h"
 
 /* Tiva C series macros header files */
 #include "inc/hw_ints.h"
@@ -160,7 +161,7 @@ extern void ADC1_Read();
 
 extern bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData);
 
-extern bool SensorBMI160Read(uint16_t *rawData);
+extern bool SensorBMI160_GetAccelData(uint16_t rawData[]);
 
 extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
 

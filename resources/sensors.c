@@ -70,26 +70,26 @@ void InitI2C_opt3001() {
 
 void InitADC0_CurrentSense() {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
    // SysCtlPeripheralEnable( SYSCTL_PERIPH_GPIOE);
 
     //Makes GPIO an INPUT and sets them to be ANALOG
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
     //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Trigger, uint32_t
-    ADCSequenceConfigure(ADC0_BASE, ADC_SEQ , ADC_TRIGGER_PROCESSOR, 0);
+    ADCSequenceConfigure(ADC0_BASE, ADC_SEQ , ADC_TRIGGER_TIMER, 0);
 
     //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Step, uint32_t ui32Config
     ADCSequenceStepConfigure( ADC0_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH0 | ADC_CTL_END);
 
+    TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
+    TimerLoadSet(TIMER0_BASE, TIMER_A, SysCtlClockGet()/10);
+    TimerControlTrigger(TIMER0_BASE, TIMER_A, true);
+
     ADCSequenceEnable(ADC0_BASE, ADC_SEQ);
-
     ADCIntEnable(ADC0_BASE, ADC_SEQ);
-
     ADCIntClear( ADC0_BASE, ADC_SEQ);
-
     IntEnable(INT_ADC0SS1);
-
-    //Start the processing so that callback is called
-    ADCProcessorTrigger(ADC0_BASE, ADC_SEQ);
+    TimerEnable(TIMER0_BASE, TIMER_A);
 }
 
 void InitADC1_CurrentSense() {
@@ -99,21 +99,15 @@ void InitADC1_CurrentSense() {
     //Makes GPIO an INPUT and sets them to be ANALOG
     GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_7);
     //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Trigger, uint32_t
-    ADCSequenceConfigure(ADC1_BASE, ADC_SEQ , ADC_TRIGGER_PROCESSOR, 0);
+    ADCSequenceConfigure(ADC1_BASE, ADC_SEQ , ADC_TRIGGER_TIMER, 0);
 
     //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Step, uint32_t ui32Config
     ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH4 | ADC_CTL_END);
 
     ADCSequenceEnable(ADC1_BASE, ADC_SEQ);
-
     ADCIntEnable(ADC1_BASE, ADC_SEQ);
-
     ADCIntClear(ADC1_BASE, ADC_SEQ);
-
     IntEnable(INT_ADC1SS1);
-
-    //Start the processing so that callback is called
-    ADCProcessorTrigger(ADC1_BASE, ADC_SEQ);
 }
 
 void InitI2C_BMI160() {
@@ -357,25 +351,30 @@ bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData)
     return (success);
 }
 
-bool SensorBMI160Read(uint16_t *rawData)
+bool SensorBMI160_GetAccelData(uint16_t rawData[])
 {
-    bool success;
     uint8_t buffer[2];
 
-    success = BufferReadI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L, buffer);
-
-    if (success)
-    {
+    bool success = BufferReadI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L, buffer);
+    if (success) {
         // Swap bytes
-        *rawData = (((uint16_t)buffer[1]) << 8) | buffer[0];
-    }
-    else
-    {
-        //    sensorSetErrorData
+        uint16_t accel = (((uint16_t)buffer[1]) << 8) | buffer[0];
+        rawData[0] = accel;
     }
 
-    System_printf("Accel value: %d\n", *rawData);
-    System_flush();
+    success = BufferReadI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_Y_L, buffer);
+    if (success) {
+        // Swap bytes
+        uint16_t accel = (((uint16_t)buffer[1]) << 8) | buffer[0];
+        rawData[1] = accel;
+    }
+
+    success = BufferReadI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_Z_L, buffer);
+    if (success) {
+        // Swap bytes
+        uint16_t accel = (((uint16_t)buffer[1]) << 8) | buffer[0];
+        rawData[2] = accel;
+    }
 
     return (success);
 }
