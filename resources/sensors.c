@@ -33,6 +33,7 @@ void InitI2C_opt3001() {
     I2C_Params      opt3001Params;
     uint8_t txBuffer[3];
     I2C_Transaction i2cTransaction;
+    lightLimitReached = false;
 
     /* Create I2C for usage */
     I2C_Params_init(&opt3001Params);
@@ -47,13 +48,13 @@ void InitI2C_opt3001() {
     }
 
     //Read device ID
-    uint16_t data;
-    bool success = ReadI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
+    uint8_t data;
+    bool success = ReadByteI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
     while(data != 48) {
         System_printf("I2C FAIL\t trying again in 5ms\n");
         System_flush();
         Task_sleep(5);
-        bool success = ReadI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
+        bool success = ReadByteI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
     }
 
     uint16_t val;
@@ -62,9 +63,7 @@ void InitI2C_opt3001() {
 
     //Configure the default high/low limits
     SetLowLimit_OPT3001(40.95);
-    val =  LOW_LIMIT;
     SetHighLimit_OPT3001(2620.8);
-
 
     IntEnable(INT_GPIOP2);
 }
@@ -139,7 +138,7 @@ void InitI2C_BMI160() {
     //delay(10);
     Task_sleep(10);
 
-    ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x02, &out);
+    ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x02, (uint8_t*)&out);
     System_printf("Error code: %d\n", data);
     System_flush();
 
@@ -159,11 +158,11 @@ void InitI2C_BMI160() {
 //        delay(1);
     Task_sleep(5);
 
-    ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x03, &out);
+    ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x03, (uint8_t*)&out);
     while(out == 0) {
         System_printf("Error code: %d\n", out);
         System_flush();
-        ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x03, &out);
+        ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x03, (uint8_t*)&out);
         Task_sleep(5);
     }
 
@@ -338,11 +337,11 @@ bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData)
     bool success;
     uint16_t val;
 
-    success = ReadI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, &val);
+    success = ReadI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
 
     if (success)
     {
-        success = ReadI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_RESULT, &val);
+        success = ReadI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
     }
 
     if (success)
@@ -404,7 +403,7 @@ bool BufferReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, u
     return true;
 }
 
-bool ReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint16_t* data)
+bool ReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t* data)
 {
 
     I2C_Transaction i2cTransaction;
@@ -417,10 +416,11 @@ bool ReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint16_
     i2cTransaction.writeBuf = txBuffer;
     i2cTransaction.writeCount = 1;
     i2cTransaction.readBuf = rxBuffer;
-    i2cTransaction.readCount = 3;
+    i2cTransaction.readCount = 2;
 
     if (!I2C_transfer(i2cHandle, &i2cTransaction)) {
         System_printf("Bad I2C Read transfer!");
+        System_flush();
     }
     data[0] = rxBuffer[0];
     data[1] = rxBuffer[1];
@@ -518,13 +518,13 @@ void SensorOpt3001Convert(uint16_t rawData, float *convertedLux)
 void SetLowLimit_OPT3001(float val)
 {
     uint16_t reg = CalculateLimitReg(val);
-    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_HIGH_LIMIT, (uint8_t*)&reg);
+    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_LOW_LIMIT, (uint8_t*)&reg);
 }
 
 void SetHighLimit_OPT3001(float val)
 {
     uint16_t reg = CalculateLimitReg(val);
-    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_LOW_LIMIT, (uint8_t*)&val);
+    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_HIGH_LIMIT, (uint8_t*)&reg);
 }
 
 uint16_t CalculateLimitReg(float luxValue) {

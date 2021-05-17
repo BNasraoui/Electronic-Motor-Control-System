@@ -66,23 +66,15 @@
 
 void OPT3001Fxn()
 {
-   // UInt gateKey;
-    uint16_t  rawData = 0;
-    float     convertedLux = 0;
-    char      tempStr[40];
-    bool      success;
+    UInt gateKey;
+    gateKey = GateHwi_enter(gateHwi);
+    lightLimitReached = true;
 
-    //gateKey = GateHwi_enter(gateHwi);
+    //Generate light limit event?
+    //Call Swi to get lux value that triggered event???
+    //I2C read doesn't like being called in Hwi because it's blocking??
 
-//    //Read and convert OPT values
-//    success = SensorOpt3001Read(opt3001, &rawData); // INT pin is cleared here
-//
-//    if (success) {
-//        SensorOpt3001Convert(rawData, &convertedLux);
-//    }
-
-    //GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_2); // clear the interrupt
-    //GateHwi_leave(gateHwi, gateKey);
+    GateHwi_leave(gateHwi, gateKey);
 }
 
 void ADC0_Read() {
@@ -111,15 +103,16 @@ void ReadSensorsFxn() {
     while (1) {
         GPIO_write(Board_LED1, Board_LED_ON);
 
-       // gateKey = GateHwi_enter(gateHwi);
+        gateKey = GateHwi_enter(gateHwi);
         success = SensorOpt3001Read(opt3001, &rawData);
         if (success) {
            SensorOpt3001Convert(rawData, &luxFloat);
 
-           //Process the data and do something with it
+           System_printf("LUX: %d\n", (int)luxFloat);
+           System_flush();
         }
 
-      //  GateHwi_leave(gateHwi, gateKey);
+        GateHwi_leave(gateHwi, gateKey);
 
         success = SensorBMI160Read(&rawData);
 

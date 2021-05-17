@@ -86,6 +86,8 @@ GateHwi_Params gHwiprms;
 I2C_Handle opt3001;
 I2C_Handle bmi160;
 
+bool lightLimitReached;
+
 typedef struct Sensors_Config      *Sensors_Handle;
 
 typedef struct SensorsTiva_Object {
@@ -170,7 +172,7 @@ extern uint16_t CalculateLimitReg(float luxValue);
 
 extern bool BufferReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t data[]);
 
-extern bool ReadI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint16_t *data);
+extern bool ReadI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
 
 extern bool ReadByteI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
 
