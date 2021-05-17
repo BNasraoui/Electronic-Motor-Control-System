@@ -75,15 +75,15 @@
 #define ADC_STEP                    0
 #define ADC_BUFFER_SIZE             5
 
-uint32_t ADC0Buffer[ADC_BUFFER_SIZE];
-uint8_t ADC0BufferIndex;
-uint32_t ADC0Sum;
-uint32_t ADC0Avg;
+typedef struct Sliding_Window{
+    uint8_t index;
+    uint32_t sum;
+    uint32_t avg;
+    uint32_t data[ADC_BUFFER_SIZE];
+} SlidingWindow;
 
-uint32_t ADC1Buffer[ADC_BUFFER_SIZE];
-uint8_t ADC1BufferIndex;
-uint32_t ADC1Sum;
-uint32_t ADC1Avg;
+SlidingWindow ADC0Window;
+SlidingWindow ADC1Window;
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];

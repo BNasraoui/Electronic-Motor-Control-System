@@ -87,9 +87,9 @@ void InitI2C_opt3001() {
 }
 
 void InitADC0_CurrentSense() {
-    ADC0BufferIndex = 0;
-    ADC0Sum = 0;
-    ADC0Avg = 0;
+    ADC0Window.index = 0;
+    ADC0Window.sum = 0;
+    ADC0Window.avg = 0;
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
@@ -115,9 +115,9 @@ void InitADC0_CurrentSense() {
 }
 
 void InitADC1_CurrentSense() {
-    ADC1BufferIndex = 0;
-    ADC1Sum = 0;
-    ADC1Avg = 0;
+    ADC1Window.index = 0;
+    ADC1Window.sum = 0;
+    ADC1Window.avg = 0;
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
     //SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
