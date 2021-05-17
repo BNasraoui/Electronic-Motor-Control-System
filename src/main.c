@@ -80,13 +80,31 @@ void OPT3001Fxn()
 void ADC0_Read() {
     uint32_t pui32ADC0Value[1];
     ADCIntClear(ADC0_BASE, ADC_SEQ);
+    ADC0Sum = ADC0Sum - ADC0Buffer[ADC0BufferIndex];
     ADCSequenceDataGet(ADC0_BASE, ADC_SEQ , pui32ADC0Value);
+    ADC0Buffer[ADC0BufferIndex] = pui32ADC0Value[0];
+    Swi_post(swi0Handle);
+}
+
+void ADC0_FilterFxn() {
+    ADC0Sum = ADC0Sum + ADC0Buffer[ADC0BufferIndex];
+    ADC0BufferIndex =  (ADC0BufferIndex + 1) % ADC_BUFFER_SIZE;
+    ADC0Avg = ADC0Sum / ADC_BUFFER_SIZE;
 }
 
 void ADC1_Read() {
     uint32_t pui32ADC1Value[1];
     ADCIntClear(ADC1_BASE, ADC_SEQ);
+    ADC1Sum = ADC1Sum - ADC1Buffer[ADC1BufferIndex];
     ADCSequenceDataGet(ADC1_BASE, ADC_SEQ , pui32ADC1Value);
+    ADC1Buffer[ADC1BufferIndex] = pui32ADC1Value[0];
+    Swi_post(swi1Handle);
+}
+
+void ADC1_FilterFxn() {
+    ADC1Sum = ADC1Sum + ADC1Buffer[ADC1BufferIndex];
+    ADC1BufferIndex =  (ADC1BufferIndex + 1) % ADC_BUFFER_SIZE;
+    ADC1Avg = ADC1Sum / ADC_BUFFER_SIZE;
 }
 
 void ReadSensorsFxn() {

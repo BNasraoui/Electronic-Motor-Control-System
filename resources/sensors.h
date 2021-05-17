@@ -15,6 +15,8 @@
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/hal/Hwi.h>
 #include <ti/sysbios/gates/GateHwi.h>
+#include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Swi.h>
 
 /* TI-RTOS Header files */
 #include <ti/drivers/GPIO.h>
@@ -64,15 +66,24 @@
 
 /* Bit values */
 #define DATA_RDY_BIT                    0x0080  // Data ready
+#define TASKSTACKSIZE                   512
 
 #define P2_VECTOR_NUM              94
 #define ADC0_SEQ1_VEC_NUM          31
 #define ADC1_SEQ1_VEC_NUM          63
+#define ADC_SEQ                     1
+#define ADC_STEP                    0
+#define ADC_BUFFER_SIZE             5
 
-#define ADC_SEQ     1
-#define ADC_STEP    0
+uint32_t ADC0Buffer[ADC_BUFFER_SIZE];
+uint8_t ADC0BufferIndex;
+uint32_t ADC0Sum;
+uint32_t ADC0Avg;
 
-#define TASKSTACKSIZE   512
+uint32_t ADC1Buffer[ADC_BUFFER_SIZE];
+uint8_t ADC1BufferIndex;
+uint32_t ADC1Sum;
+uint32_t ADC1Avg;
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
@@ -83,6 +94,12 @@ Hwi_Handle hwi_ADC1;
 Hwi_Params hwiParams;
 GateHwi_Handle gateHwi;
 GateHwi_Params gHwiprms;
+
+Swi_Params swiParams;
+Swi_Struct swi0Struct, swi1Struct;
+Swi_Handle swi0Handle, swi1Handle;
+Semaphore_Struct sem0Struct;
+Semaphore_Handle sem0Handle;
 
 I2C_Handle opt3001;
 I2C_Handle bmi160;
@@ -158,6 +175,10 @@ extern void InitADC1_CurrentSense();
 extern void ADC0_Read();
 
 extern void ADC1_Read();
+
+extern void ADC0_FilterFxn();
+
+extern void ADC1_FilterFxn();
 
 extern bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData);
 

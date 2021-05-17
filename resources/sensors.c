@@ -12,6 +12,24 @@ void InitialiseTasks() {
     taskParams.priority = 1;
     Task_construct(&task0Struct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
 
+    Swi_Params_init(&swiParams);
+    swiParams.arg0 = 1;
+    swiParams.arg1 = 0;
+    swiParams.priority = 2;
+    swiParams.trigger = 0;
+
+    Swi_construct(&swi0Struct, (Swi_FuncPtr)ADC0_FilterFxn, &swiParams, NULL);
+    swi0Handle = Swi_handle(&swi0Struct);
+
+    Swi_Params_init(&swiParams);
+    swiParams.arg0 = 1;
+    swiParams.arg1 = 0;
+    swiParams.priority = 2;
+    swiParams.trigger = 0;
+
+    Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
+    swi1Handle = Swi_handle(&swi1Struct);
+
     Hwi_Params_init(&hwiParams);
     hwiParams.priority = 0;
     hwi_ADC0 = Hwi_create(ADC0_SEQ1_VEC_NUM, (Hwi_FuncPtr)ADC0_Read, &hwiParams, NULL);
@@ -69,6 +87,10 @@ void InitI2C_opt3001() {
 }
 
 void InitADC0_CurrentSense() {
+    ADC0BufferIndex = 0;
+    ADC0Sum = 0;
+    ADC0Avg = 0;
+
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
    // SysCtlPeripheralEnable( SYSCTL_PERIPH_GPIOE);
@@ -93,6 +115,10 @@ void InitADC0_CurrentSense() {
 }
 
 void InitADC1_CurrentSense() {
+    ADC1BufferIndex = 0;
+    ADC1Sum = 0;
+    ADC1Avg = 0;
+
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
     //SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
