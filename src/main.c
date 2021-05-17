@@ -66,28 +66,23 @@
 
 void OPT3001Fxn()
 {
-    UInt gateKey;
+   // UInt gateKey;
     uint16_t  rawData = 0;
     float     convertedLux = 0;
     char      tempStr[40];
     bool      success;
 
-    // Get and clear interrupt status.
-    uint32_t intStatus;
-   // intStatus = UARTIntStatus(0x4000C000);
-  //  UARTIntClear(0x4000C000, intStatus);
+    //gateKey = GateHwi_enter(gateHwi);
 
-    gateKey = GateHwi_enter(gateHwi);
+//    //Read and convert OPT values
+//    success = SensorOpt3001Read(opt3001, &rawData); // INT pin is cleared here
+//
+//    if (success) {
+//        SensorOpt3001Convert(rawData, &convertedLux);
+//    }
 
-    //Read and convert OPT values
-    success = SensorOpt3001Read(opt3001, &rawData); // INT pin is cleared here
-
-    if (success) {
-        SensorOpt3001Convert(rawData, &convertedLux);
-    }
-
-    GateHwi_leave(gateHwi, gateKey);
     //GPIOIntClear(GPIO_PORTP_BASE, GPIO_PIN_2); // clear the interrupt
+    //GateHwi_leave(gateHwi, gateKey);
 }
 
 void ADC0_Read() {
@@ -103,6 +98,7 @@ void ADC1_Read() {
 }
 
 void ReadSensorsFxn() {
+    UInt gateKey;
     uint16_t rawData;
     bool success = false;
     float luxFloat;
@@ -115,10 +111,15 @@ void ReadSensorsFxn() {
     while (1) {
         GPIO_write(Board_LED1, Board_LED_ON);
 
+       // gateKey = GateHwi_enter(gateHwi);
         success = SensorOpt3001Read(opt3001, &rawData);
         if (success) {
            SensorOpt3001Convert(rawData, &luxFloat);
+
+           //Process the data and do something with it
         }
+
+      //  GateHwi_leave(gateHwi, gateKey);
 
         success = SensorBMI160Read(&rawData);
 
@@ -145,6 +146,10 @@ int main(void)
     Board_initSensors();
 
     InitialiseTasks();
+
+    GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
+
+    GPIO_enableInt(Board_OPT3001);
 
     //Create Hwi Gate Mutex
     GateHwi_Params_init(&gHwiprms);

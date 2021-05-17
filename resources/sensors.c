@@ -9,28 +9,20 @@ void InitialiseTasks() {
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
     //taskParams.instance->name = "initI2C_opt3001";
-    taskParams.priority = 2;
+    taskParams.priority = 1;
     Task_construct(&task0Struct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
-
-    Hwi_Params_init(&hwiParams);
-    hwiParams.priority = 1;
-    hwi_OPT3001 = Hwi_create(94, (Hwi_FuncPtr)OPT3001Fxn, &hwiParams, NULL);
-    if (hwi_OPT3001 == NULL) {
-     System_abort("Hwi create failed");
-    }
 
     Hwi_Params_init(&hwiParams);
     hwiParams.priority = 0;
     hwi_ADC0 = Hwi_create(ADC0_SEQ1_VEC_NUM, (Hwi_FuncPtr)ADC0_Read, &hwiParams, NULL);
     if (hwi_ADC0 == NULL) {
-     System_abort("Hwi create failed");
+     System_abort("ADC0 Hwi create failed");
     }
 
-    Hwi_Params_init(&hwiParams);
     hwiParams.priority = 0;
     hwi_ADC1 = Hwi_create(ADC1_SEQ1_VEC_NUM, (Hwi_FuncPtr)ADC1_Read, &hwiParams, NULL);
     if (hwi_ADC1 == NULL) {
-     System_abort("Hwi create failed");
+     System_abort("ADC1 Hwi create failed");
     }
 }
 /*
@@ -69,10 +61,12 @@ void InitI2C_opt3001() {
     WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
 
     //Configure the default high/low limits
-    val =  HIGH_LIMIT;
-    SetLowLimit_OPT3001(opt3001, val);
+    SetLowLimit_OPT3001(40.95);
     val =  LOW_LIMIT;
-    SetHighLimit_OPT3001(opt3001, val);
+    SetHighLimit_OPT3001(2620.8);
+
+
+    IntEnable(INT_GPIOP2);
 }
 
 void InitADC0_CurrentSense() {
@@ -521,14 +515,26 @@ void SensorOpt3001Convert(uint16_t rawData, float *convertedLux)
     *convertedLux = m * (0.01 * exp2(e));
 }
 
-void SetLowLimit_OPT3001(I2C_Handle i2cHandle, uint16_t val)
+void SetLowLimit_OPT3001(float val)
 {
-    WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_HIGH_LIMIT, (uint8_t*)&val);
+    uint16_t reg = CalculateLimitReg(val);
+    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_HIGH_LIMIT, (uint8_t*)&reg);
 }
 
-void SetHighLimit_OPT3001(I2C_Handle i2cHandle, uint16_t val)
+void SetHighLimit_OPT3001(float val)
 {
-    WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_LOW_LIMIT, (uint8_t*)&val);
+    uint16_t reg = CalculateLimitReg(val);
+    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_LOW_LIMIT, (uint8_t*)&val);
+}
+
+uint16_t CalculateLimitReg(float luxValue) {
+    uint8_t E = 6;
+    uint16_t result = luxValue / (0.01 * pow(2, E));
+    unsigned char bytes[2];
+    bytes[0] = (E << 4 & 0x000000F0) | (result >> 8 & 0x0000000F);
+    bytes[1] = (result & 0x000000F0) | (result & 0x0000000F);
+    uint16_t reg = bytes[1] << 8 | bytes[0];
+    return reg;
 }
 
 

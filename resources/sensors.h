@@ -58,8 +58,6 @@
 #define CONFIG_VAL                      0x10C4 // latched window-style comparison and INT pin reports active low
 #define LOW_LIMIT                       0xFF0F // Full-scale range (Lux) = 40.95
 #define HIGH_LIMIT                      0xFF6F // Full scale range (Lux) = 2620.80
-//#define LOW_LIMIT                       0x0FFF // Full-scale range (Lux) = 40.95
-//#define HIGH_LIMIT                      0x6FFF // Full scale range (Lux) = 2620.80
 
 #define BMI160_SLAVE_ADDRESS            0x69
 
@@ -158,17 +156,17 @@ extern void ADC0_Read();
 
 extern void ADC1_Read();
 
-extern void OPT3001_handler();
-
 extern bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData);
 
 extern bool SensorBMI160Read(uint16_t *rawData);
 
 extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
 
-extern void SetLowLimit_OPT3001(I2C_Handle opt3001, uint16_t val);
+extern void SetLowLimit_OPT3001(float val);
 
-extern void SetHighLimit_OPT3001(I2C_Handle opt3001, uint16_t val);
+extern void SetHighLimit_OPT3001(float val);
+
+extern uint16_t CalculateLimitReg(float luxValue);
 
 extern bool BufferReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t data[]);
 
