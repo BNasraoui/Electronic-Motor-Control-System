@@ -42,6 +42,7 @@
 #include <ti/sysbios/knl/Task.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -175,20 +176,126 @@ void StartStopBttnPress(tWidget *psWidget)
  *  Toggle the Board_LED0. The Task_sleep is determined by arg0 which
  *  is configured for the heartBeat Task instance.
  */
-Void heartBeatFxn(UArg arg0, UArg arg1)
+#define MAX_DISPLAY_POINTS 18
+#define DATA_BUFFER_SIZE 32
+
+uint32_t prevDataX;
+uint32_t prevDataY;
+uint32_t dataBuffer[DATA_BUFFER_SIZE];
+uint32_t data[MAX_DISPLAY_POINTS];
+
+uint32_t dataHead = 0;
+uint32_t dataTail = 0;
+
+uint32_t graphHead = 0;
+
+uint32_t graphHeight;
+uint32_t graphWidth;
+
+void shiftGraph();
+
+void drawDataPoint(uint32_t dx, uint32_t dy) {
+    GrLineDraw(&sContext, prevDataX, prevDataY, dx, dy);
+    GrCircleFill(&sContext, dx, dy, 3);
+    prevDataX = dx;
+    prevDataY = dy;
+}
+
+void drawNextDataPoint() {
+    if (graphHead >= MAX_DISPLAY_POINTS) {
+        shiftGraph();
+    }
+
+    uint32_t dx = 12 + (graphHead * 16);
+
+    uint32_t dy = graphHeight + 12 - dataBuffer[dataTail];
+    data[graphHead] = dy;
+
+    if (prevDataX == 0 && prevDataY == 0) {
+        prevDataX = 12 + (graphHead * 16);
+        prevDataY = data[0];
+    }
+
+    drawDataPoint(dx, dy);
+
+    if (graphHead < MAX_DISPLAY_POINTS) {
+        ++graphHead;
+    }
+
+    ++dataTail;
+    if (dataTail > DATA_BUFFER_SIZE - 1) {
+        dataTail = 0;
+    }
+
+}
+
+void shiftGraph() {
+    uint32_t i;
+    prevDataX = 12;
+    prevDataY = data[0];
+
+    GrContextForegroundSet(&sContext, ClrBlack);
+    for (i = 0; i < MAX_DISPLAY_POINTS+1; i++) {
+        drawDataPoint(12 + (i * 16), data[i]);
+    }
+
+    prevDataX = 12;
+    prevDataY = data[0];
+    GrContextForegroundSet(&sContext, ClrYellow);
+    for (i = 0; i < MAX_DISPLAY_POINTS; i++) {
+        data[i] = data[i+1];
+        drawDataPoint(12 + (i * 16), data[i]);
+    }
+}
+
+void addDataPoint(uint32_t y) {
+    dataBuffer[dataHead] = y;
+
+    ++dataHead;
+    if (dataHead > DATA_BUFFER_SIZE) {
+        dataHead = 0;
+    }
+}
+
+
+
+void g_graphSetup(UArg arg0, UArg arg1)
 {
 
+
+
     // Add the compile-time defined widgets to the widget tree.
-    WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sBackground);
+    // WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sBackground);
 
     // Paint the widget tree to make sure they all appear on the display.
-    WidgetPaint(WIDGET_ROOT);
+    // WidgetPaint(WIDGET_ROOT);
 
+    GrContextForegroundSet(&sContext, ClrWhite);
+    GrLineDraw(&sContext, 12, 12, 12, GrContextDpyHeightGet(&sContext) - 12);
+    GrLineDraw(&sContext, 12, GrContextDpyHeightGet(&sContext) - 12, GrContextDpyWidthGet(&sContext) - 12, GrContextDpyHeightGet(&sContext) - 12);
+
+    GrContextForegroundSet(&sContext, ClrYellow);
+
+    time_t t;
+    srand((unsigned) time(&t));
+
+    uint32_t cheapTimer = 0;
     while (1) {
-        SysCtlDelay(100);
+
+        while (dataHead != dataTail) {
+            drawNextDataPoint();
+        }
+
+        ++cheapTimer;
+        if (cheapTimer > 1000000) {
+            cheapTimer = 0;
+            addDataPoint((rand() % (graphHeight-24)) + 6);
+        }
+
+        /*SysCtlDelay(100);
         GPIO_toggle(Board_LED0);
 
-        WidgetMessageQueueProcess();
+        WidgetMessageQueueProcess();*/
 
 //        TouchScreenIntHandler
     }
@@ -213,7 +320,7 @@ int main(void)
     taskParams.arg0 = 1000;
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
-    Task_construct(&task0Struct, (Task_FuncPtr)heartBeatFxn, &taskParams, NULL);
+    Task_construct(&task0Struct, (Task_FuncPtr)g_graphSetup, &taskParams, NULL);
 
     // Turn on user LED
     GPIO_write(Board_LED0, Board_LED_ON);
@@ -225,9 +332,12 @@ int main(void)
     TouchScreenCallbackSet(WidgetPointerMessage);
 
 
+    graphHeight = GrContextDpyHeightGet(&sContext) - 24;
+    graphWidth = GrContextDpyWidthGet(&sContext) - 24;
 
-
-    FrameDraw(&sContext, "Touch Screen Test");
+    char str[32];
+    sprintf(&str, "%dx%d", graphWidth, graphHeight);
+    FrameDraw(&sContext, str);
 
     System_printf("Starting the example\nSystem provider is set to SysMin. "
                   "Halt the target to view any SysMin contents in ROV.\n");
