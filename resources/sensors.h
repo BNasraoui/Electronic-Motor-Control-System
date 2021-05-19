@@ -9,6 +9,8 @@
 
 #include <xdc/runtime/Types.h>
 #include <xdc/runtime/System.h>
+#include <xdc/runtime/Timestamp.h>
+#include <xdc/runtime/Error.h>
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
@@ -17,6 +19,9 @@
 #include <ti/sysbios/gates/GateHwi.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Swi.h>
+#include <ti/sysbios/hal/Timer.h>
+#include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/knl/Event.h>
 
 /* TI-RTOS Header files */
 #include <ti/drivers/GPIO.h>
@@ -72,7 +77,13 @@
 #define ADC1_SEQ1_VEC_NUM          63
 #define ADC_SEQ                     1
 #define ADC_STEP                    0
-#define WINDOW_SIZE             5
+#define WINDOW_SIZE                 5
+
+#define LOW_HIGH_LIGHT_EVENT            Event_Id_00
+#define NEW_OPT3001_DATA                Event_Id_01
+#define NEW_ACCEL_DATA                  Event_Id_02
+#define NEW_ADC0_DATA                   Event_Id_03
+#define NEW_ADC1_DATA                   Event_Id_04
 
 typedef struct Sliding_Window32{
     uint8_t index;
@@ -91,6 +102,7 @@ typedef struct Sliding_Window16{
 //Moving average filtering with buffer
 SlidingWindow32 ADC0Window;
 SlidingWindow32 ADC1Window;
+SlidingWindow16 luxValueFilt;
 SlidingWindow16 accelXFilt;
 SlidingWindow16 accelYFilt;
 SlidingWindow16 accelZFilt;
@@ -106,15 +118,21 @@ GateHwi_Handle gateHwi;
 GateHwi_Params gHwiprms;
 
 Swi_Params swiParams;
-Swi_Struct swi0Struct, swi1Struct, swi2Struct;
-Swi_Handle swi0Handle, swi1Handle, swi2Handle;
+Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
+Swi_Handle swi0Handle, swi1Handle, swi2Handle, swi3Handle;
 Semaphore_Struct sem0Struct;
 Semaphore_Handle sem0Handle;
+
+Event_Handle eventHandler;
+Error_Block eb;
+
+Clock_Params clockParams;
+Clock_Handle clockHandler;
+//extern Timer_Handle myTimer;
 
 I2C_Handle i2cHandle;
 I2C_Params i2cParams;
 I2C_Handle bmi160Handle;
-bool clearingIntBit;
 
 I2C_Transaction i2cTransaction_BMI;
 uint8_t rxBuffer_BMI[6];
@@ -123,6 +141,8 @@ uint8_t txBuffer_BMI[1];
 I2C_Transaction i2cTransaction_OPT;
 uint8_t rxBuffer_OPT[2];
 uint8_t txBuffer_OPT[1];
+
+I2C_Transaction i2cTransaction_GLOBAL;
 
 bool lightLimitReached;
 
@@ -182,6 +202,8 @@ typedef struct Sensors_Config {
 
 extern void InitSensorDriver();
 
+extern void InitTasks();
+
 extern void ReadSensorsFxn();
 
 extern void InitI2C_opt3001();
@@ -191,6 +213,8 @@ extern void InitI2C_BMI160();
 extern void InitADC0_CurrentSense();
 
 extern void InitADC1_CurrentSense();
+
+extern void clockHandlerFxn(UArg arg);
 
 extern void ADC0_Read();
 
@@ -205,6 +229,8 @@ extern bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData);
 extern bool SensorBMI160_GetAccelData(uint16_t *accelX, uint16_t *accelY, uint16_t *accelZ);
 
 extern void ProcessAccelDataFxn();
+
+extern void ProcessLuxDataFxn();
 
 extern void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result);
 

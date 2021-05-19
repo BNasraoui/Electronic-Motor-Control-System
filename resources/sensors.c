@@ -3,17 +3,37 @@
 #include <math.h>
 
 void InitSensorDriver() {
-    Task_Params taskParams;
+
+    Error_init(&eb);
+
+    InitTasks();
+
+    eventHandler = Event_create(NULL, &eb);
+    if(eventHandler == NULL) {
+        System_abort("Event create failed");
+    }
 
     /* Create I2C for usage */
     I2C_Params_init(&i2cParams);
     i2cParams.bitRate = I2C_100kHz;
     i2cParams.transferMode = I2C_MODE_BLOCKING;
     i2cHandle = I2C_open(0, &i2cParams);
-
     if (i2cHandle == NULL) {
         System_abort("Error Initializing I2C\n");
     }
+
+    Clock_Params_init(&clockParams);
+    clockParams.period = 10;
+    clockParams.startFlag = FALSE;
+    clockHandler = Clock_create(clockHandlerFxn, 5, &clockParams, &eb);
+    if (clockHandler == NULL) {
+     System_abort("Clock create failed");
+    }
+
+}
+
+void InitTasks() {
+    Task_Params taskParams;
 
     Task_Params_init(&taskParams);
     taskParams.stackSize = TASKSTACKSIZE;
@@ -23,28 +43,19 @@ void InitSensorDriver() {
     Task_construct(&task0Struct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
 
     Swi_Params_init(&swiParams);
-    swiParams.arg0 = 1;
-    swiParams.arg1 = 0;
     swiParams.priority = 2;
     swiParams.trigger = 0;
     Swi_construct(&swi0Struct, (Swi_FuncPtr)ADC0_FilterFxn, &swiParams, NULL);
     swi0Handle = Swi_handle(&swi0Struct);
 
-    Swi_Params_init(&swiParams);
-    swiParams.arg0 = 1;
-    swiParams.arg1 = 0;
-    swiParams.priority = 2;
-    swiParams.trigger = 0;
     Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
     swi1Handle = Swi_handle(&swi1Struct);
 
-    Swi_Params_init(&swiParams);
-    swiParams.arg0 = 1;
-    swiParams.arg1 = 0;
-    swiParams.priority = 2;
-    swiParams.trigger = 0;
     Swi_construct(&swi2Struct, (Swi_FuncPtr)ProcessAccelDataFxn, &swiParams, NULL);
     swi2Handle = Swi_handle(&swi2Struct);
+
+    Swi_construct(&swi3Struct, (Swi_FuncPtr)ProcessLuxDataFxn, &swiParams, NULL);
+    swi3Handle = Swi_handle(&swi3Struct);
 
     Hwi_Params_init(&hwiParams);
     hwiParams.priority = 0;
@@ -64,7 +75,9 @@ void InitSensorDriver() {
  * check sensor data against criteria
  */
 void InitI2C_opt3001() {
-    lightLimitReached = false;
+    luxValueFilt.index = 0;
+    luxValueFilt.sum = 0;
+    luxValueFilt.avg = 0;
     uint8_t data;
     uint16_t val;
 
@@ -166,7 +179,7 @@ void InitI2C_BMI160() {
     Task_sleep(5);
 
     //Set the bandwidth for accell/gyro to normal and set 100Hz for both
-    val =  0x0A;
+    val =  0x08;
     WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_FOC_CONF_DEFAULT, val);
 
     //Interrupt raised when data ready
@@ -214,7 +227,7 @@ bool SensorOpt3001Read(I2C_Handle i2cHandle, uint16_t *rawData)
 
     if (success) {
         // Swap bytes
-        *rawData = (val << 8) | (val>>8 &0xFF);
+        *rawData = (val << 8) | (val>>8 & 0xFF);
     }
 
     return (success);
@@ -223,24 +236,24 @@ bool SensorOpt3001Read(I2C_Handle i2cHandle, uint16_t *rawData)
 bool BufferReadI2C_OPT3001(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
 {
     txBuffer_OPT[0] = ui8Reg;
-    i2cTransaction_OPT.slaveAddress = slaveAddress;
-    i2cTransaction_OPT.writeBuf = txBuffer_OPT;
-    i2cTransaction_OPT.writeCount = 1;
-    i2cTransaction_OPT.readBuf = rxBuffer_OPT;
-    i2cTransaction_OPT.readCount = numBytes;
-    I2C_transfer(handle, &i2cTransaction_OPT);
+    i2cTransaction_GLOBAL.slaveAddress = slaveAddress;
+    i2cTransaction_GLOBAL.writeBuf = txBuffer_OPT;
+    i2cTransaction_GLOBAL.writeCount = 1;
+    i2cTransaction_GLOBAL.readBuf = rxBuffer_OPT;
+    i2cTransaction_GLOBAL.readCount = numBytes;
+    I2C_transfer(handle, &i2cTransaction_GLOBAL);
     return true;
 }
 
 bool BufferReadI2C_BMI160(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
 {
     txBuffer_BMI[0] = ui8Reg;
-    i2cTransaction_BMI.slaveAddress = slaveAddress;
-    i2cTransaction_BMI.writeBuf = txBuffer_BMI;
-    i2cTransaction_BMI.writeCount = 1;
-    i2cTransaction_BMI.readBuf = rxBuffer_BMI;
-    i2cTransaction_BMI.readCount = numBytes;
-    I2C_transfer(handle, &i2cTransaction_BMI);
+    i2cTransaction_GLOBAL.slaveAddress = slaveAddress;
+    i2cTransaction_GLOBAL.writeBuf = txBuffer_BMI;
+    i2cTransaction_GLOBAL.writeCount = 1;
+    i2cTransaction_GLOBAL.readBuf = rxBuffer_BMI;
+    i2cTransaction_GLOBAL.readCount = numBytes;
+    I2C_transfer(handle, &i2cTransaction_GLOBAL);
     return true;
 }
 

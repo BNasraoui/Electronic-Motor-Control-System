@@ -39,6 +39,7 @@
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/Clock.h>
 
 /* TI-RTOS Header files */
 #include <ti/drivers/EMAC.h>
@@ -65,6 +66,18 @@
 /* Board Header file */
 #include "Board.h"
 
+void clockHandlerFxn(UArg arg)
+{
+    UInt gateKey;
+    int numBytesToRead = 2;
+
+    gateKey = GateHwi_enter(gateHwi);
+    BufferReadI2C_OPT3001(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, numBytesToRead);
+    GateHwi_leave(gateHwi, gateKey);
+    Clock_start(clockHandler);
+    //Timer_start(myTimer);
+}
+
 void BMI160Fxn()
 {
     UInt gateKey;
@@ -83,9 +96,7 @@ void OPT3001Fxn()
     gateKey = GateHwi_enter(gateHwi);
     //Clear the interrupt bit
     BufferReadI2C_OPT3001(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, numBytesToRead);
-
-    //Need to Post low/high event
-
+    Event_post(eventHandler, Event_Id_00);
     GateHwi_leave(gateHwi, gateKey);
 }
 
@@ -100,10 +111,9 @@ void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool resul
             //Put data into x,y,z buffers
             Swi_post(swi2Handle);
         }
-        else if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS) {
+        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
             if(txBuffer_OPT[0] == REG_RESULT) {
-                uint16_t lux = i2cTransaction->readBuf;
-                System_printf("LUX: %d\n", lux);
+                Swi_post(swi3Handle);
             }
         }
         System_flush();
@@ -111,10 +121,28 @@ void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool resul
     GateHwi_leave(gateHwi, gateKey);
 }
 
+void ProcessLuxDataFxn() {
+    UInt gateKey;
+    float lux;
+
+    gateKey = GateHwi_enter(gateHwi);
+    uint16_t rawData = (rxBuffer_OPT[0] << 8) |  (rxBuffer_OPT[1]);
+    GateHwi_leave(gateHwi, gateKey);
+
+    SensorOpt3001Convert(rawData, &lux);
+    luxValueFilt.sum = luxValueFilt.sum - luxValueFilt.data[luxValueFilt.index];
+    luxValueFilt.data[luxValueFilt.index] = (uint16_t)lux;
+    luxValueFilt.sum = luxValueFilt.sum + luxValueFilt.data[luxValueFilt.index];
+    luxValueFilt.index = (luxValueFilt.index + 1) % WINDOW_SIZE;
+    luxValueFilt.avg = luxValueFilt.sum / WINDOW_SIZE;
+
+    Event_post(eventHandler, Event_Id_01);
+}
+
 void ProcessAccelDataFxn() {
     int16_t accelX, accelY, accelZ;
     UInt gateKey;
-    System_printf("BMI160 Swi trigger from I2C callback\n");
+    //System_printf("BMI160 Swi trigger from I2C callback\n");
 
     gateKey = GateHwi_enter(gateHwi);
 
@@ -143,6 +171,7 @@ void ProcessAccelDataFxn() {
     accelXFilt.avg = accelXFilt.sum / WINDOW_SIZE;
     accelYFilt.avg = accelYFilt.sum / WINDOW_SIZE;
     accelZFilt.avg = accelZFilt.sum / WINDOW_SIZE;
+    Event_post(eventHandler, Event_Id_02);
 
     System_flush();
 }
@@ -160,6 +189,7 @@ void ADC0_FilterFxn() {
     ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
     ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
     ADC0Window.avg = ADC0Window.sum / WINDOW_SIZE;
+    Event_post(eventHandler, Event_Id_03);
 }
 
 void ADC1_Read() {
@@ -175,10 +205,12 @@ void ADC1_FilterFxn() {
     ADC1Window.sum = ADC1Window.sum + ADC1Window.data[ADC1Window.index];
     ADC1Window.index = (ADC1Window.index + 1) % WINDOW_SIZE;
     ADC1Window.avg = ADC1Window.sum / WINDOW_SIZE;
+    Event_post(eventHandler, Event_Id_04);
 }
 
 void ReadSensorsFxn() {
     UInt gateKey;
+    UInt events;
     uint16_t rawData;
     float luxFloat;
 
@@ -198,21 +230,52 @@ void ReadSensorsFxn() {
         System_printf("I2C Initialized in callback mode\n");
     }
 
-    //enable Hwi for BMI160
+    //enable Hwi for BMI160 and OPT3001
     GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
-    GPIO_enableInt(Board_BMI160);
-    //enable Hwi for Opt3001
     GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
+    GPIO_enableInt(Board_BMI160);
     GPIO_enableInt(Board_OPT3001);
+    Clock_start(clockHandler);
+    //Timer_start(myTimer);
 
     while (1) {
         GPIO_write(Board_LED1, Board_LED_ON);
+        events = Event_pend(eventHandler, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04), BIOS_WAIT_FOREVER);
 
-        gateKey = GateHwi_enter(gateHwi);
-        //Check filtered values to see if they exceed limits
+        //Low/high light event
+        if(events & LOW_HIGH_LIGHT_EVENT) {
+            //TURN ON/OFF HEADLIGHTS
+        }
 
-        GateHwi_leave(gateHwi, gateKey);
+        //Low/high light event
+        if(events & NEW_OPT3001_DATA) {
+            //update display
+            System_printf("LUX: %d\n", luxValueFilt.avg);
+        }
 
+        //new accel data has been processed
+        if(events & NEW_ACCEL_DATA) {
+            //Check if we have crashed, respond accordingly
+
+            //Update display
+            System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
+        }
+        //new ADCO data has been processed
+        if(events & NEW_ADC0_DATA) {
+            //Check if limit exceeded, respon accordingly
+
+            //Update display
+            System_printf("ADC0: %d\n", ADC0Window.avg);
+        }
+        //new ADC1 data has been processed
+        if(events & NEW_ADC1_DATA) {
+            //Check if limit exceeded, respon accordingly
+
+            //Update display
+            System_printf("ADC1: %d\n", ADC1Window.avg);
+        }
+
+        System_flush();
         GPIO_write(Board_LED1, Board_LED_OFF);
     }
 }
