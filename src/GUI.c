@@ -67,13 +67,10 @@
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
 #include "grlib/grlib.h"
-#include "drivers/frame.h"
-#include "drivers/kentec320x240x16_ssd2119_spi.h"
-#include "drivers/pinout.h"
 #include "grlib/widget.h"
 #include "grlib/canvas.h"
 #include "grlib/pushbutton.h"
-#include "drivers/touch.h"
+#include "grlib/slider.h"
 #include <driverlib/sysctl.h>
 #include "utils/ustdlib.h"
 #include <math.h>
@@ -82,6 +79,11 @@
 #include <driverlib/gpio.h>
 #include <ti/sysbios/hal/Seconds.h>
 #include <time.h>
+
+#include "drivers/frame.h"
+#include "drivers/kentec320x240x16_ssd2119_spi.h"
+#include "drivers/pinout.h"
+#include "drivers/touch.h"
 
 // Graphics
 tContext sContext;

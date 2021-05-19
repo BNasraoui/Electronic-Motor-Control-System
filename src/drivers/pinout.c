@@ -68,28 +68,28 @@ PinoutSet(bool bEthernet, bool bUSB)
     //
     // Enable all the GPIO peripherals.
     //
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOG);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOH);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOM);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOQ);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOG);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOH);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOJ);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOK);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOM);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPION);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOQ);
 
     //
     // PA0-1 are used for UART0.
     //
-    GPIOPinConfigure(GPIO_PA0_U0RX);
-    GPIOPinConfigure(GPIO_PA1_U0TX);
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    ROM_GPIOPinConfigure(GPIO_PA0_U0RX);
+    ROM_GPIOPinConfigure(GPIO_PA1_U0TX);
+    ROM_GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
     //
     // PB0-1/PD6/PL6-7 are used for USB.
@@ -100,11 +100,11 @@ PinoutSet(bool bEthernet, bool bUSB)
     {
         HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
         HWREG(GPIO_PORTD_BASE + GPIO_O_CR) = 0xff;
-        GPIOPinConfigure(GPIO_PD6_USB0EPEN);
-        GPIOPinTypeUSBAnalog(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-        GPIOPinTypeUSBDigital(GPIO_PORTD_BASE, GPIO_PIN_6);
-        GPIOPinTypeUSBAnalog(GPIO_PORTL_BASE, GPIO_PIN_6 | GPIO_PIN_7);
-        GPIOPinTypeGPIOInput(GPIO_PORTQ_BASE, GPIO_PIN_4);
+        ROM_GPIOPinConfigure(GPIO_PD6_USB0EPEN);
+        ROM_GPIOPinTypeUSBAnalog(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+        ROM_GPIOPinTypeUSBDigital(GPIO_PORTD_BASE, GPIO_PIN_6);
+        ROM_GPIOPinTypeUSBAnalog(GPIO_PORTL_BASE, GPIO_PIN_6 | GPIO_PIN_7);
+        ROM_GPIOPinTypeGPIOInput(GPIO_PORTQ_BASE, GPIO_PIN_4);
     }
     else
     {
@@ -112,8 +112,8 @@ PinoutSet(bool bEthernet, bool bUSB)
         // Keep the default config for most pins used by USB.
         // Add a pull down to PD6 to turn off the TPS2052 switch
         //
-        GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_6);
-        GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_6, GPIO_STRENGTH_2MA,
+        ROM_GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_6);
+        MAP_GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_6, GPIO_STRENGTH_2MA,
                              GPIO_PIN_TYPE_STD_WPD);
 
     }
@@ -126,8 +126,8 @@ PinoutSet(bool bEthernet, bool bUSB)
         //
         // this app wants to configure for ethernet LED function.
         //
-        GPIOPinConfigure(GPIO_PF0_EN0LED0);
-        GPIOPinConfigure(GPIO_PF4_EN0LED1);
+        ROM_GPIOPinConfigure(GPIO_PF0_EN0LED0);
+        ROM_GPIOPinConfigure(GPIO_PF4_EN0LED1);
 
         GPIOPinTypeEthernetLED(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4);
 
@@ -139,13 +139,13 @@ PinoutSet(bool bEthernet, bool bUSB)
         // This app does not want Ethernet LED function so configure as
         // standard outputs for LED driving.
         //
-        GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4);
+        ROM_GPIOPinTypeGPIOOutput(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4);
 
         //
         // Default the LEDs to OFF.
         //
-        GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, 0);
-        GPIOPadConfigSet(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4,
+        ROM_GPIOPinWrite(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4, 0);
+        MAP_GPIOPadConfigSet(GPIO_PORTF_BASE, GPIO_PIN_0 | GPIO_PIN_4,
                              GPIO_STRENGTH_12MA, GPIO_PIN_TYPE_STD);
 
 
@@ -154,20 +154,20 @@ PinoutSet(bool bEthernet, bool bUSB)
     //
     // PJ0 and J1 are used for user buttons
     //
-    GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    GPIOPinWrite(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
+    ROM_GPIOPinTypeGPIOInput(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    ROM_GPIOPinWrite(GPIO_PORTJ_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
 
     //
     // PN0 and PN1 are used for USER LEDs.
     //
-    GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    GPIOPadConfigSet(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1,
+    ROM_GPIOPinTypeGPIOOutput(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    MAP_GPIOPadConfigSet(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1,
                              GPIO_STRENGTH_12MA, GPIO_PIN_TYPE_STD);
 
     //
     // Default the LEDs to OFF.
     //
-    GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
+    ROM_GPIOPinWrite(GPIO_PORTN_BASE, GPIO_PIN_0 | GPIO_PIN_1, 0);
 }
 
 //*****************************************************************************
