@@ -60,21 +60,91 @@
 //Created libraries for sub-systems
 #include "sensors.h"
 #include "driverlib/adc.h"
+#include "bmi160.h"
 
 /* Board Header file */
 #include "Board.h"
 
+void BMI160Fxn()
+{
+    UInt gateKey;
+    int numBytesToRead = 6;
+
+    gateKey = GateHwi_enter(gateHwi);
+    BufferReadI2C_BMI160(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L, numBytesToRead);
+    GateHwi_leave(gateHwi, gateKey);
+}
+
 void OPT3001Fxn()
 {
     UInt gateKey;
-    gateKey = GateHwi_enter(gateHwi);
-    lightLimitReached = true;
+    int numBytesToRead = 2;
 
-    //Generate light limit event?
-    //Call Swi to get lux value that triggered event???
-    //I2C read doesn't like being called in Hwi because it's blocking??
+    gateKey = GateHwi_enter(gateHwi);
+    //Clear the interrupt bit
+    BufferReadI2C_OPT3001(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, numBytesToRead);
+
+    //Need to Post low/high event
 
     GateHwi_leave(gateHwi, gateKey);
+}
+
+void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
+    UInt gateKey;
+
+    //We must protect the integrity of the I2C transaction
+    //If it's used whilst we are processing then issues arise
+    gateKey = GateHwi_enter(gateHwi);
+    if(result) {
+        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
+            //Put data into x,y,z buffers
+            Swi_post(swi2Handle);
+        }
+        else if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS) {
+            if(txBuffer_OPT[0] == REG_RESULT) {
+                uint16_t lux = i2cTransaction->readBuf;
+                System_printf("LUX: %d\n", lux);
+            }
+        }
+        System_flush();
+    }
+    GateHwi_leave(gateHwi, gateKey);
+}
+
+void ProcessAccelDataFxn() {
+    int16_t accelX, accelY, accelZ;
+    UInt gateKey;
+    System_printf("BMI160 Swi trigger from I2C callback\n");
+
+    gateKey = GateHwi_enter(gateHwi);
+
+    accelX = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
+    accelY = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
+    accelZ = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
+
+    GateHwi_leave(gateHwi, gateKey);
+
+    accelXFilt.sum = accelXFilt.sum - accelXFilt.data[accelXFilt.index];
+    accelYFilt.sum = accelYFilt.sum - accelYFilt.data[accelYFilt.index];
+    accelZFilt.sum = accelZFilt.sum - accelZFilt.data[accelZFilt.index];
+
+    accelXFilt.data[accelXFilt.index] = accelX;
+    accelYFilt.data[accelYFilt.index] = accelY;
+    accelZFilt.data[accelZFilt.index] = accelZ;
+
+    accelXFilt.sum = accelXFilt.sum + accelXFilt.data[accelXFilt.index];
+    accelYFilt.sum = accelYFilt.sum + accelYFilt.data[accelYFilt.index];
+    accelZFilt.sum = accelZFilt.sum + accelZFilt.data[accelZFilt.index];
+
+    accelXFilt.index = (accelXFilt.index + 1) % WINDOW_SIZE;
+    accelYFilt.index = (accelYFilt.index + 1) % WINDOW_SIZE;
+    accelZFilt.index = (accelZFilt.index + 1) % WINDOW_SIZE;
+
+    accelXFilt.avg = accelXFilt.sum / WINDOW_SIZE;
+    accelYFilt.avg = accelYFilt.sum / WINDOW_SIZE;
+    accelZFilt.avg = accelZFilt.sum / WINDOW_SIZE;
+
+    System_flush();
 }
 
 void ADC0_Read() {
@@ -88,8 +158,8 @@ void ADC0_Read() {
 
 void ADC0_FilterFxn() {
     ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
-    ADC0Window.index = (ADC0Window.index + 1) % ADC_BUFFER_SIZE;
-    ADC0Window.avg = ADC0Window.sum / ADC_BUFFER_SIZE;
+    ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
+    ADC0Window.avg = ADC0Window.sum / WINDOW_SIZE;
 }
 
 void ADC1_Read() {
@@ -103,15 +173,13 @@ void ADC1_Read() {
 
 void ADC1_FilterFxn() {
     ADC1Window.sum = ADC1Window.sum + ADC1Window.data[ADC1Window.index];
-    ADC1Window.index = (ADC1Window.index + 1) % ADC_BUFFER_SIZE;
-    ADC1Window.avg = ADC1Window.sum / ADC_BUFFER_SIZE;
+    ADC1Window.index = (ADC1Window.index + 1) % WINDOW_SIZE;
+    ADC1Window.avg = ADC1Window.sum / WINDOW_SIZE;
 }
 
 void ReadSensorsFxn() {
     UInt gateKey;
     uint16_t rawData;
-    uint16_t accelData[3];
-    bool success = false;
     float luxFloat;
 
     InitI2C_opt3001();
@@ -119,29 +187,36 @@ void ReadSensorsFxn() {
     InitADC0_CurrentSense();
     InitADC1_CurrentSense();
 
+    //Reinitialise the I2C interface in callback mode
+    I2C_close(i2cHandle);
+    i2cParams.transferMode = I2C_MODE_CALLBACK;
+    i2cParams.transferCallbackFxn = I2C_Callback;
+    i2cHandle = I2C_open(0, &i2cParams);
+    if (i2cHandle == NULL) {
+        System_abort("Error Initializing I2C in callback mode\n");
+    } else {
+        System_printf("I2C Initialized in callback mode\n");
+    }
+
+    //enable Hwi for BMI160
+    GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
+    GPIO_enableInt(Board_BMI160);
+    //enable Hwi for Opt3001
+    GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
+    GPIO_enableInt(Board_OPT3001);
+
     while (1) {
         GPIO_write(Board_LED1, Board_LED_ON);
 
         gateKey = GateHwi_enter(gateHwi);
-        success = SensorOpt3001Read(opt3001, &rawData);
-        if (success) {
-           SensorOpt3001Convert(rawData, &luxFloat);
-           System_printf("LUX: %d\n", (int)luxFloat);
-        }
+        //Check filtered values to see if they exceed limits
 
         GateHwi_leave(gateHwi, gateKey);
-
-        success = SensorBMI160_GetAccelData(accelData);
-        System_printf("X: %d\t Y: %d\tZ: %d\n", accelData[0], accelData[1], accelData[2]);
-        System_flush();
 
         GPIO_write(Board_LED1, Board_LED_OFF);
     }
 }
 
-/*
- *  ======== main ========
- */
 int main(void)
 {
     /* Call board init functions */
@@ -151,13 +226,8 @@ int main(void)
 
     //This is the custom driver implementation init function
     //That will use Fxn table etc
-    Board_initSensors();
-
-    InitialiseTasks();
-
-    GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
-
-    GPIO_enableInt(Board_OPT3001);
+    //Board_initSensors();
+    InitSensorDriver();
 
     //Create Hwi Gate Mutex
     GateHwi_Params_init(&gHwiprms);

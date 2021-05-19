@@ -2,9 +2,19 @@
 #include "bmi160.h"
 #include <math.h>
 
-void InitialiseTasks() {
+void InitSensorDriver() {
     Task_Params taskParams;
-    /* Construct heartBeat Task  thread */
+
+    /* Create I2C for usage */
+    I2C_Params_init(&i2cParams);
+    i2cParams.bitRate = I2C_100kHz;
+    i2cParams.transferMode = I2C_MODE_BLOCKING;
+    i2cHandle = I2C_open(0, &i2cParams);
+
+    if (i2cHandle == NULL) {
+        System_abort("Error Initializing I2C\n");
+    }
+
     Task_Params_init(&taskParams);
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
@@ -17,7 +27,6 @@ void InitialiseTasks() {
     swiParams.arg1 = 0;
     swiParams.priority = 2;
     swiParams.trigger = 0;
-
     Swi_construct(&swi0Struct, (Swi_FuncPtr)ADC0_FilterFxn, &swiParams, NULL);
     swi0Handle = Swi_handle(&swi0Struct);
 
@@ -26,9 +35,16 @@ void InitialiseTasks() {
     swiParams.arg1 = 0;
     swiParams.priority = 2;
     swiParams.trigger = 0;
-
     Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
     swi1Handle = Swi_handle(&swi1Struct);
+
+    Swi_Params_init(&swiParams);
+    swiParams.arg0 = 1;
+    swiParams.arg1 = 0;
+    swiParams.priority = 2;
+    swiParams.trigger = 0;
+    Swi_construct(&swi2Struct, (Swi_FuncPtr)ProcessAccelDataFxn, &swiParams, NULL);
+    swi2Handle = Swi_handle(&swi2Struct);
 
     Hwi_Params_init(&hwiParams);
     hwiParams.priority = 0;
@@ -48,41 +64,28 @@ void InitialiseTasks() {
  * check sensor data against criteria
  */
 void InitI2C_opt3001() {
-    I2C_Params      opt3001Params;
-    uint8_t txBuffer[3];
-    I2C_Transaction i2cTransaction;
     lightLimitReached = false;
-
-    /* Create I2C for usage */
-    I2C_Params_init(&opt3001Params);
-    opt3001Params.bitRate = I2C_100kHz;
-    opt3001Params.transferMode = I2C_MODE_BLOCKING;
-    opt3001 = I2C_open(0, &opt3001Params);
-
-    if (opt3001 == NULL) {
-        System_abort("Error Initializing Opt3001 I2C\n");
-    } else {
-        System_printf("Opt3001 I2C Initialized!\n");
-    }
+    uint8_t data;
+    uint16_t val;
 
     //Read device ID
-    uint8_t data;
-    bool success = ReadByteI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
+    bool success = ReadByteI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
     while(data != 48) {
         System_printf("I2C FAIL\t trying again in 5ms\n");
         System_flush();
         Task_sleep(5);
-        bool success = ReadByteI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
+        bool success = ReadByteI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
     }
 
-    uint16_t val;
     val =  CONFIG_VAL;
-    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
+    WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
 
     //Configure the default high/low limits
     SetLowLimit_OPT3001(40.95);
     SetHighLimit_OPT3001(2620.8);
 
+    //Clear interrupt bit
+    ReadI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
     IntEnable(INT_GPIOP2);
 }
 
@@ -92,8 +95,8 @@ void InitADC0_CurrentSense() {
     ADC0Window.avg = 0;
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+    //Using timer to trigger sampling
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-   // SysCtlPeripheralEnable( SYSCTL_PERIPH_GPIOE);
 
     //Makes GPIO an INPUT and sets them to be ANALOG
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
@@ -103,10 +106,12 @@ void InitADC0_CurrentSense() {
     //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Step, uint32_t ui32Config
     ADCSequenceStepConfigure( ADC0_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH0 | ADC_CTL_END);
 
+    //Trigger ADC sampling periodically when timer runs out
     TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
     TimerLoadSet(TIMER0_BASE, TIMER_A, SysCtlClockGet()/10);
     TimerControlTrigger(TIMER0_BASE, TIMER_A, true);
 
+    //Enable everything
     ADCSequenceEnable(ADC0_BASE, ADC_SEQ);
     ADCIntEnable(ADC0_BASE, ADC_SEQ);
     ADCIntClear( ADC0_BASE, ADC_SEQ);
@@ -120,14 +125,11 @@ void InitADC1_CurrentSense() {
     ADC1Window.avg = 0;
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
-    //SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
-    //Makes GPIO an INPUT and sets them to be ANALOG
     GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_7);
-    //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Trigger, uint32_t
+
     ADCSequenceConfigure(ADC1_BASE, ADC_SEQ , ADC_TRIGGER_TIMER, 0);
 
-    //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Step, uint32_t ui32Config
     ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH4 | ADC_CTL_END);
 
     ADCSequenceEnable(ADC1_BASE, ADC_SEQ);
@@ -137,294 +139,108 @@ void InitADC1_CurrentSense() {
 }
 
 void InitI2C_BMI160() {
+    accelXFilt.index = 0;
+    accelXFilt.sum = 0;
+    accelXFilt.avg = 0;
+    accelYFilt.index = 0;
+    accelYFilt.sum = 0;
+    accelYFilt.avg = 0;
+    accelZFilt.index = 0;
+    accelZFilt.sum = 0;
+    accelZFilt.avg = 0;
     uint8_t val;
-    bmi160 = opt3001;
-
-    if (bmi160 == NULL) {
-        System_abort("Error Initializing bmi160 I2C\n");
-    } else {
-        System_printf("bmi160 I2C Initialized!\n");
-    }
-
     uint8_t data;
-    uint16_t out;
-    ReadByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_CHIP_ID, &data);
+
+    ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_CHIP_ID, &data);
     System_printf("Device ID: %d, should be = 209\n", data);
     System_flush();
 
-//    /* Issue a soft-reset to bring the device into a clean state */
+    /* Issue a soft-reset to bring the device into a clean state */
     val =  BMI160_CMD_SOFT_RESET;
-    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-    //delay(10);
+    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
     Task_sleep(10);
-
-    ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x02, (uint8_t*)&out);
-    System_printf("Error code: %d\n", data);
-    System_flush();
-
-    ///* Issue a dummy-read to force the device into SPI comms mode */
-    //reg_read(0x7F);
-    //delay(1);
 
     /* Power up the accelerometer */
     val =  BMI160_CMD_ACC_MODE_NORMAL;
-    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-//    reg_write(BMI160_RA_CMD, BMI160_CMD_ACC_MODE_NORMAL);
-    //delay(1);
-    /* Wait for power-up to complete */
-//    while (0x1 != reg_read_bits(BMI160_RA_PMU_STATUS,
-//                                BMI160_ACC_PMU_STATUS_BIT,
-//                                BMI160_ACC_PMU_STATUS_LEN))
-//        delay(1);
+    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
     Task_sleep(5);
-
-    ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x03, (uint8_t*)&out);
-    while(out == 0) {
-        System_printf("Error code: %d\n", out);
-        System_flush();
-        ReadI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x03, (uint8_t*)&out);
-        Task_sleep(5);
-    }
-
-
-    /* Power up the gyroscope */
-//    val =  BMI160_CMD_GYR_MODE_NORMAL;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-//    Task_sleep(60);
-   // reg_write(BMI160_RA_CMD, BMI160_CMD_GYR_MODE_NORMAL);
-    //delay(10);
-//    /* Wait for power-up to complete */
-//    while (0x1 != reg_read_bits(BMI160_RA_PMU_STATUS,
-//                                BMI160_GYR_PMU_STATUS_BIT,
-//                                BMI160_GYR_PMU_STATUS_LEN))
-//        delay(1);
-
-
-  //  setFullScaleGyroRange(BMI160_GYRO_RANGE_250);
-  //  setFullScaleAccelRange(BMI160_ACCEL_RANGE_2G);
-
-    /* Configure MAG interface and setup mode */
-    /* Set MAG interface normal power mode */
-//    val =  BMI160_CMD_MAG_MODE_NORMAL;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-//    Task_sleep(1);
-    //reg_write(BMI160_RA_CMD, BMI160_CMD_MAG_MODE_NORMAL);          //Added for BMM150 Support
-//    delay(60);
-
-
-//    /* Sequence for enabling pull-up register */
-//    val =  BMI160_FOC_CONF_DEFAULT;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_FOC_CONF, val);
-//    //reg_write(BMI160_RA_FOC_CONF, BMI160_FOC_CONF_DEFAULT);        //Added for BMM150 Support
-//
-//    val =  BMI160_EN_PULL_UP_REG_1;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-//    //reg_write(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_1);             //Added for BMM150 Support
-//
-//    val =  BMI160_EN_PULL_UP_REG_2;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-//    //reg_write(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_2);             //Added for BMM150 Support
-//
-//    val =  BMI160_EN_PULL_UP_REG_3;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-//    //reg_write(BMI160_RA_CMD, BMI160_EN_PULL_UP_REG_3);             //Added for BMM150 Support
-//
-//    val =  BMI160_EN_PULL_UP_REG_4;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_7F, val);
-//    //reg_write(BMI160_7F, BMI160_EN_PULL_UP_REG_4);                 //Added for BMM150 Support
-//
-//    val =  BMI160_CMD_GYR_MODE_NORMAL;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_MAG_X_H, val);
-//    //reg_write_bits(BMI160_RA_MAG_X_H, 2, 4, 2);                    //Added for BMM150 Support
-//
-//    val =  BMI160_EN_PULL_UP_REG_5;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_7F, val);
-//    //reg_write(BMI160_7F, BMI160_EN_PULL_UP_REG_5);                 //Added for BMM150 Support
-//
-//
-//    /* Set MAG I2C address */
-//    val =  BMM150_BASED_I2C_ADDR;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_0, val);
-//    //reg_write(BMI160_MAG_IF_0, BMM150_BASED_I2C_ADDR);             //Added for BMM150 Support
-
-
-//    /* Enable MAG setup mode, set read out offset to MAX and burst length to 8 */
-//    val =  BMI160_MAG_MAN_EN;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_1, val);
-//    //reg_write(BMI160_MAG_IF_1, BMI160_MAG_MAN_EN);                 //Added for BMM150 Support
-
-    /* Enable MAG interface */
-    //NEED TO SORT THIS
-    //val =  BMI160_EN_PULL_UP_REG_5;
-    //WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_IF_CONF, val);
-    //reg_write_bits(BMI160_IF_CONF, 2, 4, 2);                       //Added for BMM150 Support
-
-//        /* Configure BMM150 Sensor */
-//    /* Enable BMM150 Sleep mode */
-//    val =  BMM150_EN_SLEEP_MODE;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_4, val);
-//    //reg_write(BMI160_MAG_IF_4, BMM150_EN_SLEEP_MODE);              //Added for BMM150 Support
-//
-//    val =  BMM150_POWER_REG;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_3, val);
-//   // reg_write(BMI160_MAG_IF_3, BMM150_POWER_REG);                  //Added for BMM150 Support
-//   // delay(3);
-//    Task_sleep(3);
-
-//    /* Set BMM150 repetitions for X/Y-Axis */
-//    val =  BMM150_REGULAR_REPXY;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_4, val);
-//    //reg_write(BMI160_MAG_IF_4, BMM150_REGULAR_REPXY);             //Added for BMM150 Support
-//
-//    val =  BMM150_XY_REP_REG;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_3, val);
-//    //reg_write(BMI160_MAG_IF_3, BMM150_XY_REP_REG);                 //Added for BMM150 Support
-//
-//    /* Set BMM150 repetitions for Z-Axis */
-//    val =  BMM150_REGULAR_REPZ;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_4, val);
-//    //reg_write(BMI160_MAG_IF_4, BMM150_REGULAR_REPZ);              //Added for BMM150 Support
-//
-//    val =  BMM150_Z_REP_REG;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_3, val);
-//   // reg_write(BMI160_MAG_IF_3, BMM150_Z_REP_REG);                  //Added for BMM150 Support
-//
-//        /* Configure MAG interface for Data mode */
-//    /* Configure MAG write address and data to force mode of BMM150 */
-//    val =  BMM150_OPMODE_REG_DEFAULT;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_4, val);
-//    //reg_write(BMI160_MAG_IF_4, BMM150_OPMODE_REG_DEFAULT);         //Added for BMM150 Support
-//
-//    val =  BMM150_OPMODE_REG;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_3, val);
-//   // reg_write(BMI160_MAG_IF_3, BMM150_OPMODE_REG);                 //Added for BMM150 Support
-//
-//    /* Configure MAG read data address */
-//    val =  BMM150_DATA_REG;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_2, val);
-//   // reg_write(BMI160_MAG_IF_2, BMM150_DATA_REG);                //Added for BMM150 Support
-//
-//    /* Configure MAG interface data rate (25Hz) */
-//    val =  BMI160_MAG_CONF_25Hz;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_AUX_ODR_ADDR, val);
-//   // reg_write(BMI160_AUX_ODR_ADDR, BMI160_MAG_CONF_25Hz);           //Added for BMM150 Support
-//
-//    /* Enable MAG data mode */
-//    //NEEED TO CHECK THIS
-//   // val =  BMI160_EN_PULL_UP_REG_5;
-//   // WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_MAG_IF_1, val);
-//    //reg_write_bits(BMI160_MAG_IF_1, 0, 7, 1);                      //Added for BMM150 Support
-//
-////    /* Wait for power-up to complete */
-////    while (0x1 != reg_read_bits(BMI160_RA_PMU_STATUS,
-////                                BMI160_MAG_PMU_STATUS_BIT,
-////                                BMI160_MAG_PMU_STATUS_LEN))
-////        delay(1);
-//    Task_sleep(1);
-//
-//
-//    /* Only PIN1 interrupts currently supported - map all interrupts to PIN1 */
-//    val =  0xFF;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_MAP_0, val);
-//    //reg_write(BMI160_RA_INT_MAP_0, 0xFF);
-//
-//    val =   0xF0;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_MAP_1, val);
-//   // reg_write(BMI160_RA_INT_MAP_1, 0xF0);
-//
-//    val =  0x00;
-//    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_MAP_2, val);
-//    //reg_write(BMI160_RA_INT_MAP_2, 0x00);
 
     //Set the bandwidth for accell/gyro to normal and set 100Hz for both
     val =  0x0A;
-    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, val, BMI160_FOC_CONF_DEFAULT);
+    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_FOC_CONF_DEFAULT, val);
 
-    WriteByteI2C(bmi160, BMI160_SLAVE_ADDRESS, val, BMI160_USER_GYRO_CONFIG_BW__REG);
+    //Interrupt raised when data ready
+    val =  0x10;
+    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_EN_1, val);
 
-    ReadByteI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x02, &data);
+    //Map FIFO full interrupt type to int1
+    val =  0x80;
+    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_MAP_1, val);
+
+    //Enable no latching
+    val =  0x00;
+    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_LATCH, val);
+
+    //Set pin direction as output, select push-pull
+    val =  0x0C;
+    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_OUT_CTRL, val);
+
+    //check error status of CHIP
+    ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMM150_OPMODE_REG_DEFAULT, &data);
     System_printf("Error code: %d\n", data);
     System_flush();
 
-    ReadByteI2C(bmi160, BMI160_SLAVE_ADDRESS, 0x03, &data);
-    System_printf("Error code: %d\n", data);
+    //check PMU register to make sure accel powered up
+    ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_PMU_STATUS, &data);
+    System_printf("PMU status: %d\n", data);
     System_flush();
 
+    //Check the interrupt status to make sure correct interrupt raised
+    ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_STATUS_1, &data);
+    System_printf("Int status: %d\n", data);
+    System_flush();
 }
 
-bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData)
+bool SensorOpt3001Read(I2C_Handle i2cHandle, uint16_t *rawData)
 {
     bool success;
     uint16_t val;
 
-    success = ReadI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
+    success = ReadI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
 
-    if (success)
-    {
-        success = ReadI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
+    if (success) {
+        success = ReadI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
     }
 
-    if (success)
-    {
+    if (success) {
         // Swap bytes
         *rawData = (val << 8) | (val>>8 &0xFF);
     }
-    else
-    {
-        //    sensorSetErrorData
-    }
 
     return (success);
 }
 
-bool SensorBMI160_GetAccelData(uint16_t rawData[])
+bool BufferReadI2C_OPT3001(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
 {
-    uint8_t buffer[2];
-
-    bool success = BufferReadI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L, buffer);
-    if (success) {
-        // Swap bytes
-        uint16_t accel = (((uint16_t)buffer[1]) << 8) | buffer[0];
-        rawData[0] = accel;
-    }
-
-    success = BufferReadI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_Y_L, buffer);
-    if (success) {
-        // Swap bytes
-        uint16_t accel = (((uint16_t)buffer[1]) << 8) | buffer[0];
-        rawData[1] = accel;
-    }
-
-    success = BufferReadI2C(bmi160, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_Z_L, buffer);
-    if (success) {
-        // Swap bytes
-        uint16_t accel = (((uint16_t)buffer[1]) << 8) | buffer[0];
-        rawData[2] = accel;
-    }
-
-    return (success);
+    txBuffer_OPT[0] = ui8Reg;
+    i2cTransaction_OPT.slaveAddress = slaveAddress;
+    i2cTransaction_OPT.writeBuf = txBuffer_OPT;
+    i2cTransaction_OPT.writeCount = 1;
+    i2cTransaction_OPT.readBuf = rxBuffer_OPT;
+    i2cTransaction_OPT.readCount = numBytes;
+    I2C_transfer(handle, &i2cTransaction_OPT);
+    return true;
 }
 
-bool BufferReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t data[])
+bool BufferReadI2C_BMI160(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
 {
-
-    I2C_Transaction i2cTransaction;
-    uint8_t txBuffer[1];
-    uint8_t rxBuffer[2];
-
-    txBuffer[0] = ui8Reg;
-
-    i2cTransaction.slaveAddress = slaveAddress;
-    i2cTransaction.writeBuf = txBuffer;
-    i2cTransaction.writeCount = 1;
-    i2cTransaction.readBuf = rxBuffer;
-    i2cTransaction.readCount = 2;
-
-    if (!I2C_transfer(i2cHandle, &i2cTransaction)) {
-        System_printf("Bad I2C Read transfer!");
-    }
-    data[0] = rxBuffer[0];
-    data[1] = rxBuffer[1];
+    txBuffer_BMI[0] = ui8Reg;
+    i2cTransaction_BMI.slaveAddress = slaveAddress;
+    i2cTransaction_BMI.writeBuf = txBuffer_BMI;
+    i2cTransaction_BMI.writeCount = 1;
+    i2cTransaction_BMI.readBuf = rxBuffer_BMI;
+    i2cTransaction_BMI.readCount = numBytes;
+    I2C_transfer(handle, &i2cTransaction_BMI);
     return true;
 }
 
@@ -543,13 +359,13 @@ void SensorOpt3001Convert(uint16_t rawData, float *convertedLux)
 void SetLowLimit_OPT3001(float val)
 {
     uint16_t reg = CalculateLimitReg(val);
-    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_LOW_LIMIT, (uint8_t*)&reg);
+    WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_LOW_LIMIT, (uint8_t*)&reg);
 }
 
 void SetHighLimit_OPT3001(float val)
 {
     uint16_t reg = CalculateLimitReg(val);
-    WriteHalfwordI2C(opt3001, OPT3001_SLAVE_ADDRESS, REG_HIGH_LIMIT, (uint8_t*)&reg);
+    WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_HIGH_LIMIT, (uint8_t*)&reg);
 }
 
 uint16_t CalculateLimitReg(float luxValue) {

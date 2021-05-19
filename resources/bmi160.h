@@ -247,6 +247,7 @@ THE SOFTWARE.
 
 #define BMI160_RA_GYRO_CONF         0X42
 #define BMI160_RA_GYRO_RANGE        0X43
+#define BMI160_FIFO_DOWNS           0X45
 
 #define BMI160_FIFO_HEADER_EN_BIT   4
 #define BMI160_FIFO_ACC_EN_BIT      6

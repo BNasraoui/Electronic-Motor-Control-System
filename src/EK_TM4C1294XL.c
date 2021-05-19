@@ -294,6 +294,7 @@ GPIO_PinConfig gpioPinConfigs[] = {
 
     GPIOTiva_PP_2 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,
 
+    GPIOTiva_PC_6 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,
 
     /* Output pins */
     /* EK_TM4C1294XL_USR_D1 */
@@ -350,7 +351,7 @@ const I2CTiva_HWAttrs i2cTivaHWAttrs[EK_TM4C1294XL_I2CCOUNT] = {
     {
         .baseAddr = I2C0_BASE,
         .intNum = INT_I2C0,
-        .intPriority = (~2)
+        .intPriority = (~1)
     },
     {
         .baseAddr = I2C8_BASE,

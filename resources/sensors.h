@@ -37,9 +37,10 @@
 #include "Board.h"
 
 //OPT3001 slave address
-#define OPT3001_SLAVE_ADDRESS             0x47
-#define GPIO_PORTP_BASE         0x40065000  // GPIO Port P
-#define GPIO_PIN_2              0x00000004  // GPIO pin 2
+#define OPT3001_SLAVE_ADDRESS           0x47
+#define BMI160_SLAVE_ADDRESS            0x69
+#define GPIO_PORTP_BASE                 0x40065000  // GPIO Port P
+#define GPIO_PIN_2                      0x00000004  // GPIO pin 2
 
 /* OP3001 Register addresses */
 #define REG_RESULT                      0x00
@@ -62,8 +63,6 @@
 #define LOW_LIMIT                       0xFF0F // Full-scale range (Lux) = 40.95
 #define HIGH_LIMIT                      0xFF6F // Full scale range (Lux) = 2620.80
 
-#define BMI160_SLAVE_ADDRESS            0x69
-
 /* Bit values */
 #define DATA_RDY_BIT                    0x0080  // Data ready
 #define TASKSTACKSIZE                   512
@@ -73,17 +72,28 @@
 #define ADC1_SEQ1_VEC_NUM          63
 #define ADC_SEQ                     1
 #define ADC_STEP                    0
-#define ADC_BUFFER_SIZE             5
+#define WINDOW_SIZE             5
 
-typedef struct Sliding_Window{
+typedef struct Sliding_Window32{
     uint8_t index;
     uint32_t sum;
     uint32_t avg;
-    uint32_t data[ADC_BUFFER_SIZE];
-} SlidingWindow;
+    uint32_t data[WINDOW_SIZE];
+} SlidingWindow32;
 
-SlidingWindow ADC0Window;
-SlidingWindow ADC1Window;
+typedef struct Sliding_Window16{
+    uint8_t index;
+    uint32_t sum;
+    uint32_t avg;
+    uint16_t data[WINDOW_SIZE];
+} SlidingWindow16;
+
+//Moving average filtering with buffer
+SlidingWindow32 ADC0Window;
+SlidingWindow32 ADC1Window;
+SlidingWindow16 accelXFilt;
+SlidingWindow16 accelYFilt;
+SlidingWindow16 accelZFilt;
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
@@ -96,13 +106,23 @@ GateHwi_Handle gateHwi;
 GateHwi_Params gHwiprms;
 
 Swi_Params swiParams;
-Swi_Struct swi0Struct, swi1Struct;
-Swi_Handle swi0Handle, swi1Handle;
+Swi_Struct swi0Struct, swi1Struct, swi2Struct;
+Swi_Handle swi0Handle, swi1Handle, swi2Handle;
 Semaphore_Struct sem0Struct;
 Semaphore_Handle sem0Handle;
 
-I2C_Handle opt3001;
-I2C_Handle bmi160;
+I2C_Handle i2cHandle;
+I2C_Params i2cParams;
+I2C_Handle bmi160Handle;
+bool clearingIntBit;
+
+I2C_Transaction i2cTransaction_BMI;
+uint8_t rxBuffer_BMI[6];
+uint8_t txBuffer_BMI[1];
+
+I2C_Transaction i2cTransaction_OPT;
+uint8_t rxBuffer_OPT[2];
+uint8_t txBuffer_OPT[1];
 
 bool lightLimitReached;
 
@@ -160,7 +180,7 @@ typedef struct Sensors_Config {
     void         const *hwAttrs;
 } Sensors_Config;
 
-extern void InitialiseTasks();
+extern void InitSensorDriver();
 
 extern void ReadSensorsFxn();
 
@@ -182,7 +202,11 @@ extern void ADC1_FilterFxn();
 
 extern bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData);
 
-extern bool SensorBMI160_GetAccelData(uint16_t rawData[]);
+extern bool SensorBMI160_GetAccelData(uint16_t *accelX, uint16_t *accelY, uint16_t *accelZ);
+
+extern void ProcessAccelDataFxn();
+
+extern void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result);
 
 extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
 
@@ -192,7 +216,9 @@ extern void SetHighLimit_OPT3001(float val);
 
 extern uint16_t CalculateLimitReg(float luxValue);
 
-extern bool BufferReadI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t data[]);
+extern bool BufferReadI2C_OPT3001(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes);
+
+extern bool BufferReadI2C_BMI160(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes);
 
 extern bool ReadI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
 
@@ -203,6 +229,8 @@ extern bool WriteHalfwordI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t
 extern bool WriteByteI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t data);
 
 extern void OPT3001Fxn();
+
+extern void BMI160Fxn();
 
 #endif // __TOUCH_H__
 
