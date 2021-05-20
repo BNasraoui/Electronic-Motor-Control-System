@@ -176,9 +176,10 @@ void StartStopBttnPress(tWidget *psWidget)
  *  Toggle the Board_LED0. The Task_sleep is determined by arg0 which
  *  is configured for the heartBeat Task instance.
  */
-#define AXIS_X_SPACING 16
+#define SYS_CLK_SPEED 120000000
+uint32_t axis_x_spacing;
 #define AXIS_Y_SPACING 16
-#define AXIS_X_DATA_POINTS 18
+#define AXIS_X_DATA_POINTS 24
 #define DATA_BUFFER_SIZE 32
 #define PADDING_X 16
 #define PADDING_Y 16
@@ -219,11 +220,11 @@ void drawGraphBorder(void) {
 
     uint32_t i;
     for (i = 0; i < AXIS_X_DATA_POINTS * axis_x_scale; i++) {
-        GrLineDraw(&sContext, PADDING_X + (AXIS_X_SPACING*i), GrContextDpyHeightGet(&sContext) - PADDING_Y - 2, PADDING_X + (AXIS_X_SPACING*i), GrContextDpyHeightGet(&sContext) - PADDING_Y + 2);
+        GrLineDraw(&sContext, PADDING_X + (axis_x_spacing*i), GrContextDpyHeightGet(&sContext) - PADDING_Y - 2, PADDING_X + (axis_x_spacing*i), GrContextDpyHeightGet(&sContext) - PADDING_Y + 2);
     }
 
     for (i = 0; i < AXIS_X_DATA_POINTS * axis_x_scale; i++) {
-        GrLineDraw(&sContext, PADDING_X + (AXIS_X_SPACING*i), GrContextDpyHeightGet(&sContext) - PADDING_Y - 2, PADDING_X + (AXIS_X_SPACING*i), GrContextDpyHeightGet(&sContext) - PADDING_Y + 2);
+        GrLineDraw(&sContext, PADDING_X + (axis_x_spacing*i), GrContextDpyHeightGet(&sContext) - PADDING_Y - 2, PADDING_X + (axis_x_spacing*i), GrContextDpyHeightGet(&sContext) - PADDING_Y + 2);
     }
 
     GrContextForegroundSet(&sContext, ClrYellow);
@@ -235,7 +236,7 @@ void redrawDataPoints(uint32_t from, uint32_t to) {
 
     uint32_t i;
     for (i = from; i < to; i++) {
-        drawDataPoint(PADDING_X + (i * AXIS_X_SPACING), data[i]);
+        drawDataPoint(PADDING_X + (i * axis_x_spacing), data[i]);
     }
 }
 
@@ -273,11 +274,11 @@ void drawNextDataPoint(void) {
     }
 
     if (prevDataX == 0 && prevDataY == 0) {
-        prevDataX = PADDING_X + (graphHead * AXIS_X_SPACING);
+        prevDataX = PADDING_X + (graphHead * axis_x_spacing);
         prevDataY = data[0];
     }
 
-    drawDataPoint(PADDING_X + (graphHead * AXIS_X_SPACING), dataBuffer[dataTail]);
+    drawDataPoint(PADDING_X + (graphHead * axis_x_spacing), dataBuffer[dataTail]);
 
     data[graphHead] = dataBuffer[dataTail];
     dataBuffer[dataTail] = 0;
@@ -317,7 +318,8 @@ void g_graphSetup(UArg arg0, UArg arg1)
 
     drawGraphBorder();
 
-    y_max = graphHeight - PADDING_Y;
+    y_max = 1;
+    axis_y_scale = (graphHeight - PADDING_Y) / y_max;
 
     uint32_t range = graphHeight - PADDING_Y;
 
@@ -333,7 +335,7 @@ void g_graphSetup(UArg arg0, UArg arg1)
         }
 
         ++cheapTimer;
-        if (cheapTimer > 1000000) {
+        if (cheapTimer > 2000000) {
             cheapTimer = 0;
             addDataPoint(rand() % (range));
         }
@@ -372,13 +374,15 @@ int main(void)
     GPIO_write(Board_LED0, Board_LED_ON);
 
     //tContext sContext;
-    Kentec320x240x16_SSD2119Init(120000000);
+    Kentec320x240x16_SSD2119Init(SYS_CLK_SPEED);
     GrContextInit(&sContext, &g_sKentec320x240x16_SSD2119);
-    TouchScreenInit(120000000);
+    TouchScreenInit(SYS_CLK_SPEED);
     TouchScreenCallbackSet(WidgetPointerMessage);
 
     graphHeight = GrContextDpyHeightGet(&sContext) - (PADDING_X*2);
     graphWidth = GrContextDpyWidthGet(&sContext) - (PADDING_Y*2);
+
+    axis_x_spacing = graphWidth / AXIS_X_DATA_POINTS;
 
     char str[32];
     sprintf(&str, "%dx%d", graphWidth, graphHeight);
