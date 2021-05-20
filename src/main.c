@@ -66,92 +66,42 @@
 /* Board Header file */
 #include "Board.h"
 
+
+void OPT3001Fxn()
+{
+    Event_post(eventHandler, Event_Id_00);
+}
+
 void clockHandlerFxn(UArg arg)
 {
-    UInt gateKey;
-    int numBytesToRead = 2;
-
-    gateKey = GateHwi_enter(gateHwi);
-    BufferReadI2C_OPT3001(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, numBytesToRead);
-    GateHwi_leave(gateHwi, gateKey);
+    Event_post(eventHandler, Event_Id_01);
     Clock_start(clockHandler);
-    //Timer_start(myTimer);
+}
+
+void EnableADCSequencers()
+{
+    ADCProcessorTrigger(ADC0_BASE, ADC_SEQ);
+    ADCProcessorTrigger(ADC1_BASE, ADC_SEQ);
+    Clock_start(clockHandler2);
 }
 
 void BMI160Fxn()
 {
-    UInt gateKey;
-    int numBytesToRead = 6;
-
-    gateKey = GateHwi_enter(gateHwi);
-    BufferReadI2C_BMI160(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L, numBytesToRead);
-    GateHwi_leave(gateHwi, gateKey);
-}
-
-void OPT3001Fxn()
-{
-    UInt gateKey;
-    int numBytesToRead = 2;
-
-    gateKey = GateHwi_enter(gateHwi);
-    //Clear the interrupt bit
-    BufferReadI2C_OPT3001(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, numBytesToRead);
-    Event_post(eventHandler, Event_Id_00);
-    GateHwi_leave(gateHwi, gateKey);
-}
-
-void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
-    UInt gateKey;
-
-    //We must protect the integrity of the I2C transaction
-    //If it's used whilst we are processing then issues arise
-    gateKey = GateHwi_enter(gateHwi);
-    if(result) {
-        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
-            //Put data into x,y,z buffers
-            Swi_post(swi2Handle);
-        }
-        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
-            if(txBuffer_OPT[0] == REG_RESULT) {
-                Swi_post(swi3Handle);
-            }
-        }
-        System_flush();
-    }
-    GateHwi_leave(gateHwi, gateKey);
+    Event_post(eventHandler, Event_Id_02);
 }
 
 void ProcessLuxDataFxn() {
-    UInt gateKey;
     float lux;
-
-    gateKey = GateHwi_enter(gateHwi);
-    uint16_t rawData = (rxBuffer_OPT[0] << 8) |  (rxBuffer_OPT[1]);
-    GateHwi_leave(gateHwi, gateKey);
-
     SensorOpt3001Convert(rawData, &lux);
+
     luxValueFilt.sum = luxValueFilt.sum - luxValueFilt.data[luxValueFilt.index];
     luxValueFilt.data[luxValueFilt.index] = (uint16_t)lux;
     luxValueFilt.sum = luxValueFilt.sum + luxValueFilt.data[luxValueFilt.index];
     luxValueFilt.index = (luxValueFilt.index + 1) % WINDOW_SIZE;
     luxValueFilt.avg = luxValueFilt.sum / WINDOW_SIZE;
-
-    Event_post(eventHandler, Event_Id_01);
 }
 
 void ProcessAccelDataFxn() {
-    int16_t accelX, accelY, accelZ;
-    UInt gateKey;
-    //System_printf("BMI160 Swi trigger from I2C callback\n");
-
-    gateKey = GateHwi_enter(gateHwi);
-
-    accelX = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
-    accelY = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
-    accelZ = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
-
-    GateHwi_leave(gateHwi, gateKey);
-
     accelXFilt.sum = accelXFilt.sum - accelXFilt.data[accelXFilt.index];
     accelYFilt.sum = accelYFilt.sum - accelYFilt.data[accelYFilt.index];
     accelZFilt.sum = accelZFilt.sum - accelZFilt.data[accelZFilt.index];
@@ -171,16 +121,13 @@ void ProcessAccelDataFxn() {
     accelXFilt.avg = accelXFilt.sum / WINDOW_SIZE;
     accelYFilt.avg = accelYFilt.sum / WINDOW_SIZE;
     accelZFilt.avg = accelZFilt.sum / WINDOW_SIZE;
-    Event_post(eventHandler, Event_Id_02);
-
-    System_flush();
 }
 
 void ADC0_Read() {
     uint32_t pui32ADC0Value[1];
     ADCIntClear(ADC0_BASE, ADC_SEQ);
     ADC0Window.sum = ADC0Window.sum - ADC0Window.data[ADC0Window.index];
-    ADCSequenceDataGet(ADC0_BASE, ADC_SEQ , pui32ADC0Value);
+    ADCSequenceDataGet(ADC0_BASE, ADC_SEQ, pui32ADC0Value);
     ADC0Window.data[ADC0Window.index] = pui32ADC0Value[0];
     Swi_post(swi0Handle);
 }
@@ -211,24 +158,15 @@ void ADC1_FilterFxn() {
 void ReadSensorsFxn() {
     UInt gateKey;
     UInt events;
-    uint16_t rawData;
-    float luxFloat;
 
     InitI2C_opt3001();
     InitI2C_BMI160();
     InitADC0_CurrentSense();
     InitADC1_CurrentSense();
 
-    //Reinitialise the I2C interface in callback mode
-    I2C_close(i2cHandle);
-    i2cParams.transferMode = I2C_MODE_CALLBACK;
-    i2cParams.transferCallbackFxn = I2C_Callback;
-    i2cHandle = I2C_open(0, &i2cParams);
-    if (i2cHandle == NULL) {
-        System_abort("Error Initializing I2C in callback mode\n");
-    } else {
-        System_printf("I2C Initialized in callback mode\n");
-    }
+//    //Clear interrupt bit
+    uint16_t val;
+    ReadI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
 
     //enable Hwi for BMI160 and OPT3001
     GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
@@ -236,38 +174,33 @@ void ReadSensorsFxn() {
     GPIO_enableInt(Board_BMI160);
     GPIO_enableInt(Board_OPT3001);
     Clock_start(clockHandler);
-    //Timer_start(myTimer);
+    Clock_start(clockHandler2);
 
     while (1) {
         GPIO_write(Board_LED1, Board_LED_ON);
         events = Event_pend(eventHandler, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04), BIOS_WAIT_FOREVER);
 
-        //Low/high light event
-        if(events & LOW_HIGH_LIGHT_EVENT) {
-            //TURN ON/OFF HEADLIGHTS
-        }
-
-        //Low/high light event
         if(events & NEW_OPT3001_DATA) {
-            //update display
+            SensorOpt3001Read(i2cHandle, &rawData);
+            Swi_post(swi3Handle);
             System_printf("LUX: %d\n", luxValueFilt.avg);
         }
-
-        //new accel data has been processed
         if(events & NEW_ACCEL_DATA) {
-            //Check if we have crashed, respond accordingly
-
-            //Update display
+            GetAccelData_BMI160(&accelX, &accelY, &accelZ);
+            Swi_post(swi2Handle);
             System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
         }
-        //new ADCO data has been processed
+
+        if(events & LOW_HIGH_LIGHT_EVENT) {
+            //TURN ON/OFF HEADLIGHTS
+            System_printf("LOW/HIGH light even\n");
+        }
         if(events & NEW_ADC0_DATA) {
             //Check if limit exceeded, respon accordingly
 
             //Update display
             System_printf("ADC0: %d\n", ADC0Window.avg);
         }
-        //new ADC1 data has been processed
         if(events & NEW_ADC1_DATA) {
             //Check if limit exceeded, respon accordingly
 
@@ -307,3 +240,45 @@ int main(void)
 
     return (0);
 }
+
+
+//**************************************CODE GRRAVEYARD********************************
+//void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
+//    UInt gateKey;
+//
+//    //We must protect the integrity of the I2C transaction
+//    //If it's used whilst we are processing then issues arise
+//    gateKey = GateHwi_enter(gateHwi);
+//    if(result) {
+//        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
+//            //Put data into x,y,z buffers
+//            Swi_post(swi2Handle);
+//        }
+//        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
+//            if(txBuffer_OPT[0] == REG_RESULT) {
+//                Swi_post(swi3Handle);
+//            }
+//            else {
+//
+//            }
+//        }
+//    }
+//    else {
+//        System_printf("Bad i2c transaction");
+//
+//    }
+//    System_flush();
+//    GateHwi_leave(gateHwi, gateKey);
+//}
+
+//    //Reinitialise the I2C interface in callback mode
+//    I2C_close(i2cHandle);
+//    i2cParams.transferMode = I2C_MODE_CALLBACK;
+//    i2cParams.transferCallbackFxn = I2C_Callback;
+//    i2cHandle = I2C_open(0, &i2cParams);
+//    if (i2cHandle == NULL) {
+//        System_abort("Error Initializing I2C in callback mode\n");
+//    } else {
+//        System_printf("I2C Initialized in callback mode\n");
+//    }
+

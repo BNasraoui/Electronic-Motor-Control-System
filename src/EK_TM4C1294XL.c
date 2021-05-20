@@ -291,9 +291,9 @@ GPIO_PinConfig gpioPinConfigs[] = {
     GPIOTiva_PJ_0 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
     /* EK_TM4C1294XL_USR_SW2 */
     GPIOTiva_PJ_1 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
-
+    /* OPT3001 */
     GPIOTiva_PP_2 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,
-
+    /* BMI160 */
     GPIOTiva_PC_6 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,
 
     /* Output pins */
@@ -399,36 +399,36 @@ void EK_TM4C1294XL_initI2C(void)
 }
 
 // =============================== SENSORS ===============================
-#include "sensors.h"
-
-SensorsTiva_Object SensorsTiva_Objects[EK_TM4C1294XL_I2CCOUNT];
-
-const SensorsTiva_HWAttrs SensorsTivaHWAttr[EK_TM4C1294XL_I2CCOUNT] = {
-    {
-        .baseAddr = I2C7_BASE,
-        .intNum = INT_I2C7,
-        .intPriority = (~0)
-    }
-};
-
-const Sensors_Config Sensor_Config[] = {
-    {
-        .fxnTablePtr = &I2CTiva_fxnTable,
-        .object = &SensorsTiva_Objects[0],
-        .hwAttrs = &i2cTivaHWAttrs[0]
-    },
-    {
-        .fxnTablePtr = &I2CTiva_fxnTable,
-        .object = &i2cTivaObjects[1],
-        .hwAttrs = &i2cTivaHWAttrs[1]
-    },
-    {NULL, NULL, NULL}
-};
-
-void EK_TM4C1294XL_initSensors(void) {
-    //Do some initialisation
-
-}
+//#include "sensors.h"
+//
+//SensorsTiva_Object SensorsTiva_Objects[EK_TM4C1294XL_I2CCOUNT];
+//
+//const SensorsTiva_HWAttrs SensorsTivaHWAttr[EK_TM4C1294XL_I2CCOUNT] = {
+//    {
+//        .baseAddr = I2C7_BASE,
+//        .intNum = INT_I2C7,
+//        .intPriority = (~0)
+//    }
+//};
+//
+//const Sensors_Config Sensor_Config[] = {
+//    {
+//        .fxnTablePtr = &I2CTiva_fxnTable,
+//        .object = &SensorsTiva_Objects[0],
+//        .hwAttrs = &i2cTivaHWAttrs[0]
+//    },
+//    {
+//        .fxnTablePtr = &I2CTiva_fxnTable,
+//        .object = &i2cTivaObjects[1],
+//        .hwAttrs = &i2cTivaHWAttrs[1]
+//    },
+//    {NULL, NULL, NULL}
+//};
+//
+//void EK_TM4C1294XL_initSensors(void) {
+//    //Do some initialisation
+//
+//}
 
 /*
  *  =============================== PWM ===============================

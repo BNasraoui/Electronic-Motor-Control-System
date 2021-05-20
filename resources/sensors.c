@@ -23,12 +23,22 @@ void InitSensorDriver() {
     }
 
     Clock_Params_init(&clockParams);
-    clockParams.period = 10;
+    clockParams.period = 50;
     clockParams.startFlag = FALSE;
-    clockHandler = Clock_create(clockHandlerFxn, 5, &clockParams, &eb);
+    clockHandler = Clock_create(clockHandlerFxn, 50, &clockParams, &eb);
     if (clockHandler == NULL) {
      System_abort("Clock create failed");
     }
+
+    Clock_Params_init(&clockParams);
+    clockParams.period = 3;
+    clockParams.startFlag = FALSE;
+    clockHandler2 = Clock_create(EnableADCSequencers, 3, &clockParams, &eb);
+    if (clockHandler == NULL) {
+     System_abort("Clock create failed");
+    }
+
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
 
 }
 
@@ -39,21 +49,30 @@ void InitTasks() {
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
     //taskParams.instance->name = "initI2C_opt3001";
-    taskParams.priority = 1;
+    taskParams.priority = 0;
     Task_construct(&task0Struct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
 
     Swi_Params_init(&swiParams);
-    swiParams.priority = 2;
+    swiParams.priority = 1;
     swiParams.trigger = 0;
     Swi_construct(&swi0Struct, (Swi_FuncPtr)ADC0_FilterFxn, &swiParams, NULL);
     swi0Handle = Swi_handle(&swi0Struct);
 
+    Swi_Params_init(&swiParams);
+    swiParams.priority = 1;
+    swiParams.trigger = 0;
     Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
     swi1Handle = Swi_handle(&swi1Struct);
 
+    Swi_Params_init(&swiParams);
+    swiParams.priority = 1;
+    swiParams.trigger = 0;
     Swi_construct(&swi2Struct, (Swi_FuncPtr)ProcessAccelDataFxn, &swiParams, NULL);
     swi2Handle = Swi_handle(&swi2Struct);
 
+    Swi_Params_init(&swiParams);
+    swiParams.priority = 1;
+    swiParams.trigger = 0;
     Swi_construct(&swi3Struct, (Swi_FuncPtr)ProcessLuxDataFxn, &swiParams, NULL);
     swi3Handle = Swi_handle(&swi3Struct);
 
@@ -97,8 +116,6 @@ void InitI2C_opt3001() {
     SetLowLimit_OPT3001(40.95);
     SetHighLimit_OPT3001(2620.8);
 
-    //Clear interrupt bit
-    ReadI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
     IntEnable(INT_GPIOP2);
 }
 
@@ -109,27 +126,28 @@ void InitADC0_CurrentSense() {
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
     //Using timer to trigger sampling
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+    //SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER5);
 
     //Makes GPIO an INPUT and sets them to be ANALOG
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
     //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Trigger, uint32_t
-    ADCSequenceConfigure(ADC0_BASE, ADC_SEQ , ADC_TRIGGER_TIMER, 0);
+    ADCSequenceConfigure(ADC0_BASE, ADC_SEQ , ADC_TRIGGER_PROCESSOR, 0);
 
     //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Step, uint32_t ui32Config
-    ADCSequenceStepConfigure( ADC0_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH0 | ADC_CTL_END);
+    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH0 | ADC_CTL_END);
 
     //Trigger ADC sampling periodically when timer runs out
-    TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
-    TimerLoadSet(TIMER0_BASE, TIMER_A, SysCtlClockGet()/10);
-    TimerControlTrigger(TIMER0_BASE, TIMER_A, true);
+    //TimerConfigure(TIMER5_BASE, TIMER_CFG_PERIODIC);
+    //Run timer at 200Hz
+    //TimerLoadSet(TIMER5_BASE, TIMER_A, SysCtlClockGet()/150);
+    //TimerControlTrigger(TIMER5_BASE, TIMER_A, true);
 
     //Enable everything
     ADCSequenceEnable(ADC0_BASE, ADC_SEQ);
     ADCIntEnable(ADC0_BASE, ADC_SEQ);
     ADCIntClear( ADC0_BASE, ADC_SEQ);
     IntEnable(INT_ADC0SS1);
-    TimerEnable(TIMER0_BASE, TIMER_A);
+    //TimerEnable(TIMER5_BASE, TIMER_A);
 }
 
 void InitADC1_CurrentSense() {
@@ -141,7 +159,7 @@ void InitADC1_CurrentSense() {
 
     GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_7);
 
-    ADCSequenceConfigure(ADC1_BASE, ADC_SEQ , ADC_TRIGGER_TIMER, 0);
+    ADCSequenceConfigure(ADC1_BASE, ADC_SEQ , ADC_TRIGGER_PROCESSOR, 0);
 
     ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH4 | ADC_CTL_END);
 
@@ -155,6 +173,7 @@ void InitI2C_BMI160() {
     accelXFilt.index = 0;
     accelXFilt.sum = 0;
     accelXFilt.avg = 0;
+
     accelYFilt.index = 0;
     accelYFilt.sum = 0;
     accelYFilt.avg = 0;
@@ -179,7 +198,8 @@ void InitI2C_BMI160() {
     Task_sleep(5);
 
     //Set the bandwidth for accell/gyro to normal and set 100Hz for both
-    val =  0x08;
+    val =  0x08;    //100Hz
+    //val =  0x02;
     WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_FOC_CONF_DEFAULT, val);
 
     //Interrupt raised when data ready
@@ -190,8 +210,9 @@ void InitI2C_BMI160() {
     val =  0x80;
     WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_MAP_1, val);
 
-    //Enable no latching
-    val =  0x00;
+    //Set latching mode
+    //val =  0x0D; //5ms latching
+    val =  0x00; //no latching
     WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_LATCH, val);
 
     //Set pin direction as output, select push-pull
@@ -236,24 +257,46 @@ bool SensorOpt3001Read(I2C_Handle i2cHandle, uint16_t *rawData)
 bool BufferReadI2C_OPT3001(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
 {
     txBuffer_OPT[0] = ui8Reg;
-    i2cTransaction_GLOBAL.slaveAddress = slaveAddress;
-    i2cTransaction_GLOBAL.writeBuf = txBuffer_OPT;
-    i2cTransaction_GLOBAL.writeCount = 1;
-    i2cTransaction_GLOBAL.readBuf = rxBuffer_OPT;
-    i2cTransaction_GLOBAL.readCount = numBytes;
-    I2C_transfer(handle, &i2cTransaction_GLOBAL);
+    i2cTransaction_OPT.slaveAddress = slaveAddress;
+    i2cTransaction_OPT.writeBuf = txBuffer_OPT;
+    i2cTransaction_OPT.writeCount = 1;
+    i2cTransaction_OPT.readBuf = rxBuffer_OPT;
+    i2cTransaction_OPT.readCount = numBytes;
+    I2C_transfer(handle, &i2cTransaction_OPT);
     return true;
 }
 
-bool BufferReadI2C_BMI160(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
-{
-    txBuffer_BMI[0] = ui8Reg;
-    i2cTransaction_GLOBAL.slaveAddress = slaveAddress;
-    i2cTransaction_GLOBAL.writeBuf = txBuffer_BMI;
-    i2cTransaction_GLOBAL.writeCount = 1;
-    i2cTransaction_GLOBAL.readBuf = rxBuffer_BMI;
-    i2cTransaction_GLOBAL.readCount = numBytes;
-    I2C_transfer(handle, &i2cTransaction_GLOBAL);
+//bool BufferReadI2C_BMI160(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
+//{
+//    txBuffer_BMI[0] = ui8Reg;
+//
+//    i2cTransaction_BMI.slaveAddress = slaveAddress;
+//    i2cTransaction_BMI.writeBuf = txBuffer_BMI;
+//    i2cTransaction_BMI.writeCount = 1;
+//    i2cTransaction_BMI.readBuf = rxBuffer_BMI;
+//    i2cTransaction_BMI.readCount = numBytes;
+//    I2C_transfer(handle, &i2cTransaction_BMI);
+//    return true;
+//}
+
+bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ) {
+    I2C_Transaction i2cTransaction;
+    uint8_t rxBuffer[6];
+    uint8_t txBuffer[1];
+
+    txBuffer[0] = BMI160_RA_ACCEL_X_L;
+
+    i2cTransaction.slaveAddress = BMI160_SLAVE_ADDRESS;
+    i2cTransaction.writeBuf = txBuffer;
+    i2cTransaction.writeCount = 1;
+    i2cTransaction.readBuf = rxBuffer;
+    i2cTransaction.readCount = 6;
+    I2C_transfer(i2cHandle, &i2cTransaction);
+
+    *accelX = (((int16_t)rxBuffer[1])  << 8) | rxBuffer[0];
+    *accelY = (((int16_t)rxBuffer[3])  << 8) | rxBuffer[2];
+    *accelZ = (((int16_t)rxBuffer[5])  << 8) | rxBuffer[4];
+
     return true;
 }
 

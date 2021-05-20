@@ -106,6 +106,7 @@ SlidingWindow16 luxValueFilt;
 SlidingWindow16 accelXFilt;
 SlidingWindow16 accelYFilt;
 SlidingWindow16 accelZFilt;
+int16_t accelX, accelY, accelZ;
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
@@ -128,21 +129,22 @@ Error_Block eb;
 
 Clock_Params clockParams;
 Clock_Handle clockHandler;
-//extern Timer_Handle myTimer;
+Clock_Handle clockHandler2;
+extern Timer_Handle myTimer;
+//extern Timer_Handle myTimer2;
 
+uint16_t rawData;
 I2C_Handle i2cHandle;
 I2C_Params i2cParams;
 I2C_Handle bmi160Handle;
-
-I2C_Transaction i2cTransaction_BMI;
-uint8_t rxBuffer_BMI[6];
-uint8_t txBuffer_BMI[1];
 
 I2C_Transaction i2cTransaction_OPT;
 uint8_t rxBuffer_OPT[2];
 uint8_t txBuffer_OPT[1];
 
 I2C_Transaction i2cTransaction_GLOBAL;
+
+int count;
 
 bool lightLimitReached;
 
@@ -216,6 +218,10 @@ extern void InitADC1_CurrentSense();
 
 extern void clockHandlerFxn(UArg arg);
 
+extern void EnableADCSequencers();
+
+extern void adcSeqStart();
+
 extern void ADC0_Read();
 
 extern void ADC1_Read();
@@ -226,7 +232,7 @@ extern void ADC1_FilterFxn();
 
 extern bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData);
 
-extern bool SensorBMI160_GetAccelData(uint16_t *accelX, uint16_t *accelY, uint16_t *accelZ);
+extern bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ);
 
 extern void ProcessAccelDataFxn();
 
