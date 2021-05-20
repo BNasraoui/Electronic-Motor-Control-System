@@ -192,7 +192,7 @@ uint32_t graphHead = 0;
 uint32_t graphHeight;
 uint32_t graphWidth;
 
-void shiftGraph();
+void shiftGraph(void);
 
 void drawDataPoint(uint32_t dx, uint32_t dy) {
     GrLineDraw(&sContext, prevDataX, prevDataY, dx, dy);
@@ -201,14 +201,14 @@ void drawDataPoint(uint32_t dx, uint32_t dy) {
     prevDataY = dy;
 }
 
-void drawNextDataPoint() {
+void drawNextDataPoint(void) {
     if (graphHead >= MAX_DISPLAY_POINTS) {
         shiftGraph();
     }
 
     uint32_t dx = 12 + (graphHead * 16);
-
     uint32_t dy = graphHeight + 12 - dataBuffer[dataTail];
+    dataBuffer[dataTail] = 0;
     data[graphHead] = dy;
 
     if (prevDataX == 0 && prevDataY == 0) {
@@ -223,13 +223,13 @@ void drawNextDataPoint() {
     }
 
     ++dataTail;
-    if (dataTail > DATA_BUFFER_SIZE - 1) {
+    if (dataTail > DATA_BUFFER_SIZE) {
         dataTail = 0;
     }
 
 }
 
-void shiftGraph() {
+void shiftGraph(void) {
     uint32_t i;
     prevDataX = 12;
     prevDataY = data[0];
@@ -246,6 +246,8 @@ void shiftGraph() {
         data[i] = data[i+1];
         drawDataPoint(12 + (i * 16), data[i]);
     }
+
+    drawGraphBorder();
 }
 
 void addDataPoint(uint32_t y) {
@@ -257,24 +259,22 @@ void addDataPoint(uint32_t y) {
     }
 }
 
-
+void drawGraphBorder(void) {
+    GrContextForegroundSet(&sContext, ClrWhite);
+    GrLineDraw(&sContext, 12, 12, 12, GrContextDpyHeightGet(&sContext) - 12);
+    GrLineDraw(&sContext, 12, GrContextDpyHeightGet(&sContext) - 12, GrContextDpyWidthGet(&sContext) - 12, GrContextDpyHeightGet(&sContext) - 12);
+    GrContextForegroundSet(&sContext, ClrYellow);
+}
 
 void g_graphSetup(UArg arg0, UArg arg1)
 {
-
-
-
     // Add the compile-time defined widgets to the widget tree.
     // WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sBackground);
 
     // Paint the widget tree to make sure they all appear on the display.
     // WidgetPaint(WIDGET_ROOT);
 
-    GrContextForegroundSet(&sContext, ClrWhite);
-    GrLineDraw(&sContext, 12, 12, 12, GrContextDpyHeightGet(&sContext) - 12);
-    GrLineDraw(&sContext, 12, GrContextDpyHeightGet(&sContext) - 12, GrContextDpyWidthGet(&sContext) - 12, GrContextDpyHeightGet(&sContext) - 12);
-
-    GrContextForegroundSet(&sContext, ClrYellow);
+    drawGraphBorder();
 
     time_t t;
     srand((unsigned) time(&t));
