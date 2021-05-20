@@ -210,7 +210,6 @@ uint32_t getGraphY(float y) {
 }
 
 void drawDataPoint(uint32_t dx, uint32_t dy) {
-
     GrLineDraw(&sContext, prevDataX, getGraphY(prevDataY), dx, getGraphY(dy));
     prevDataX = dx;
     prevDataY = dy;
@@ -227,17 +226,15 @@ void drawAllGraphData(uint32_t from, uint32_t to) {
 }
 
 void drawGraphBorder(void) {
-
     GrContextForegroundSet(&sContext, ClrWhite);
     GrLineDraw(&sContext, GRAPH_POS_X, GRAPH_POS_Y, GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y);
     GrLineDraw(&sContext, GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y, GRAPH_WIDTH + GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y);
 
+    // x axis notches
     uint32_t i;
     for (i = 0; i < AXIS_X_DATA_POINTS; i++) {
         GrLineDraw(&sContext, GRAPH_POS_X + (AXIS_X_SPACING*i), GRAPH_HEIGHT + GRAPH_POS_Y - 2, GRAPH_POS_X + (AXIS_X_SPACING*i), GRAPH_HEIGHT + GRAPH_POS_Y + 2);
     }
-
-    GrContextForegroundSet(&sContext, ClrYellow);
 }
 
 void shiftGraph(void) {
@@ -249,9 +246,14 @@ void shiftGraph(void) {
 
 void drawNextDataPoint(void) {
 
+    static char dataStr[32];
+    static char dataPeak[32];
+
     // Erase Graph Data
     GrContextForegroundSet(&sContext, ClrBlack);
     drawAllGraphData(0, graphHead);
+    GrStringDraw(&sContext, dataStr, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 16, 1);
+    GrStringDraw(&sContext, dataPeak, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 32, 1);
 
     // If graph x axis is full, shift all data back one index
     if (graphHead == AXIS_X_DATA_POINTS) {
@@ -281,9 +283,13 @@ void drawNextDataPoint(void) {
     GrLineDraw(&sContext, GRAPH_POS_X, getGraphY(y_estop), GRAPH_WIDTH + GRAPH_POS_X, getGraphY(y_estop));
 
     GrContextForegroundSet(&sContext, ClrYellow);
-
     drawAllGraphData(0, graphHead);
     drawGraphBorder();
+
+    sprintf(&dataStr, "Current: %d", data[graphHead]);
+    sprintf(&dataPeak, "Peak: %d", y_max);
+    GrStringDraw(&sContext, dataStr, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 16, 1);
+    GrStringDraw(&sContext, dataPeak, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 32, 1);
 
     // Increment the current index in the data array
     if (graphHead < AXIS_X_DATA_POINTS) ++graphHead;
