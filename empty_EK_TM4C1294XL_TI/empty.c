@@ -177,14 +177,20 @@ void StartStopBttnPress(tWidget *psWidget)
  *  is configured for the heartBeat Task instance.
  */
 #define SYS_CLK_SPEED 120000000
-uint32_t axis_x_spacing;
+
 #define AXIS_Y_SPACING 16
-#define AXIS_X_DATA_POINTS 24
+#define AXIS_X_DATA_POINTS 16
 #define DATA_BUFFER_SIZE 32
 #define PADDING_X 16
 #define PADDING_Y 16
 
-uint32_t axis_x_scale = 1;
+#define GRAPH_POS_X 16
+#define GRAPH_POS_Y 16
+#define GRAPH_WIDTH 150
+#define GRAPH_HEIGHT 100
+
+#define axis_x_spacing (GRAPH_WIDTH/AXIS_X_DATA_POINTS)
+
 float axis_y_scale = 1;
 
 uint32_t prevDataX;
@@ -198,11 +204,8 @@ uint32_t dataTail = 0;
 
 uint32_t graphHead = 0;
 
-uint32_t graphHeight;
-uint32_t graphWidth;
-
 uint32_t getGraphY(float y) {
-    return (graphHeight + PADDING_Y - (y * axis_y_scale));
+    return (GRAPH_HEIGHT + GRAPH_POS_Y - (y * axis_y_scale));
 }
 
 void drawDataPoint(uint32_t dx, uint32_t dy) {
@@ -215,28 +218,24 @@ void drawDataPoint(uint32_t dx, uint32_t dy) {
 
 void drawGraphBorder(void) {
     GrContextForegroundSet(&sContext, ClrWhite);
-    GrLineDraw(&sContext, PADDING_X, PADDING_Y, PADDING_X, GrContextDpyHeightGet(&sContext) - PADDING_Y);
-    GrLineDraw(&sContext, PADDING_X, GrContextDpyHeightGet(&sContext) - PADDING_Y, GrContextDpyWidthGet(&sContext) - PADDING_X, GrContextDpyHeightGet(&sContext) - PADDING_Y);
+    GrLineDraw(&sContext, GRAPH_POS_X, GRAPH_POS_Y, GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y);
+    GrLineDraw(&sContext, GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y, GRAPH_WIDTH + GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y);
 
     uint32_t i;
-    for (i = 0; i < AXIS_X_DATA_POINTS * axis_x_scale; i++) {
-        GrLineDraw(&sContext, PADDING_X + (axis_x_spacing*i), GrContextDpyHeightGet(&sContext) - PADDING_Y - 2, PADDING_X + (axis_x_spacing*i), GrContextDpyHeightGet(&sContext) - PADDING_Y + 2);
-    }
-
-    for (i = 0; i < AXIS_X_DATA_POINTS * axis_x_scale; i++) {
-        GrLineDraw(&sContext, PADDING_X + (axis_x_spacing*i), GrContextDpyHeightGet(&sContext) - PADDING_Y - 2, PADDING_X + (axis_x_spacing*i), GrContextDpyHeightGet(&sContext) - PADDING_Y + 2);
+    for (i = 0; i < AXIS_X_DATA_POINTS; i++) {
+        GrLineDraw(&sContext, GRAPH_POS_X + (axis_x_spacing*i), GRAPH_HEIGHT + GRAPH_POS_Y - 2, GRAPH_POS_X + (axis_x_spacing*i), GRAPH_HEIGHT + GRAPH_POS_Y + 2);
     }
 
     GrContextForegroundSet(&sContext, ClrYellow);
 }
 
 void redrawDataPoints(uint32_t from, uint32_t to) {
-    prevDataX = PADDING_X;
+    prevDataX = GRAPH_POS_X;
     prevDataY = data[from];
 
     uint32_t i;
     for (i = from; i < to; i++) {
-        drawDataPoint(PADDING_X + (i * axis_x_spacing), data[i]);
+        drawDataPoint(GRAPH_POS_X + (i * axis_x_spacing), data[i]);
     }
 }
 
@@ -274,11 +273,11 @@ void drawNextDataPoint(void) {
     }
 
     if (prevDataX == 0 && prevDataY == 0) {
-        prevDataX = PADDING_X + (graphHead * axis_x_spacing);
-        prevDataY = data[0];
+        prevDataX = GRAPH_POS_X + (graphHead * axis_x_spacing);
+        prevDataY = getGraphY(dataBuffer[dataTail]);
     }
 
-    drawDataPoint(PADDING_X + (graphHead * axis_x_spacing), dataBuffer[dataTail]);
+    drawDataPoint(GRAPH_POS_X + (graphHead * axis_x_spacing), dataBuffer[dataTail]);
 
     data[graphHead] = dataBuffer[dataTail];
     dataBuffer[dataTail] = 0;
@@ -319,9 +318,9 @@ void g_graphSetup(UArg arg0, UArg arg1)
     drawGraphBorder();
 
     y_max = 1;
-    axis_y_scale = (graphHeight - PADDING_Y) / y_max;
+    axis_y_scale = (GRAPH_HEIGHT - GRAPH_POS_Y) / y_max;
 
-    uint32_t range = graphHeight - PADDING_Y;
+    uint32_t range = GRAPH_HEIGHT - GRAPH_POS_Y;
 
     time_t t;
     srand((unsigned) time(&t));
@@ -340,12 +339,6 @@ void g_graphSetup(UArg arg0, UArg arg1)
             addDataPoint(rand() % (range));
         }
 
-        /*SysCtlDelay(100);
-        GPIO_toggle(Board_LED0);
-
-        WidgetMessageQueueProcess();*/
-
-//        TouchScreenIntHandler
     }
 }
 
@@ -379,13 +372,12 @@ int main(void)
     TouchScreenInit(SYS_CLK_SPEED);
     TouchScreenCallbackSet(WidgetPointerMessage);
 
-    graphHeight = GrContextDpyHeightGet(&sContext) - (PADDING_X*2);
-    graphWidth = GrContextDpyWidthGet(&sContext) - (PADDING_Y*2);
+    // graphHeight = GrContextDpyHeightGet(&sContext) - (PADDING_X*2);
+    // graphWidth = GrContextDpyWidthGet(&sContext) - (PADDING_Y*2);
 
-    axis_x_spacing = graphWidth / AXIS_X_DATA_POINTS;
 
     char str[32];
-    sprintf(&str, "%dx%d", graphWidth, graphHeight);
+    sprintf(&str, "%dx%d", GRAPH_WIDTH, GRAPH_HEIGHT);
     FrameDraw(&sContext, str);
 
     System_printf("Starting the example\nSystem provider is set to SysMin. "
