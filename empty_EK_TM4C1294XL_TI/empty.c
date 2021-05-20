@@ -185,7 +185,7 @@ void StartStopBttnPress(tWidget *psWidget)
 #define PADDING_Y 16
 
 #define GRAPH_POS_X 16
-#define GRAPH_POS_Y 16
+#define GRAPH_POS_Y 32
 #define GRAPH_WIDTH 150
 #define GRAPH_HEIGHT 100
 
@@ -211,12 +211,16 @@ uint32_t getGraphY(float y) {
 void drawDataPoint(uint32_t dx, uint32_t dy) {
 
     GrLineDraw(&sContext, prevDataX, getGraphY(prevDataY), dx, getGraphY(dy));
-    GrCircleFill(&sContext, dx, getGraphY(dy), 3);
+    GrCircleFill(&sContext, dx, getGraphY(dy), 2);
     prevDataX = dx;
     prevDataY = dy;
 }
 
 void drawGraphBorder(void) {
+    GrContextForegroundSet(&sContext, ClrRed);
+    GrLineDraw(&sContext, GRAPH_POS_X, GRAPH_POS_Y, GRAPH_WIDTH + GRAPH_POS_X, GRAPH_POS_Y);
+    GrLineDraw(&sContext, GRAPH_POS_X, (GRAPH_HEIGHT/2) + GRAPH_POS_Y, GRAPH_WIDTH + GRAPH_POS_X, (GRAPH_HEIGHT/2) + GRAPH_POS_Y);
+
     GrContextForegroundSet(&sContext, ClrWhite);
     GrLineDraw(&sContext, GRAPH_POS_X, GRAPH_POS_Y, GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y);
     GrLineDraw(&sContext, GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y, GRAPH_WIDTH + GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y);
@@ -318,7 +322,7 @@ void g_graphSetup(UArg arg0, UArg arg1)
     drawGraphBorder();
 
     y_max = 1;
-    axis_y_scale = (GRAPH_HEIGHT - GRAPH_POS_Y) / y_max;
+    axis_y_scale = GRAPH_HEIGHT / y_max;
 
     uint32_t range = GRAPH_HEIGHT - GRAPH_POS_Y;
 
@@ -371,9 +375,6 @@ int main(void)
     GrContextInit(&sContext, &g_sKentec320x240x16_SSD2119);
     TouchScreenInit(SYS_CLK_SPEED);
     TouchScreenCallbackSet(WidgetPointerMessage);
-
-    // graphHeight = GrContextDpyHeightGet(&sContext) - (PADDING_X*2);
-    // graphWidth = GrContextDpyWidthGet(&sContext) - (PADDING_Y*2);
 
 
     char str[32];
