@@ -179,17 +179,17 @@ void StartStopBttnPress(tWidget *psWidget)
 #define SYS_CLK_SPEED 120000000
 
 #define AXIS_Y_SPACING 16
-#define AXIS_X_DATA_POINTS 16
+#define AXIS_X_DATA_POINTS 32
 #define DATA_BUFFER_SIZE 32
 #define PADDING_X 16
 #define PADDING_Y 16
 
 #define GRAPH_POS_X 16
 #define GRAPH_POS_Y 32
-#define GRAPH_WIDTH 150
+#define GRAPH_WIDTH 160 /* Must be multiple of AXIS_X_DATA_POINTS */
 #define GRAPH_HEIGHT 100
 
-#define axis_x_spacing (GRAPH_WIDTH/AXIS_X_DATA_POINTS)
+#define AXIS_X_SPACING (GRAPH_WIDTH/AXIS_X_DATA_POINTS)
 
 float axis_y_scale = 1;
 
@@ -227,7 +227,7 @@ void drawGraphBorder(void) {
 
     uint32_t i;
     for (i = 0; i < AXIS_X_DATA_POINTS; i++) {
-        GrLineDraw(&sContext, GRAPH_POS_X + (axis_x_spacing*i), GRAPH_HEIGHT + GRAPH_POS_Y - 2, GRAPH_POS_X + (axis_x_spacing*i), GRAPH_HEIGHT + GRAPH_POS_Y + 2);
+        GrLineDraw(&sContext, GRAPH_POS_X + (AXIS_X_SPACING*i), GRAPH_HEIGHT + GRAPH_POS_Y - 2, GRAPH_POS_X + (AXIS_X_SPACING*i), GRAPH_HEIGHT + GRAPH_POS_Y + 2);
     }
 
     GrContextForegroundSet(&sContext, ClrYellow);
@@ -239,7 +239,7 @@ void redrawDataPoints(uint32_t from, uint32_t to) {
 
     uint32_t i;
     for (i = from; i < to; i++) {
-        drawDataPoint(GRAPH_POS_X + (i * axis_x_spacing), data[i]);
+        drawDataPoint(GRAPH_POS_X + (i * AXIS_X_SPACING), data[i]);
     }
 }
 
@@ -277,11 +277,11 @@ void drawNextDataPoint(void) {
     }
 
     if (prevDataX == 0 && prevDataY == 0) {
-        prevDataX = GRAPH_POS_X + (graphHead * axis_x_spacing);
+        prevDataX = GRAPH_POS_X + (graphHead * AXIS_X_SPACING);
         prevDataY = getGraphY(dataBuffer[dataTail]);
     }
 
-    drawDataPoint(GRAPH_POS_X + (graphHead * axis_x_spacing), dataBuffer[dataTail]);
+    drawDataPoint(GRAPH_POS_X + (graphHead * AXIS_X_SPACING), dataBuffer[dataTail]);
 
     data[graphHead] = dataBuffer[dataTail];
     dataBuffer[dataTail] = 0;
@@ -338,7 +338,7 @@ void g_graphSetup(UArg arg0, UArg arg1)
         }
 
         ++cheapTimer;
-        if (cheapTimer > 2000000) {
+        if (cheapTimer > 500000) {
             cheapTimer = 0;
             addDataPoint(rand() % (range));
         }
