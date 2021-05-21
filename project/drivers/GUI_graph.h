@@ -49,12 +49,11 @@
 #include <ti/sysbios/hal/Seconds.h>
 #include <time.h>
 
+#include "general.h"
 #include "sensors.h"
 
 #ifndef GUI_GRAPH_H_
 #define GUI_GRAPH_H_
-
-#define SYS_CLK_SPEED                   120000000
 
 #define AXIS_X_DATA_POINTS              48 /* Must be divisible into GRAPH_WIDTH */
 #define DATA_BUFFER_SIZE                32
@@ -65,17 +64,7 @@
 #define GRAPH_HEIGHT                    112
 #define AXIS_X_SPACING (GRAPH_WIDTH/AXIS_X_DATA_POINTS)
 
-#define EVENT_GRAPH_LIGHT Event_Id_01
-#define EVENT_GRAPH_RPM Event_Id_02
-#define EVENT_GRAPH_ACCEL Event_Id_03
-#define EVENT_GRAPH_CURR Event_Id_03
-
 tContext sGraphContext;
-
-Task_Struct graphTaskStruct;
-Char graphTaskStack[TASKSTACKSIZE];
-
-Event_Handle GU_eventHandle;
 
 struct GraphData {
     uint32_t prevDataX;
@@ -90,6 +79,8 @@ struct GraphData {
 
     float axis_y_scale;
 } Graph_RPM;
+
+extern void initGUIGraphs(void);
 
 extern uint32_t getGraphY(float y, float scale);
 
@@ -109,8 +100,6 @@ extern void drawGraph(struct GraphData *graph);
 
 extern void updateGraph(struct GraphData *graph, float newData);
 
-extern void init_Display(void);
-
-extern void GUI_Graphing(UArg arg0, UArg arg1);
+extern void GUI_Graphing(void);
 
 #endif /* GUI_GRAPH_H_ */

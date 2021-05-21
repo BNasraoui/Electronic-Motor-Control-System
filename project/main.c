@@ -24,20 +24,21 @@
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 
-//Created libraries for sub-systems
+/* Board Header file */
+#include "Board.h"
+
+/* Created libraries for sub-systems */
+#include "general.h"
+
 #include "sensors.h"
 #include "driverlib/adc.h"
 #include "bmi160.h"
 
-/* Board Header file */
-#include "Board.h"
-
-/* GUI Graphing Header file */
 #include "drivers/GUI_graph.h"
 
+/* Sensor Task Function */
 void ReadSensorsFxn() {
-    UInt gateKey;
-    UInt events;
+    UInt gateKey, events;
 
     InitI2C_opt3001();
     InitI2C_BMI160();
@@ -94,6 +95,40 @@ void ReadSensorsFxn() {
     }
 }
 
+/* GUI Task Function */
+void GUITaskFxn(void) {
+    GUI_Graphing();
+}
+
+void initTasks(void) {
+    /* Tasks */
+    Task_Params taskParams;
+    Task_Params_init(&taskParams);
+
+    /* Sensor Task */
+    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stack = &sensorTaskStack;
+    //taskParams.instance->name = "initI2C_opt3001";
+    taskParams.priority = 2;
+    Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
+
+    /* GUI Task */
+    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stack = &graphTaskStack;
+    taskParams.priority = 1;
+    Task_construct(&graphTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
+}
+
+void initEvents(void) {
+    /* Events */
+    Event_Params taskEventParams;
+    Event_Params_init(&taskEventParams);
+
+    /* Graph-Update Event */
+    GU_eventHandle = Event_create(&taskEventParams, NULL);
+    if (GU_eventHandle == NULL) System_abort("Event create failed");
+}
+
 /*
  *  ======== main ========
  */
@@ -105,46 +140,25 @@ int main(void)
     Board_initI2C();
     PinoutSet(false, false);
 
-    /* Events */
-    Event_Params taskEventParams;
-    Event_Params_init(&taskEventParams);
-    GU_eventHandle = Event_create(&taskEventParams, NULL);
+    initEvents();
 
-    if (GU_eventHandle == NULL) {
-        System_abort("Event create failed");
-    }
+    initTasks();
 
-    Task_Params taskParams;
+    /* GUI init */
+    initGUIGraphs();
 
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = TASKSTACKSIZE;
-    taskParams.stack = &sensorTaskStack;
-    //taskParams.instance->name = "initI2C_opt3001";
-    taskParams.priority = 2;
-    Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
-
-    taskParams.stackSize = TASKSTACKSIZE;
-    taskParams.stack = &graphTaskStack;
-    taskParams.priority = 1;
-    Task_construct(&graphTaskStruct, (Task_FuncPtr) GUI_Graphing, &taskParams, NULL);
-
-
+    /* Sensor init */
     //This is the custom driver implementation init function
     //That will use Fxn table etc
     //Board_initSensors();
     InitSensorDriver();
 
-    // initTasks();
-
-    //Create Hwi Gate Mutex
+    /* Create Hwi Gate Mutex */
     GateHwi_Params_init(&gHwiprms);
     gateHwi = GateHwi_create(&gHwiprms, NULL);
     if (gateHwi == NULL) {
         System_abort("Gate Hwi create failed");
     }
-
-    /* Turn on user LED  */
-    GPIO_write(Board_LED0, Board_LED_ON);
 
     /* Start BIOS */
     BIOS_start();

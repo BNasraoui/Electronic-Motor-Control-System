@@ -41,6 +41,7 @@
 
 /* Board Header file */
 #include "Board.h"
+#include "general.h"
 
 //OPT3001 slave address
 #define OPT3001_SLAVE_ADDRESS           0x47
@@ -71,7 +72,6 @@
 
 /* Bit values */
 #define DATA_RDY_BIT                    0x0080  // Data ready
-#define TASKSTACKSIZE                   1024
 
 #define P2_VECTOR_NUM              94
 #define ADC0_SEQ1_VEC_NUM          31

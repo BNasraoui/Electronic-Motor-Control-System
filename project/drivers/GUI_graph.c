@@ -49,14 +49,13 @@ uint32_t getGraphY(float y, float scale) {
     return (GRAPH_HEIGHT + GRAPH_POS_Y - (y * scale));
 }
 
-void initTasks(void) {
-    /* Construct Graphing thread */
-    /*Task_Params taskParams;
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = TASKSTACKSIZE;
-    taskParams.stack = &sensorTaskStack;
-    taskParams.priority = 0;
-    Task_construct(&graphTaskStruct, (Task_FuncPtr) GUI_Graphing, &taskParams, NULL);*/
+void initGUIGraphs(void) {
+    Kentec320x240x16_SSD2119Init(SYS_CLK_SPEED);
+    GrContextInit(&sGraphContext, &g_sKentec320x240x16_SSD2119);
+    TouchScreenInit(SYS_CLK_SPEED);
+    TouchScreenCallbackSet(WidgetPointerMessage);
+
+    GraphData_init(&Graph_RPM, 1, 1200);
 }
 
 void GraphData_init(struct GraphData *data, uint32_t density, uint32_t estop) {
@@ -177,36 +176,19 @@ void addDataToBuffer(float y) {
     }
 }
 
-void init_Display(void) {
-    //tContext sGraphContext;
-    Kentec320x240x16_SSD2119Init(SYS_CLK_SPEED);
-    GrContextInit(&sGraphContext, &g_sKentec320x240x16_SSD2119);
-    TouchScreenInit(SYS_CLK_SPEED);
-    TouchScreenCallbackSet(WidgetPointerMessage);
-
-    char str[32];
-    sprintf(&str, "%dx%d", GRAPH_WIDTH, GRAPH_HEIGHT);
-    FrameDraw(&sGraphContext, str);
-}
-
-void GUI_Graphing(UArg arg0, UArg arg1)
+void GUI_Graphing(void)
 {
     UInt events;
 
-    init_Display();
+    /* Draw frame */
+    char str[32];
+    sprintf(&str, "%dx%d", GRAPH_WIDTH, GRAPH_HEIGHT);
+    FrameDraw(&sGraphContext, str);
 
-    // Initialise graph data
-    GraphData_init(&Graph_RPM, 1, 1200);
-
-    // Draw Graph Borders
+    /* Draw Graph Borders */
     drawGraphBorder();
 
-    // Random Data Generator
-    //time_t t;
-    //uint32_t range = 15;
-    //srand((unsigned) time(&t));
-
-    // Forever
+    /* forever wait for data */
     while (1) {
 
         events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
