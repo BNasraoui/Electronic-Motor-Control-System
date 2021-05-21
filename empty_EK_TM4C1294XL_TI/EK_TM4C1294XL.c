@@ -291,6 +291,10 @@ GPIO_PinConfig gpioPinConfigs[] = {
     GPIOTiva_PJ_0 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
     /* EK_TM4C1294XL_USR_SW2 */
     GPIOTiva_PJ_1 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_RISING,
+    /* OPT3001 */
+    GPIOTiva_PP_2 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,
+    /* BMI160 */
+    GPIOTiva_PC_6 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,
 
     /* Output pins */
     /* EK_TM4C1294XL_USR_D1 */
@@ -345,9 +349,9 @@ I2CTiva_Object i2cTivaObjects[EK_TM4C1294XL_I2CCOUNT];
 
 const I2CTiva_HWAttrs i2cTivaHWAttrs[EK_TM4C1294XL_I2CCOUNT] = {
     {
-        .baseAddr = I2C7_BASE,
-        .intNum = INT_I2C7,
-        .intPriority = (~0)
+        .baseAddr = I2C0_BASE,
+        .intNum = INT_I2C0,
+        .intPriority = (~1)
     },
     {
         .baseAddr = I2C8_BASE,
@@ -383,26 +387,48 @@ void EK_TM4C1294XL_initI2C(void)
      * conflict before running your the application.
      */
     /* Enable the peripheral */
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C7);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C0);
 
     /* Configure the appropriate pins to be I2C instead of GPIO. */
-    GPIOPinConfigure(GPIO_PD0_I2C7SCL);
-    GPIOPinConfigure(GPIO_PD1_I2C7SDA);
-    GPIOPinTypeI2CSCL(GPIO_PORTD_BASE, GPIO_PIN_0);
-    GPIOPinTypeI2C(GPIO_PORTD_BASE, GPIO_PIN_1);
-
-    /* I2C8 Init */
-    /* Enable the peripheral */
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C8);
-
-    /* Configure the appropriate pins to be I2C instead of GPIO. */
-    GPIOPinConfigure(GPIO_PA2_I2C8SCL);
-    GPIOPinConfigure(GPIO_PA3_I2C8SDA);
-    GPIOPinTypeI2CSCL(GPIO_PORTA_BASE, GPIO_PIN_2);
-    GPIOPinTypeI2C(GPIO_PORTA_BASE, GPIO_PIN_3);
+    GPIOPinConfigure(GPIO_PB2_I2C0SCL);
+    GPIOPinConfigure(GPIO_PB3_I2C0SDA);
+    GPIOPinTypeI2CSCL(GPIO_PORTB_BASE, GPIO_PIN_2);
+    GPIOPinTypeI2C(GPIO_PORTB_BASE, GPIO_PIN_3);
 
     I2C_init();
 }
+
+// =============================== SENSORS ===============================
+//#include "sensors.h"
+//
+//SensorsTiva_Object SensorsTiva_Objects[EK_TM4C1294XL_I2CCOUNT];
+//
+//const SensorsTiva_HWAttrs SensorsTivaHWAttr[EK_TM4C1294XL_I2CCOUNT] = {
+//    {
+//        .baseAddr = I2C7_BASE,
+//        .intNum = INT_I2C7,
+//        .intPriority = (~0)
+//    }
+//};
+//
+//const Sensors_Config Sensor_Config[] = {
+//    {
+//        .fxnTablePtr = &I2CTiva_fxnTable,
+//        .object = &SensorsTiva_Objects[0],
+//        .hwAttrs = &i2cTivaHWAttrs[0]
+//    },
+//    {
+//        .fxnTablePtr = &I2CTiva_fxnTable,
+//        .object = &i2cTivaObjects[1],
+//        .hwAttrs = &i2cTivaHWAttrs[1]
+//    },
+//    {NULL, NULL, NULL}
+//};
+//
+//void EK_TM4C1294XL_initSensors(void) {
+//    //Do some initialisation
+//
+//}
 
 /*
  *  =============================== PWM ===============================

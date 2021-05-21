@@ -1,38 +1,3 @@
-/*
- * Copyright (c) 2015, Texas Instruments Incorporated
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-/*
- *  ======== empty.c ========
- */
 /* XDCtools Header files */
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
@@ -40,6 +5,7 @@
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/Clock.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,38 +15,19 @@
 #include "inc/hw_memmap.h"
 
 /* TI-RTOS Header files */
+#include <ti/drivers/EMAC.h>
 #include <ti/drivers/GPIO.h>
-#include <driverlib/gpio.h>
-#include <ti/sysbios/hal/Hwi.h>
-#include <ti/sysbios/knl/swi.h>
-#include <ti/sysbios/knl/Clock.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/knl/Event.h>
-#include <ti/sysbios/knl/Queue.h>
-#include <ti/sysbios/knl/Semaphore.h>
-#include <xdc/runtime/Error.h>
-#include <xdc/runtime/System.h>
-#include <driverlib/sysctl.h>
-#include <driverlib/pin_map.h>
 
-#include "driverlib/rom.h"
-#include "driverlib/rom_map.h"
-#include "grlib/grlib.h"
-#include "drivers/frame.h"
-#include "drivers/kentec320x240x16_ssd2119_spi.h"
-#include "drivers/pinout.h"
-#include "grlib/widget.h"
-#include "grlib/canvas.h"
-#include "grlib/pushbutton.h"
-#include "drivers/touch.h"
-#include <driverlib/sysctl.h>
-#include "utils/ustdlib.h"
-#include <math.h>
-#include <string.h>
+#include "driverlib/gpio.h"
+
+/* Tiva C series macros header files */
+#include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
-#include <driverlib/gpio.h>
-#include <ti/sysbios/hal/Seconds.h>
-#include <time.h>
+
+//Created libraries for sub-systems
+#include "sensors.h"
+#include "driverlib/adc.h"
+#include "bmi160.h"
 
 /* Board Header file */
 #include "Board.h"
@@ -89,15 +36,75 @@
 #include "drivers/GUI_graph.h"
 
 #define TASKSTACKSIZE   1024
+void ReadSensorsFxn() {
+    UInt gateKey;
+    UInt events;
 
-Task_Struct task0Struct;
-Char task0Stack[TASKSTACKSIZE];
+    InitI2C_opt3001();
+    InitI2C_BMI160();
+    InitADC0_CurrentSense();
+    InitADC1_CurrentSense();
+
+    //Clear interrupt bit because
+    //uint16_t val;
+    //ReadI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
+
+    //enable Hwi for BMI160 and OPT3001
+    GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
+    GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
+    GPIO_enableInt(Board_BMI160);
+    GPIO_enableInt(Board_OPT3001);
+    Clock_start(clockHandler);
+    Clock_start(clockHandler2);
+
+    while (1) {
+        GPIO_write(Board_LED1, Board_LED_ON);
+        events = Event_pend(eventHandler, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04), BIOS_WAIT_FOREVER);
+
+        if(events & NEW_OPT3001_DATA) {
+            GetLuxValue_OPT3001(&rawData);
+            Swi_post(swi3Handle);
+            System_printf("LUX: %d\n", luxValueFilt.avg);
+        }
+        if(events & NEW_ACCEL_DATA) {
+            GetAccelData_BMI160(&accelX, &accelY, &accelZ);
+            Swi_post(swi2Handle);
+            System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
+        }
+
+        if(events & LOW_HIGH_LIGHT_EVENT) {
+            //TURN ON/OFF HEADLIGHTS
+            System_printf("LOW/HIGH light even\n");
+        }
+        if(events & NEW_ADC0_DATA) {
+            //Check if limit exceeded, respon accordingly
+
+            //Update display
+            System_printf("ADC0: %d\n", ADC0Window.avg);
+        }
+        if(events & NEW_ADC1_DATA) {
+            //Check if limit exceeded, respon accordingly
+
+            //Update display
+            System_printf("ADC1: %d\n", ADC1Window.avg);
+        }
+
+        System_flush();
+        GPIO_write(Board_LED1, Board_LED_OFF);
+    }
+}
 
 /*
  *  ======== main ========
  */
 int main(void)
 {
+    /* Call board init functions */
+    Board_initGeneral();
+    Board_initGPIO();
+    Board_initI2C();
+    PinoutSet(false, false);
+
     /* Events */
     Event_Params taskEventParams;
     Event_Params_init(&taskEventParams);
@@ -107,20 +114,28 @@ int main(void)
         System_abort("Event create failed");
     }
 
+    /* Construct Graphing thread */
     Task_Params taskParams;
-
-    /* Call board init functions */
-    Board_initGeneral();
-    Board_initGPIO();
-    Board_initI2C();
-    PinoutSet(false, false);
-
-    /* Construct heartBeat Task  thread */
     Task_Params_init(&taskParams);
     taskParams.arg0 = 1000;
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
     Task_construct(&task0Struct, (Task_FuncPtr) GUI_Graphing, &taskParams, NULL);
+
+    //This is the custom driver implementation init function
+    //That will use Fxn table etc
+    //Board_initSensors();
+    InitSensorDriver();
+
+    //Create Hwi Gate Mutex
+    GateHwi_Params_init(&gHwiprms);
+    gateHwi = GateHwi_create(&gHwiprms, NULL);
+    if (gateHwi == NULL) {
+        System_abort("Gate Hwi create failed");
+    }
+
+    /* Turn on user LED  */
+    GPIO_write(Board_LED0, Board_LED_ON);
 
     /* Start BIOS */
     BIOS_start();
