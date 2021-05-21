@@ -254,25 +254,53 @@ void shiftGraphDataLeft(struct GraphData* graph) {
     }
 }
 
-void graphNextDataPoint(struct GraphData *graph) {
+void clearGraph(struct GraphData *graph, float newData) {
 
     //static char dataStr[32];
     //static char dataPeak[32];
 
-    // Erase Data from Canvas
     GrContextForegroundSet(&sContext, ClrBlack);
     drawAllGraphData(graph);
+
+    if (newData > graph->y_max) {
+        GrLineDraw(&sContext, GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale), GRAPH_WIDTH + GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale));
+    }
+
     //GrStringDraw(&sContext, dataStr, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 16, 1);
     //GrStringDraw(&sContext, dataPeak, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 32, 1);
+}
+
+void drawGraph(struct GraphData *graph) {
+    // Draw the data
+    GrContextForegroundSet(&sContext, ClrRed);
+    GrLineDraw(&sContext, GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale), GRAPH_WIDTH + GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale));
+
+    GrContextForegroundSet(&sContext, ClrYellow);
+    drawAllGraphData(graph);
+    drawGraphBorder();
+
+    /*
+        sprintf(&dataStr, "Current: %d", data[graphHead]);
+        sprintf(&dataPeak, "Peak: %d", y_max);
+        GrStringDraw(&sContext, dataStr, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 16, 1);
+        GrStringDraw(&sContext, dataPeak, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 32, 1);
+    */
+}
+
+void updateGraph(struct GraphData *graph, float newData) {
+
+    if (graph->prevDataX == 0 && graph->prevDataY == 0) {
+        graph->prevDataX = GRAPH_POS_X + (graph->graphHead * AXIS_X_SPACING);
+        graph->prevDataY = getGraphY(newData, graph->axis_y_scale);
+    }
+
+    clearGraph(graph, newData);
 
     // If received data is greater than current y limits, re-scale graph
-    if (dataBuffer[dataTail] > graph->y_max) {
-        // Erase E-stop Limit bar
-        GrLineDraw(&sContext, GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale), GRAPH_WIDTH + GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale));
-
+    if (newData > graph->y_max) {
         // Rescale
-        graph->axis_y_scale = graph->axis_y_scale * (graph->y_max/dataBuffer[dataTail]);
-        graph->y_max = dataBuffer[dataTail];
+        graph->axis_y_scale = graph->axis_y_scale * (graph->y_max/newData);
+        graph->y_max = newData;
     }
 
     // If graph x axis is full, shift all data back one index
@@ -282,32 +310,13 @@ void graphNextDataPoint(struct GraphData *graph) {
     }
 
     // Copy data from the sensor buffer, to the graph buffer
-    graph->data[graph->graphHead] = dataBuffer[dataTail];
-    dataBuffer[dataTail] = 0;
+    graph->data[graph->graphHead] = newData;
 
-    // Increment sensor buffer tail
-    ++dataTail;
-    if (dataTail > DATA_BUFFER_SIZE) {
-        dataTail = 0;
-    }
 
     // Increment the current index in the data array
     if (graph->graphHead < AXIS_X_DATA_POINTS) ++graph->graphHead;
 
-    // Draw the data
-    GrContextForegroundSet(&sContext, ClrRed);
-    GrLineDraw(&sContext, GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale), GRAPH_WIDTH + GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale));
-
-    GrContextForegroundSet(&sContext, ClrYellow);
-    drawAllGraphData(graph);
-    drawGraphBorder();
-/*
-    sprintf(&dataStr, "Current: %d", data[graphHead]);
-    sprintf(&dataPeak, "Peak: %d", y_max);
-    GrStringDraw(&sContext, dataStr, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 16, 1);
-    GrStringDraw(&sContext, dataPeak, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 32, 1);
-*/
-
+    drawGraph(graph);
 
 }
 
@@ -318,15 +327,6 @@ void addDataToBuffer(float y) {
     if (dataHead > DATA_BUFFER_SIZE) {
         dataHead = 0;
     }
-}
-
-void updateGraph(struct GraphData *graph) {
-    if (graph->prevDataX == 0 && graph->prevDataY == 0) {
-        graph->prevDataX = GRAPH_POS_X + (graph->graphHead * AXIS_X_SPACING);
-        graph->prevDataY = getGraphY(dataBuffer[dataTail], graph->axis_y_scale);
-    }
-
-    graphNextDataPoint(graph);
 }
 
 void GUI_Graphing(UArg arg0, UArg arg1)
@@ -347,7 +347,16 @@ void GUI_Graphing(UArg arg0, UArg arg1)
 
         // If data is in the buffer, ready to be drawn
         while (dataHead != dataTail) {
-            updateGraph(&Graph_RPM);
+
+            updateGraph(&Graph_RPM, dataBuffer[dataTail]);
+
+            dataBuffer[dataTail] = 0;
+
+            // Increment sensor buffer tail
+            ++dataTail;
+            if (dataTail > DATA_BUFFER_SIZE) {
+                dataTail = 0;
+            }
 
             // Increase random data range
             range += 5;
