@@ -19,7 +19,14 @@
 #define GRAPH_HEIGHT                    112
 #define AXIS_X_SPACING (GRAPH_WIDTH/AXIS_X_DATA_POINTS)
 
+#define EVENT_GRAPH_LIGHT Event_Id_01
+#define EVENT_GRAPH_RPM Event_Id_02
+#define EVENT_GRAPH_ACCEL Event_Id_03
+#define EVENT_GRAPH_CURR Event_Id_03
+
 tContext sGraphContext;
+
+Event_Handle GU_eventHandle;
 
 struct GraphData {
     uint32_t prevDataX;

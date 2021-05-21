@@ -98,6 +98,15 @@ Char task0Stack[TASKSTACKSIZE];
  */
 int main(void)
 {
+    /* Events */
+    Event_Params taskEventParams;
+    Event_Params_init(&taskEventParams);
+    GU_eventHandle = Event_create(&taskEventParams, NULL);
+
+    if (GU_eventHandle == NULL) {
+        System_abort("Event create failed");
+    }
+
     Task_Params taskParams;
 
     /* Call board init functions */

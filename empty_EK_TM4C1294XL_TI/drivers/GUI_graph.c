@@ -84,7 +84,6 @@
 /* GUI Graphing Header file */
 #include "drivers/GUI_graph.h"
 
-
 // Sensor Data Buffer
 float dataBuffer[DATA_BUFFER_SIZE];
 uint32_t dataHead = 0;
@@ -226,6 +225,8 @@ void init_Display(void) {
 
 void GUI_Graphing(UArg arg0, UArg arg1)
 {
+    UInt events;
+
     init_Display();
 
     // Initialise graph data
@@ -242,8 +243,13 @@ void GUI_Graphing(UArg arg0, UArg arg1)
     // Forever
     while (1) {
 
+        events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
+
         // If data is in the buffer, ready to be drawn
-        while (dataHead != dataTail) {
+        //while (dataHead != dataTail) {
+        if (events & EVENT_GRAPH_LIGHT) {
+
+
 
             updateGraph(&Graph_RPM, dataBuffer[dataTail]);
 
