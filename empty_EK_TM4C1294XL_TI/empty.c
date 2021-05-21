@@ -35,7 +35,6 @@
 /* GUI Graphing Header file */
 #include "drivers/GUI_graph.h"
 
-#define TASKSTACKSIZE   1024
 void ReadSensorsFxn() {
     UInt gateKey;
     UInt events;
@@ -64,6 +63,7 @@ void ReadSensorsFxn() {
         if(events & NEW_OPT3001_DATA) {
             GetLuxValue_OPT3001(&rawData);
             Swi_post(swi3Handle);
+            Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
             System_printf("LUX: %d\n", luxValueFilt.avg);
         }
         if(events & NEW_ACCEL_DATA) {
@@ -114,18 +114,27 @@ int main(void)
         System_abort("Event create failed");
     }
 
-    /* Construct Graphing thread */
     Task_Params taskParams;
+
     Task_Params_init(&taskParams);
-    taskParams.arg0 = 1000;
     taskParams.stackSize = TASKSTACKSIZE;
-    taskParams.stack = &task0Stack;
-    Task_construct(&task0Struct, (Task_FuncPtr) GUI_Graphing, &taskParams, NULL);
+    taskParams.stack = &sensorTaskStack;
+    //taskParams.instance->name = "initI2C_opt3001";
+    taskParams.priority = 2;
+    Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
+
+    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stack = &graphTaskStack;
+    taskParams.priority = 1;
+    Task_construct(&graphTaskStruct, (Task_FuncPtr) GUI_Graphing, &taskParams, NULL);
+
 
     //This is the custom driver implementation init function
     //That will use Fxn table etc
     //Board_initSensors();
     InitSensorDriver();
+
+    // initTasks();
 
     //Create Hwi Gate Mutex
     GateHwi_Params_init(&gHwiprms);

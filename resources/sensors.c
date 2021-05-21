@@ -131,14 +131,16 @@ void InitSensorDriver() {
 }
 
 void InitTasks() {
+    /*
     Task_Params taskParams;
 
     Task_Params_init(&taskParams);
     taskParams.stackSize = TASKSTACKSIZE;
-    taskParams.stack = &task0Stack;
+    taskParams.stack = &sensorTaskStack;
     //taskParams.instance->name = "initI2C_opt3001";
-    taskParams.priority = 0;
-    Task_construct(&task0Struct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
+    taskParams.priority = 1;
+    Task_construct(&sensorTaskStruct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
+    */
 
     Swi_Params_init(&swiParams);
     swiParams.priority = 1;

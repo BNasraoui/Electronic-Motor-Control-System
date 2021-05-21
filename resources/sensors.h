@@ -71,7 +71,7 @@
 
 /* Bit values */
 #define DATA_RDY_BIT                    0x0080  // Data ready
-#define TASKSTACKSIZE                   512
+#define TASKSTACKSIZE                   1024
 
 #define P2_VECTOR_NUM              94
 #define ADC0_SEQ1_VEC_NUM          31
@@ -104,8 +104,8 @@ typedef struct Sliding_Window16{
     uint16_t data[WINDOW_SIZE];
 } SlidingWindow16;
 
-Task_Struct task0Struct;
-Char task0Stack[TASKSTACKSIZE];
+Task_Struct sensorTaskStruct;
+Char sensorTaskStack[TASKSTACKSIZE];
 
 Hwi_Handle hwi_OPT3001;
 Hwi_Handle hwi_ADC0;

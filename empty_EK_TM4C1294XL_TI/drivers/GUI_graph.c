@@ -33,50 +33,6 @@
 /*
  *  ======== empty.c ========
  */
-/* XDCtools Header files */
-#include <xdc/std.h>
-#include <xdc/runtime/System.h>
-
-/* BIOS Header files */
-#include <ti/sysbios/BIOS.h>
-#include <ti/sysbios/knl/Task.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <stdint.h>
-
-#include "inc/hw_memmap.h"
-
-/* TI-RTOS Header files */
-#include <ti/drivers/GPIO.h>
-#include <driverlib/gpio.h>
-#include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/knl/Event.h>
-#include <ti/sysbios/knl/Queue.h>
-#include <xdc/runtime/Error.h>
-#include <xdc/runtime/System.h>
-#include <driverlib/sysctl.h>
-#include <driverlib/pin_map.h>
-
-#include "driverlib/rom.h"
-#include "driverlib/rom_map.h"
-#include "grlib/grlib.h"
-#include "drivers/frame.h"
-#include "drivers/kentec320x240x16_ssd2119_spi.h"
-#include "drivers/pinout.h"
-#include "grlib/widget.h"
-#include "grlib/canvas.h"
-#include "grlib/pushbutton.h"
-#include "drivers/touch.h"
-#include <driverlib/sysctl.h>
-#include "utils/ustdlib.h"
-#include <math.h>
-#include <string.h>
-#include "inc/hw_memmap.h"
-#include <driverlib/gpio.h>
-#include <ti/sysbios/hal/Seconds.h>
-#include <time.h>
 
 /* Board Header file */
 #include "Board.h"
@@ -91,6 +47,16 @@ uint32_t dataTail = 0;
 
 uint32_t getGraphY(float y, float scale) {
     return (GRAPH_HEIGHT + GRAPH_POS_Y - (y * scale));
+}
+
+void initTasks(void) {
+    /* Construct Graphing thread */
+    /*Task_Params taskParams;
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stack = &sensorTaskStack;
+    taskParams.priority = 0;
+    Task_construct(&graphTaskStruct, (Task_FuncPtr) GUI_Graphing, &taskParams, NULL);*/
 }
 
 void GraphData_init(struct GraphData *data, uint32_t density, uint32_t estop) {
@@ -236,9 +202,9 @@ void GUI_Graphing(UArg arg0, UArg arg1)
     drawGraphBorder();
 
     // Random Data Generator
-    time_t t;
-    uint32_t range = 15;
-    srand((unsigned) time(&t));
+    //time_t t;
+    //uint32_t range = 15;
+    //srand((unsigned) time(&t));
 
     // Forever
     while (1) {
@@ -246,10 +212,10 @@ void GUI_Graphing(UArg arg0, UArg arg1)
         events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
 
         // If data is in the buffer, ready to be drawn
-        //while (dataHead != dataTail) {
+        // while (dataHead != dataTail) {
         if (events & EVENT_GRAPH_LIGHT) {
-
-
+            // addDataToBuffer((float) accelXFilt.avg);
+            addDataToBuffer((float) luxValueFilt.avg);
 
             updateGraph(&Graph_RPM, dataBuffer[dataTail]);
 
@@ -262,9 +228,9 @@ void GUI_Graphing(UArg arg0, UArg arg1)
             }
 
             // Increase random data range
-            range += 5;
+            // range += 5;
         }
 
-        addDataToBuffer(rand() % (range));
+        // addDataToBuffer(rand() % (range));
     }
 }
