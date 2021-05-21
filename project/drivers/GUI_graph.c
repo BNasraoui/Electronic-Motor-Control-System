@@ -82,8 +82,45 @@ void drawAllGraphData(struct GraphData *graph) {
     }
 }
 
-void drawGraphBorder(void) {
-    GrContextForegroundSet(&sGraphContext, ClrWhite);
+void drawGraphAxisY(struct GraphData* graph, bool draw) {
+    char str[8];
+    uint32_t i, j;
+    uint32_t scale = 1;
+
+    for (i = 0; i < 4; i++) {
+        if (graph->y_max < scale*75) {
+            for (j = 0; j < 10; j++) {
+                if (getGraphY(scale * j, graph->axis_y_scale) > GRAPH_POS_Y)
+                GrLineDraw(&sGraphContext,
+                       GRAPH_POS_X - 2,
+                       getGraphY(scale * j, graph->axis_y_scale),
+                       GRAPH_POS_X + 2,
+                       getGraphY(scale * j, graph->axis_y_scale));
+                if (graph->y_max < scale*10 && j == 1) {
+                    sprintf(&str, "%d", scale*j);
+                    if (draw) GrContextForegroundSet(&sGraphContext, 0x00787878);
+                    GrLineDraw(&sGraphContext,
+                           GRAPH_POS_X,
+                           getGraphY(scale * j, graph->axis_y_scale),
+                           GRAPH_POS_X + GRAPH_WIDTH,
+                           getGraphY(scale * j, graph->axis_y_scale));
+                    GrStringDraw(&sGraphContext,
+                             str,
+                             8,
+                             GRAPH_WIDTH - GRAPH_POS_X,
+                             getGraphY(scale * j, graph->axis_y_scale),
+                             1
+                    );
+                    if (draw) GrContextForegroundSet(&sGraphContext, ClrWhite);
+                }
+            }
+        }
+        scale = scale * 10;
+    }
+}
+
+void drawGraphAxis(void) {
+
     GrLineDraw(&sGraphContext, GRAPH_POS_X, GRAPH_POS_Y, GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y);
     GrLineDraw(&sGraphContext, GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y, GRAPH_WIDTH + GRAPH_POS_X, GRAPH_HEIGHT + GRAPH_POS_Y);
 
@@ -92,6 +129,8 @@ void drawGraphBorder(void) {
     for (i = 0; i < AXIS_X_DATA_POINTS; i++) {
         GrLineDraw(&sGraphContext, GRAPH_POS_X + (AXIS_X_SPACING*i), GRAPH_HEIGHT + GRAPH_POS_Y - 2, GRAPH_POS_X + (AXIS_X_SPACING*i), GRAPH_HEIGHT + GRAPH_POS_Y + 2);
     }
+
+
 }
 
 void shiftGraphDataLeft(struct GraphData* graph) {
@@ -122,9 +161,13 @@ void drawGraph(struct GraphData *graph) {
     GrContextForegroundSet(&sGraphContext, ClrRed);
     GrLineDraw(&sGraphContext, GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale), GRAPH_WIDTH + GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale));
 
+    GrContextForegroundSet(&sGraphContext, ClrWhite);
+    drawGraphAxis();
+    drawGraphAxisY(graph, true);
+
     GrContextForegroundSet(&sGraphContext, ClrYellow);
     drawAllGraphData(graph);
-    drawGraphBorder();
+
 
     /*
         sprintf(&dataStr, "Current: %d", data[graphHead]);
@@ -162,10 +205,17 @@ void updateGraph(struct GraphData *graph, float newData) {
     graph->data[graph->graphHead] = newData;
     if (graph->graphHead < AXIS_X_DATA_POINTS) ++graph->graphHead;
 
-    // Rescale
-    float maxOnDisplay = getMax(graph);
-    graph->axis_y_scale = graph->axis_y_scale * (graph->y_max/maxOnDisplay);
-    graph->y_max = maxOnDisplay;
+    // Re-scale
+    graph->maxOnDisplay = getMax(graph);
+    if (graph->maxOnDisplay > graph->y_max || graph->maxOnDisplay < graph->y_max*0.95F) {
+        GrContextForegroundSet(&sGraphContext, ClrBlack);
+        drawGraphAxisY(graph, false);
+
+        if (graph->maxOnDisplay != 0) {
+            graph->axis_y_scale = graph->axis_y_scale * (graph->y_max/graph->maxOnDisplay);
+            graph->y_max = graph->maxOnDisplay;
+        }
+    }
 
     drawGraph(graph);
 
@@ -189,8 +239,17 @@ void GUI_Graphing(void)
     sprintf(&str, "%dx%d", GRAPH_WIDTH, GRAPH_HEIGHT);
     FrameDraw(&sGraphContext, str);
 
+    GrContextForegroundSet(&sGraphContext, 0x00787878);
+    GrStringDraw(&sGraphContext,
+             "units: Lux",
+             16,
+             GRAPH_WIDTH - (GRAPH_POS_X*4),
+             GRAPH_POS_Y + GRAPH_HEIGHT + 8,
+             1
+    );
+
     /* Draw Graph Borders */
-    drawGraphBorder();
+    // drawGraphBorder();
 
     /* forever wait for data */
     while (1) {

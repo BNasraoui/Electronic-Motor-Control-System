@@ -13,7 +13,7 @@
 
 #define SYS_CLK_SPEED                   120000000
 
-#define TASKSTACKSIZE                   1024
+#define TASKSTACKSIZE                   2048
 
 #define EVENT_GRAPH_LIGHT               Event_Id_01
 #define EVENT_GRAPH_RPM                 Event_Id_02

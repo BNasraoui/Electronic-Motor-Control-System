@@ -70,6 +70,7 @@ struct GraphData {
     uint32_t prevDataX;
     uint32_t prevDataY;
     float data[AXIS_X_DATA_POINTS];
+    float maxOnDisplay;
 
     uint32_t density;
 
@@ -90,7 +91,7 @@ extern void drawDataPoint(struct GraphData* graph, uint32_t dx, uint32_t dy);
 
 extern void drawAllGraphData(struct GraphData *graph);
 
-extern void drawGraphBorder(void);
+extern void drawGraphBorder(struct GraphData* graph);
 
 extern void shiftGraphDataLeft(struct GraphData* graph);
 
