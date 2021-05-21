@@ -6,6 +6,7 @@
 #include <file.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include <xdc/runtime/Types.h>
 #include <xdc/runtime/System.h>
@@ -78,6 +79,7 @@
 #define ADC_SEQ                     1
 #define ADC_STEP                    0
 #define WINDOW_SIZE                 5
+#define ADC_RESOLUTION              0.0008
 
 #define LOW_HIGH_LIGHT_EVENT            Event_Id_00
 #define NEW_OPT3001_DATA                Event_Id_01
@@ -89,6 +91,9 @@ typedef struct Sliding_Window32{
     uint8_t index;
     uint32_t sum;
     uint32_t avg;
+    float voltage;
+    float current;
+    float power;
     uint32_t data[WINDOW_SIZE];
 } SlidingWindow32;
 
@@ -98,15 +103,6 @@ typedef struct Sliding_Window16{
     uint32_t avg;
     uint16_t data[WINDOW_SIZE];
 } SlidingWindow16;
-
-//Moving average filtering with buffer
-SlidingWindow32 ADC0Window;
-SlidingWindow32 ADC1Window;
-SlidingWindow16 luxValueFilt;
-SlidingWindow16 accelXFilt;
-SlidingWindow16 accelYFilt;
-SlidingWindow16 accelZFilt;
-int16_t accelX, accelY, accelZ;
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
@@ -121,8 +117,6 @@ GateHwi_Params gHwiprms;
 Swi_Params swiParams;
 Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
 Swi_Handle swi0Handle, swi1Handle, swi2Handle, swi3Handle;
-Semaphore_Struct sem0Struct;
-Semaphore_Handle sem0Handle;
 
 Event_Handle eventHandler;
 Error_Block eb;
@@ -131,76 +125,18 @@ Clock_Params clockParams;
 Clock_Handle clockHandler;
 Clock_Handle clockHandler2;
 extern Timer_Handle myTimer;
-//extern Timer_Handle myTimer2;
 
 uint16_t rawData;
 I2C_Handle i2cHandle;
-I2C_Params i2cParams;
-I2C_Handle bmi160Handle;
 
-I2C_Transaction i2cTransaction_OPT;
-uint8_t rxBuffer_OPT[2];
-uint8_t txBuffer_OPT[1];
-
-I2C_Transaction i2cTransaction_GLOBAL;
-
-int count;
-
-bool lightLimitReached;
-
-typedef struct Sensors_Config      *Sensors_Handle;
-
-typedef struct SensorsTiva_Object {
-
-}SensorsTiva_Object;
-
-/*!
- *  @brief  SENSORS Parameters
- *
- *  Params used to initialise the sensors driver
- *
- */
-typedef struct Sensors_Params_Params {
-   // Sensors_Params_TransferMode    transferMode; /*!< Blocking or Callback mode */
-   // Sensors_Params_CallbackFxn     transferCallbackFxn; /*!< Callback function pointer */
-   // Sensors_Params_BitRate         bitRate; /*!< I2C bus bit rate */
-  //  uintptr_t           custom;  /*!< Custom argument used by driver implementation */
-} Sensors_Params;
-
-/*!
- *
- */
-typedef struct SENSORS_FxnTable {
-    /*! Function to close the specified peripheral */
-   // SENSORS_CloseFxn        closeFxn;
-
-    /*! Function to implementation specific control function */
-   // SENSORS_ControlFxn      controlFxn;
-
-    /*! Function to initialize the given data object */
-   // SENSORS_InitFxn         initFxn;
-
-    /*! Function to open the specified peripheral */
-    //SENSORS_OpenFxn         openFxn;
-
-    /*! Function to initiate a I2C data transfer */
-    //SENSORS_TransferFxn     transferFxn;
-} SENSORS_FxnTable;
-
-/*!
- *
- *
- */
-typedef struct Sensors_Config {
-    /*! Pointer to a table of driver-specific implementations of I2C APIs */
-    I2C_FxnTable const *fxnTablePtr;
-
-    /*! Pointer to a driver specific data object */
-    void               *object;
-
-    /*! Pointer to a driver specific hardware attributes structure */
-    void         const *hwAttrs;
-} Sensors_Config;
+//Moving average filtering with buffer
+SlidingWindow32 ADC0Window;
+SlidingWindow32 ADC1Window;
+SlidingWindow16 luxValueFilt;
+SlidingWindow16 accelXFilt;
+SlidingWindow16 accelYFilt;
+SlidingWindow16 accelZFilt;
+int16_t accelX, accelY, accelZ;
 
 extern void InitSensorDriver();
 
@@ -230,7 +166,7 @@ extern void ADC0_FilterFxn();
 
 extern void ADC1_FilterFxn();
 
-extern bool SensorOpt3001Read(I2C_Handle opt3001, uint16_t *rawData);
+extern bool GetLuxValue_OPT3001(uint16_t *rawData);
 
 extern bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ);
 
@@ -252,7 +188,7 @@ extern bool BufferReadI2C_OPT3001(I2C_Handle handle, uint8_t slaveAddress, uint8
 
 extern bool BufferReadI2C_BMI160(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes);
 
-extern bool ReadI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
+extern bool ReadHalfWordI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
 
 extern bool ReadByteI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
 
@@ -265,12 +201,3 @@ extern void OPT3001Fxn();
 extern void BMI160Fxn();
 
 #endif // __TOUCH_H__
-
-typedef struct SensorsTiva_HWAttrs {
-    /*! I2C Peripheral's base address */
-    unsigned int baseAddr;
-    /*! I2C Peripheral's interrupt vector */
-    unsigned int intNum;
-    /*! I2C Peripheral's interrupt priority */
-    unsigned int intPriority;
-} SensorsTiva_HWAttrs;
