@@ -65,32 +65,32 @@ void ReadSensorsFxn() {
             GetLuxValue_OPT3001(&rawData);
             Swi_post(swi3Handle);
             Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
-            System_printf("LUX: %d\n", luxValueFilt.avg);
+            // System_printf("LUX: %d\n", luxValueFilt.avg);
         }
         if(events & NEW_ACCEL_DATA) {
             GetAccelData_BMI160(&accelX, &accelY, &accelZ);
             Swi_post(swi2Handle);
-            System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
+            // System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
         }
 
         if(events & LOW_HIGH_LIGHT_EVENT) {
             //TURN ON/OFF HEADLIGHTS
-            System_printf("LOW/HIGH light even\n");
+            // System_printf("LOW/HIGH light even\n");
         }
         if(events & NEW_ADC0_DATA) {
             //Check if limit exceeded, respon accordingly
 
             //Update display
-            System_printf("ADC0: %d\n", ADC0Window.avg);
+            // System_printf("ADC0: %d\n", ADC0Window.avg);
         }
         if(events & NEW_ADC1_DATA) {
             //Check if limit exceeded, respon accordingly
 
             //Update display
-            System_printf("ADC1: %d\n", ADC1Window.avg);
+            // System_printf("ADC1: %d\n", ADC1Window.avg);
         }
 
-        System_flush();
+        // System_flush();
         GPIO_write(Board_LED1, Board_LED_OFF);
     }
 }

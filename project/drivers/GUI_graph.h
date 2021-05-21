@@ -69,7 +69,7 @@ tContext sGraphContext;
 struct GraphData {
     uint32_t prevDataX;
     uint32_t prevDataY;
-    uint32_t data[AXIS_X_DATA_POINTS];
+    float data[AXIS_X_DATA_POINTS];
 
     uint32_t density;
 
@@ -94,7 +94,7 @@ extern void drawGraphBorder(void);
 
 extern void shiftGraphDataLeft(struct GraphData* graph);
 
-extern void clearGraph(struct GraphData *graph, float newData);
+extern void clearGraph(struct GraphData *graph);
 
 extern void drawGraph(struct GraphData *graph);
 

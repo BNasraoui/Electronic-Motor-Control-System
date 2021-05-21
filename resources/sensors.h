@@ -104,9 +104,6 @@ typedef struct Sliding_Window16{
     uint16_t data[WINDOW_SIZE];
 } SlidingWindow16;
 
-Task_Struct sensorTaskStruct;
-Char sensorTaskStack[TASKSTACKSIZE];
-
 Hwi_Handle hwi_OPT3001;
 Hwi_Handle hwi_ADC0;
 Hwi_Handle hwi_ADC1;
@@ -118,7 +115,6 @@ Swi_Params swiParams;
 Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
 Swi_Handle swi0Handle, swi1Handle, swi2Handle, swi3Handle;
 
-Event_Handle eventHandler;
 Error_Block eb;
 
 Clock_Params clockParams;
