@@ -50,56 +50,20 @@
 #include <time.h>
 
 #include "general.h"
-#include "sensors.h"
 
 #ifndef GUI_GRAPH_H_
 #define GUI_GRAPH_H_
 
-#define AXIS_X_DATA_POINTS              48 /* Must be divisible into GRAPH_WIDTH */
-#define DATA_BUFFER_SIZE                32
-
-#define GRAPH_POS_X                     16
-#define GRAPH_POS_Y                     32
-#define GRAPH_WIDTH                     288
-#define GRAPH_HEIGHT                    112
-#define AXIS_X_SPACING (GRAPH_WIDTH/AXIS_X_DATA_POINTS)
+#define DATA_BUFFER_SIZE 32
 
 tContext sGraphContext;
 
-struct GraphData {
-    uint32_t prevDataX;
-    uint32_t prevDataY;
-    float data[AXIS_X_DATA_POINTS];
-    float maxOnDisplay;
-
-    uint32_t density;
-
-    uint32_t y_max;
-    uint32_t y_estop;
-    uint32_t graphHead;
-
-    float axis_y_scale;
-} Graph_RPM;
+// Sensor Data Buffer
+float dataBuffer[DATA_BUFFER_SIZE];
+uint32_t dataHead;
+uint32_t dataTail;
 
 extern void initGUIGraphs(void);
-
-extern uint32_t getGraphY(float y, float scale);
-
-extern void GraphData_init(struct GraphData *data, uint32_t density, uint32_t estop);
-
-extern void drawDataPoint(struct GraphData* graph, uint32_t dx, uint32_t dy);
-
-extern void drawAllGraphData(struct GraphData *graph);
-
-extern void drawGraphBorder(struct GraphData* graph);
-
-extern void shiftGraphDataLeft(struct GraphData* graph);
-
-extern void clearGraph(struct GraphData *graph);
-
-extern void drawGraph(struct GraphData *graph, float value);
-
-extern void updateGraph(struct GraphData *graph, float newData);
 
 extern void GUI_Graphing(void);
 
