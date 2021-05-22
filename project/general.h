@@ -15,10 +15,10 @@
 
 #define TASKSTACKSIZE                   2048
 
-#define EVENT_GRAPH_LIGHT               Event_Id_01
-#define EVENT_GRAPH_RPM                 Event_Id_02
-#define EVENT_GRAPH_ACCEL               Event_Id_03
-#define EVENT_GRAPH_CURR                Event_Id_03
+#define EVENT_GRAPH_LIGHT               Event_Id_10
+#define EVENT_GRAPH_RPM                 Event_Id_11
+#define EVENT_GRAPH_ACCEL               Event_Id_12
+#define EVENT_GRAPH_CURR                Event_Id_13
 
 /* Tasks */
 Task_Struct sensorTaskStruct;

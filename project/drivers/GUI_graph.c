@@ -50,7 +50,7 @@ void initGUIGraphs(void) {
 
     GraphData_init(&Graph_LUX, 64, 32, 240, 112, 1, 1200);
 
-    GraphData_init(&Graph_ACCX, 64, 32, 240, 112, 1, 50);
+    GraphData_init(&Graph_ACCX, 64, 32, 240, 112, 3, 50000);
     GraphData_init(&Graph_ACCY, 64, 32, 240, 112, 1, 120);
     GraphData_init(&Graph_ACCZ, 64, 32, 240, 112, 1, 512);
 }
