@@ -29,7 +29,7 @@ struct XYGraphData {
     uint32_t width;
     uint32_t height;
     uint32_t axisXSpacing;
-} Graph_LUX;
+} Graph_LUX, Graph_ACCX, Graph_ACCY, Graph_ACCZ;
 
 extern void XYGraph_init_display(struct XYGraphData* graph, char* units);
 
@@ -47,7 +47,7 @@ extern void clearGraph(struct XYGraphData *graph);
 
 extern void drawGraph(struct XYGraphData *graph, float value);
 
-extern void drawGraphAxisY(struct XYGraphData* graph, bool draw);
+void drawGraphAxisY(struct XYGraphData* graph, bool draw);
 
 extern void drawGraphAxis(struct XYGraphData* graph);
 

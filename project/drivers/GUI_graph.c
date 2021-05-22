@@ -49,6 +49,10 @@ void initGUIGraphs(void) {
     TouchScreenCallbackSet(WidgetPointerMessage);
 
     GraphData_init(&Graph_LUX, 64, 32, 240, 112, 1, 1200);
+
+    GraphData_init(&Graph_ACCX, 64, 32, 240, 112, 1, 50);
+    GraphData_init(&Graph_ACCY, 64, 32, 240, 112, 1, 120);
+    GraphData_init(&Graph_ACCZ, 64, 32, 240, 112, 1, 512);
 }
 
 void addDataToBuffer(float y) {
@@ -67,7 +71,15 @@ void GUI_Graphing(void)
     /* Draw frame */
     FrameDraw(&sGraphContext, "GUI Graphing");
 
-    XYGraph_init_display(&Graph_LUX, "Lux");
+    if (graphTypeActive == GRAPH_TYPE_LIGHT) {
+        XYGraph_init_display(&Graph_LUX, "Lux");
+    }
+
+    if (graphTypeActive == GRAPH_TYPE_ACCEL) {
+        XYGraph_init_display(&Graph_ACCX, "x");
+        //XYGraph_init_display(&Graph_ACCY, "x");
+        //XYGraph_init_display(&Graph_ACCZ, "x");
+    }
 
     /* forever wait for data */
     while (1) {
@@ -76,13 +88,25 @@ void GUI_Graphing(void)
 
         if (events & EVENT_GRAPH_LIGHT) {
 
-            addDataToBuffer((float) luxValueFilt.avg);
+            //addDataToBuffer((float) luxValueFilt.avg);
 
-            updateGraph(&Graph_LUX, dataBuffer[dataTail]);
+            updateGraph(&Graph_LUX, luxValueFilt.avg);
 
-            dataBuffer[dataTail] = 0;
+            //dataBuffer[dataTail] = 0;
+            //++dataTail;
+            //if (dataTail > DATA_BUFFER_SIZE) dataTail = 0;
+        }
+
+        if (events & EVENT_GRAPH_ACCEL) {
+            // addDataToBuffer((float) luxValueFilt.avg);
+
+            updateGraph(&Graph_ACCX, accelXFilt.avg);
+            //updateGraph(&Graph_ACCY, accelYFilt.avg);
+            //updateGraph(&Graph_ACCY, accelZFilt.avg);
+
+            /*dataBuffer[dataTail] = 0;
             ++dataTail;
-            if (dataTail > DATA_BUFFER_SIZE) dataTail = 0;
+            if (dataTail > DATA_BUFFER_SIZE) dataTail = 0;*/
         }
     }
 }

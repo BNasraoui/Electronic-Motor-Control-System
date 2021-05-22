@@ -46,8 +46,8 @@ void XYGraph_init_display(struct XYGraphData* graph, char* units) {
     GrContextForegroundSet(&sGraphContext, 0x00787878);
     GrStringDraw(&sGraphContext,
              units,
-             16,
-             graph->width - (graph->pos_x*4),
+             8,
+             graph->pos_x,
              graph->pos_y + graph->height + 8,
              1
     );
@@ -90,8 +90,18 @@ void drawAllGraphData(struct XYGraphData *graph) {
     }
 }
 
+void drawCurrentValue(struct XYGraphData* graph) {
+    char str2[8];
+    uint32_t val = graph->data[graph->graphHead - 1];
+
+    sprintf(&str2, "%d", val);
+
+    GrLineDraw(&sGraphContext, graph->pos_x - 48, getGraphY(graph, val), graph->pos_x, getGraphY(graph, val));
+    GrStringDraw(&sGraphContext, str2, 8, graph->pos_x - 48, getGraphY(graph, val)-7, 1);
+}
+
 void drawGraphAxisY(struct XYGraphData* graph, bool draw) {
-    char str[8], str2[8];
+    char str[8];
     uint32_t i, j;
     uint32_t scale = 1;
 
@@ -100,12 +110,8 @@ void drawGraphAxisY(struct XYGraphData* graph, bool draw) {
             for (j = 0; j < 10; j++) {
                 if (graph->y_max < scale*10 && j == 1) {
                     sprintf(&str, "%d", scale*j);
-                    sprintf(&str2, "%d", graph->y_max);
+
                     if (draw) GrContextForegroundSet(&sGraphContext, 0x00787878);
-
-                    GrLineDraw(&sGraphContext, graph->pos_x - 48, getGraphY(graph, graph->y_max), graph->pos_x, getGraphY(graph, graph->y_max));
-                    GrStringDraw(&sGraphContext, str2, 8, graph->pos_x - 48, getGraphY(graph, graph->y_max)-7, 1);
-
                     GrLineDraw(&sGraphContext, graph->pos_x - 48, getGraphY(graph, scale * j), graph->pos_x + graph->width, getGraphY(graph, scale * j));
                     GrStringDraw(&sGraphContext, str, 8, graph->pos_x - 48, getGraphY(graph, scale * j)-7, 1);
 
@@ -141,6 +147,7 @@ void clearGraph(struct XYGraphData *graph) {
 
     GrContextForegroundSet(&sGraphContext, ClrBlack);
     drawAllGraphData(graph);
+    drawCurrentValue(graph);
     drawLogLine(graph, false, 0);
 
     GrLineDraw(&sGraphContext, graph->pos_x, getGraphY(graph, graph->y_estop), graph->width + graph->pos_x, getGraphY(graph, graph->y_estop));
@@ -157,6 +164,7 @@ void drawGraph(struct XYGraphData *graph, float value) {
 
     GrContextForegroundSet(&sGraphContext, ClrYellow);
     drawAllGraphData(graph);
+    drawCurrentValue(graph);
     drawLogLine(graph, true, value);
 }
 

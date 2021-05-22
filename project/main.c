@@ -64,13 +64,15 @@ void ReadSensorsFxn() {
         if(events & NEW_OPT3001_DATA) {
             GetLuxValue_OPT3001(&rawData);
             Swi_post(swi3Handle);
-            Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
+            if (graphTypeActive == GRAPH_TYPE_LIGHT) Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
             // System_printf("LUX: %d\n", luxValueFilt.avg);
         }
         if(events & NEW_ACCEL_DATA) {
             GetAccelData_BMI160(&accelX, &accelY, &accelZ);
             Swi_post(swi2Handle);
-            // System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
+            System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
+            if (graphTypeActive == GRAPH_TYPE_ACCEL) Event_post(GU_eventHandle, EVENT_GRAPH_ACCEL);
+
         }
 
         if(events & LOW_HIGH_LIGHT_EVENT) {
@@ -146,6 +148,7 @@ int main(void)
 
     /* GUI init */
     initGUIGraphs();
+    graphTypeActive = GRAPH_TYPE_ACCEL;
 
     /* Sensor init */
     //This is the custom driver implementation init function
