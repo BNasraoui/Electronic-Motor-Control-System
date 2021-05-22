@@ -90,29 +90,16 @@ void drawGraphAxisY(struct GraphData* graph, bool draw) {
     for (i = 0; i < 4; i++) {
         if (graph->y_max < scale*75) {
             for (j = 0; j < 10; j++) {
-                if (getGraphY(scale * j, graph->axis_y_scale) > GRAPH_POS_Y)
-                GrLineDraw(&sGraphContext,
-                       GRAPH_POS_X - 2,
-                       getGraphY(scale * j, graph->axis_y_scale),
-                       GRAPH_POS_X + 2,
-                       getGraphY(scale * j, graph->axis_y_scale));
                 if (graph->y_max < scale*10 && j == 1) {
                     sprintf(&str, "%d", scale*j);
                     if (draw) GrContextForegroundSet(&sGraphContext, 0x00787878);
-                    GrLineDraw(&sGraphContext,
-                           GRAPH_POS_X,
-                           getGraphY(scale * j, graph->axis_y_scale),
-                           GRAPH_POS_X + GRAPH_WIDTH,
-                           getGraphY(scale * j, graph->axis_y_scale));
-                    GrStringDraw(&sGraphContext,
-                             str,
-                             8,
-                             GRAPH_WIDTH - GRAPH_POS_X,
-                             getGraphY(scale * j, graph->axis_y_scale),
-                             1
-                    );
+                    GrLineDraw(&sGraphContext, GRAPH_POS_X, getGraphY(scale * j, graph->axis_y_scale), GRAPH_POS_X + GRAPH_WIDTH, getGraphY(scale * j, graph->axis_y_scale));
+                    GrStringDraw(&sGraphContext, str, 8, GRAPH_WIDTH - GRAPH_POS_X, getGraphY(scale * j, graph->axis_y_scale)-14, 1);
                     if (draw) GrContextForegroundSet(&sGraphContext, ClrWhite);
                 }
+                if (getGraphY(scale * j, graph->axis_y_scale) > GRAPH_POS_Y)
+                GrLineDraw(&sGraphContext, GRAPH_POS_X - 2, getGraphY(scale * j, graph->axis_y_scale), GRAPH_POS_X + 2, getGraphY(scale * j, graph->axis_y_scale));
+
             }
         }
         scale = scale * 10;
@@ -140,6 +127,28 @@ void shiftGraphDataLeft(struct GraphData* graph) {
     }
 }
 
+void drawLogLine(struct GraphData *graph, bool draw, float value) {
+    if (draw) GrContextForegroundSet(&sGraphContext, 0x00787878);
+    uint32_t i;
+    for (i = 0; i < 6; i++) {
+        GrLineDraw(&sGraphContext, GRAPH_POS_X + (32*i), (GRAPH_POS_Y*2) + GRAPH_HEIGHT + 3, GRAPH_POS_X + (32*i), (GRAPH_POS_Y*2) + GRAPH_HEIGHT);
+    }
+    GrLineDraw(&sGraphContext, GRAPH_POS_X, (GRAPH_POS_Y*2) + GRAPH_HEIGHT, GRAPH_POS_X + (32*i), (GRAPH_POS_Y*2) + GRAPH_HEIGHT);
+    if (draw) GrContextForegroundSet(&sGraphContext, ClrRed);
+    GrLineDraw(&sGraphContext, GRAPH_POS_X + (32*log10(graph->y_estop)), (GRAPH_POS_Y*2) + GRAPH_HEIGHT + 4, GRAPH_POS_X + (32*log10(graph->y_estop)), (GRAPH_POS_Y*2) + GRAPH_HEIGHT + 1);
+    GrLineDraw(&sGraphContext, GRAPH_POS_X + (32*log10(graph->y_estop)), (GRAPH_POS_Y*2) + GRAPH_HEIGHT - 4, GRAPH_POS_X + (32*log10(graph->y_estop)), (GRAPH_POS_Y*2) + GRAPH_HEIGHT - 7);
+
+    if (draw) {
+        GrContextForegroundSet(&sGraphContext, ClrYellow);
+        if (value > 0)
+        GrLineDraw(&sGraphContext, GRAPH_POS_X, (GRAPH_POS_Y*2) + GRAPH_HEIGHT - 2, GRAPH_POS_X + (32*log10(value)), (GRAPH_POS_Y*2) + GRAPH_HEIGHT - 2);
+    }
+    else
+    {
+        GrLineDraw(&sGraphContext, GRAPH_POS_X, (GRAPH_POS_Y*2) + GRAPH_HEIGHT - 2, GRAPH_WIDTH + GRAPH_POS_X, (GRAPH_POS_Y*2) + GRAPH_HEIGHT - 2);
+    }
+}
+
 void clearGraph(struct GraphData *graph) {
 
     //static char dataStr[32];
@@ -147,6 +156,7 @@ void clearGraph(struct GraphData *graph) {
 
     GrContextForegroundSet(&sGraphContext, ClrBlack);
     drawAllGraphData(graph);
+    drawLogLine(graph, false, 0);
 
     //if (newData > graph->y_max) {
     GrLineDraw(&sGraphContext, GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale), GRAPH_WIDTH + GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale));
@@ -156,7 +166,7 @@ void clearGraph(struct GraphData *graph) {
     //GrStringDraw(&sGraphContext, dataPeak, 32, GRAPH_POS_X + 16, GRAPH_POS_Y + GRAPH_HEIGHT + 32, 1);
 }
 
-void drawGraph(struct GraphData *graph) {
+void drawGraph(struct GraphData *graph, float value) {
     // Draw the data
     GrContextForegroundSet(&sGraphContext, ClrRed);
     GrLineDraw(&sGraphContext, GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale), GRAPH_WIDTH + GRAPH_POS_X, getGraphY(graph->y_estop, graph->axis_y_scale));
@@ -167,6 +177,7 @@ void drawGraph(struct GraphData *graph) {
 
     GrContextForegroundSet(&sGraphContext, ClrYellow);
     drawAllGraphData(graph);
+    drawLogLine(graph, true, value);
 
 
     /*
@@ -217,7 +228,7 @@ void updateGraph(struct GraphData *graph, float newData) {
         }
     }
 
-    drawGraph(graph);
+    drawGraph(graph, newData);
 
 }
 
@@ -235,9 +246,7 @@ void GUI_Graphing(void)
     UInt events;
 
     /* Draw frame */
-    char str[32];
-    sprintf(&str, "%dx%d", GRAPH_WIDTH, GRAPH_HEIGHT);
-    FrameDraw(&sGraphContext, str);
+    FrameDraw(&sGraphContext, "GUI Graphing");
 
     GrContextForegroundSet(&sGraphContext, 0x00787878);
     GrStringDraw(&sGraphContext,
@@ -257,6 +266,7 @@ void GUI_Graphing(void)
         events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
 
         if (events & EVENT_GRAPH_LIGHT) {
+
             addDataToBuffer((float) luxValueFilt.avg);
 
             updateGraph(&Graph_RPM, dataBuffer[dataTail]);

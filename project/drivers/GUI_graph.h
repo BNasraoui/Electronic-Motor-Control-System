@@ -97,7 +97,7 @@ extern void shiftGraphDataLeft(struct GraphData* graph);
 
 extern void clearGraph(struct GraphData *graph);
 
-extern void drawGraph(struct GraphData *graph);
+extern void drawGraph(struct GraphData *graph, float value);
 
 extern void updateGraph(struct GraphData *graph, float newData);
 
