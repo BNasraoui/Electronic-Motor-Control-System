@@ -48,11 +48,13 @@ void initGUIGraphs(void) {
     TouchScreenInit(SYS_CLK_SPEED);
     TouchScreenCallbackSet(WidgetPointerMessage);
 
-    GraphData_init(&Graph_LUX, 64, 32, 240, 112, 1, 1200);
+    GraphFrame_init(&GraphBorder, 64, 32, 240, 112);
 
-    GraphData_init(&Graph_ACCX, 64, 32, 240, 112, 3, 50000);
-    GraphData_init(&Graph_ACCY, 64, 32, 240, 112, 1, 120);
-    GraphData_init(&Graph_ACCZ, 64, 32, 240, 112, 1, 512);
+    GraphData_init(&Graph_LUX, 1, 1200);
+
+    GraphData_init(&Graph_ACCX, 3, 50000);
+    GraphData_init(&Graph_ACCY, 1, 120);
+    GraphData_init(&Graph_ACCZ, 1, 512);
 }
 
 void addDataToBuffer(float y) {
@@ -72,13 +74,11 @@ void GUI_Graphing(void)
     FrameDraw(&sGraphContext, "GUI Graphing");
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
-        XYGraph_init_display(&Graph_LUX, "Lux");
+        XYGraph_init_display(&GraphBorder, "Lux");
     }
 
     if (graphTypeActive == GRAPH_TYPE_ACCEL) {
-        XYGraph_init_display(&Graph_ACCX, "x");
-        //XYGraph_init_display(&Graph_ACCY, "x");
-        //XYGraph_init_display(&Graph_ACCZ, "x");
+        XYGraph_init_display(&GraphBorder, "G");
     }
 
     /* forever wait for data */
@@ -90,7 +90,7 @@ void GUI_Graphing(void)
 
             //addDataToBuffer((float) luxValueFilt.avg);
 
-            updateGraph(&Graph_LUX, luxValueFilt.avg);
+            updateGraph(&GraphBorder, &Graph_LUX, luxValueFilt.avg);
 
             //dataBuffer[dataTail] = 0;
             //++dataTail;
@@ -100,7 +100,7 @@ void GUI_Graphing(void)
         if (events & EVENT_GRAPH_ACCEL) {
             // addDataToBuffer((float) luxValueFilt.avg);
 
-            updateGraph(&Graph_ACCX, accelXFilt.avg);
+            updateGraph(&GraphBorder, &Graph_ACCX, accelXFilt.avg);
             //updateGraph(&Graph_ACCY, accelYFilt.avg);
             //updateGraph(&Graph_ACCY, accelZFilt.avg);
 

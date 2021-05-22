@@ -9,6 +9,7 @@
 #include "drivers/GUI_XYGraph.h"
 #include "drivers/GUI_LogGraph.h"
 
+/*
 void drawLogLine(struct XYGraphData *graph, bool draw, float value) {
     if (draw) GrContextForegroundSet(&sGraphContext, 0x00787878);
     uint32_t i;
@@ -29,4 +30,4 @@ void drawLogLine(struct XYGraphData *graph, bool draw, float value) {
     {
         GrLineDraw(&sGraphContext, graph->pos_x, (graph->pos_y*2) + graph->height - 2, graph->width + graph->pos_x, (graph->pos_y*2) + graph->height - 2);
     }
-}
+}*/
