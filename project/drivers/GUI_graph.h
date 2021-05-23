@@ -59,9 +59,15 @@
 #define GRAPH_TYPE_LIGHT 1
 #define GRAPH_TYPE_ACCEL 2
 
+#define GRAPH_LIGHT_DENSITY 1
+#define GRAPH_ACCEL_DENSITY 8
+
 tContext sGraphContext;
 
 uint32_t graphTypeActive;
+
+/* Clock */
+Uint32 graphLagStart, graphLagEnd, graphLagTotal;
 
 extern void initGUIGraphs(void);
 

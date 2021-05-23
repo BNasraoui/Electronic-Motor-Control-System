@@ -53,6 +53,8 @@ extern void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph);
 
 extern void drawGraphFrame(struct XYGraphFrame *frame);
 
+extern void drawGraphLag(struct XYGraphFrame* frame, UInt32 time);
+
 extern bool accumulateGraphData(struct XYGraphData *graph, uint16_t newData);
 
 

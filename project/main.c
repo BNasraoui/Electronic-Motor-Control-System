@@ -65,14 +65,20 @@ void ReadSensorsFxn() {
             GetLuxValue_OPT3001(&rawData);
             Swi_post(swi3Handle);
             //System_printf("LUX: %d\n", luxValueFilt.avg);
-            if (graphTypeActive == GRAPH_TYPE_LIGHT) Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
+            if (graphTypeActive == GRAPH_TYPE_LIGHT) {
+                if (graphLagStart == 0) graphLagStart = Clock_getTicks();
+                Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
+            }
         }
 
         if(events & NEW_ACCEL_DATA) {
             GetAccelData_BMI160(&accelX, &accelY, &accelZ);
             Swi_post(swi2Handle);
             //System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
-            if (graphTypeActive == GRAPH_TYPE_ACCEL) Event_post(GU_eventHandle, EVENT_GRAPH_ACCEL);
+            if (graphTypeActive == GRAPH_TYPE_ACCEL) {
+                if (graphLagStart == 0) graphLagStart = Clock_getTicks();
+                Event_post(GU_eventHandle, EVENT_GRAPH_ACCEL);
+            }
         }
 
         if(events & LOW_HIGH_LIGHT_EVENT) {

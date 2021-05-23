@@ -50,11 +50,24 @@ void initGUIGraphs(void) {
 
     GraphFrame_init(&GraphBorder, 64, 32, 240, 112);
 
-    GraphData_init(&Graph_LUX, 1, 600);
+    GraphData_init(&Graph_LUX, GRAPH_LIGHT_DENSITY, 600);
 
-    GraphData_init(&Graph_ACCX, 8, 50000);
-    GraphData_init(&Graph_ACCY, 8, 55000);
-    GraphData_init(&Graph_ACCZ, 8, 45000);
+    GraphData_init(&Graph_ACCX, GRAPH_ACCEL_DENSITY, 50000);
+    GraphData_init(&Graph_ACCY, GRAPH_ACCEL_DENSITY, 55000);
+    GraphData_init(&Graph_ACCZ, GRAPH_ACCEL_DENSITY, 45000);
+}
+
+void graphLag(struct XYGraphFrame* frame) {
+    graphLagEnd = Clock_getTicks();
+    Uint32 oldT = graphLagTotal;
+    graphLagTotal = (double) (graphLagEnd - graphLagStart);
+    graphLagStart = 0;
+
+    GrContextForegroundSet(&sGraphContext, ClrBlack);
+    drawGraphLag(frame, oldT);
+
+    GrContextForegroundSet(&sGraphContext, 0x00787878);
+    drawGraphLag(frame, graphLagTotal);
 }
 
 void GUI_Graphing(void)
@@ -79,6 +92,7 @@ void GUI_Graphing(void)
         events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
 
         if (events & EVENT_GRAPH_LIGHT) {
+
             if (accumulateGraphData(&Graph_LUX, luxValueFilt.avg)) {
                 clearGraphFrame(&GraphBorder);
                 clearGraphData(&GraphBorder, &Graph_LUX);
@@ -90,6 +104,8 @@ void GUI_Graphing(void)
                 drawGraphData(&GraphBorder, &Graph_LUX, ClrYellow);
 
                 GraphBorder.maxOnDisplay = 0;
+
+                graphLag(&GraphBorder);
             }
         }
 
@@ -100,6 +116,7 @@ void GUI_Graphing(void)
             bool zready = accumulateGraphData(&Graph_ACCZ, accelZFilt.avg);
 
             if (!(xready && yready && zready)) {
+                /* If the data is still being accumulated by the graphs, draw the last set of data */
                 switch (skipper) {
                     case (0) :
                         updateGraph(&GraphBorder, &Graph_ACCX);
@@ -113,17 +130,20 @@ void GUI_Graphing(void)
                         updateGraph(&GraphBorder, &Graph_ACCZ);
                         drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
                         break;
-                    case (5) :
+                    case (GRAPH_ACCEL_DENSITY-3) :
                         clearGraphFrame(&GraphBorder);
                         break;
-                    case (6) :
+                    case (GRAPH_ACCEL_DENSITY-2) :
                         clearGraphData(&GraphBorder, &Graph_ACCX);
                         clearGraphData(&GraphBorder, &Graph_ACCY);
                         break;
-                    case (7) :
+                    case (GRAPH_ACCEL_DENSITY-1) :
                         clearGraphData(&GraphBorder, &Graph_ACCZ);
                         updateFrameScale(&GraphBorder);
                         drawGraphFrame(&GraphBorder);
+
+                        graphLag(&GraphBorder);
+
                         break;
                 }
             }

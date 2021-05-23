@@ -97,6 +97,19 @@ void XYGraph_init_display(struct XYGraphFrame* frame, char* units) {
     drawGraphAxisY(frame, true);
 }
 
+void drawGraphLag(struct XYGraphFrame* frame, UInt32 time) {
+    char str[16];
+    sprintf(str, "-%dms", time);
+
+    GrStringDraw(&sGraphContext,
+             str,
+             16,
+             frame->pos_x + 96,
+             frame->pos_y + frame->height + 8,
+             1
+    );
+}
+
 void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
     frame->y_max = 1;
     frame->axis_y_scale = h / frame->y_max;
@@ -225,12 +238,9 @@ void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
 }
 
 bool accumulateGraphData(struct XYGraphData *graph, uint16_t newData) {
-    if (graph->densityCount < graph->density) {
-        graph->densityCount += 1;
-        graph->densitySum += newData;
-    }
-    else
-    {
+    graph->densityCount += 1;
+    graph->densitySum += newData;
+    if (graph->densityCount >= graph->density) {
         return true;
     }
     return false;
