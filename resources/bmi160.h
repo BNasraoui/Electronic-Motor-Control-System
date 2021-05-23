@@ -169,6 +169,7 @@ THE SOFTWARE.
 #define BMI160_SPI_READ_BIT         7
 
 #define BMI160_RA_CHIP_ID           0x00
+#define BMI160_ID                  0xD1
 
 #define BMI160_ACC_PMU_STATUS_BIT   4
 #define BMI160_ACC_PMU_STATUS_LEN   2

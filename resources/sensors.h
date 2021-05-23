@@ -44,7 +44,7 @@
 
 #define GPIO_PORTP_BASE                 0x40065000  // GPIO Port P
 #define GPIO_PIN_2                      0x00000004  // GPIO pin 2
-#define P2_VECTOR_NUM              94
+#define P2_VECTOR_NUM                   94
 
 /* OP3001 Register addresses */
 //OPT3001 slave address
@@ -75,23 +75,25 @@
 #define DATA_RDY_BIT                    0x0080  // Data ready
 #define TASKSTACKSIZE                   512
 
-#define ADC0_SEQ1_VEC_NUM          31
-#define ADC1_SEQ1_VEC_NUM          63
-#define ADC_SEQ                     1
-#define ADC_STEP                    0
-#define WINDOW_SIZE                 5
-#define ADC_RESOLUTION              0.0008
-#define SHUNT_R_VALUE               0.007
+#define ADC0_SEQ1_VEC_NUM               31
+#define ADC1_SEQ1_VEC_NUM               63
+#define ADC_SEQ                         1
+#define ADC_STEP                        0
+#define WINDOW_SIZE                     5
+#define ADC_RESOLUTION                  0.0008
+#define SHUNT_R_VALUE                   0.007
 
-#define CLOCK_PERIOD_150HZ          6    //6ms = ~150Hz
-#define CLOCK_PERIOD_2HZ            500 //500ms = 2Hz
-#define CLOCK_TIMEOUT               10  //ms
+#define CLOCK_PERIOD_150HZ              6    //6ms = ~150Hz
+#define CLOCK_PERIOD_2HZ                500 //500ms = 2Hz
+#define CLOCK_TIMEOUT                   10  //ms
 
 #define LOW_HIGH_LIGHT_EVENT            Event_Id_00
 #define NEW_OPT3001_DATA                Event_Id_01
 #define NEW_ACCEL_DATA                  Event_Id_02
 #define NEW_ADC0_DATA                   Event_Id_03
 #define NEW_ADC1_DATA                   Event_Id_04
+
+#define DEBUG_MODE                      0
 
 typedef struct Sliding_Window32{
     uint8_t index;
@@ -138,13 +140,12 @@ Swi_Handle swi0Handle, swi1Handle, swi2Handle, swi3Handle;
 Event_Handle eventHandler;
 Error_Block eb;
 
+I2C_Handle i2cHandle;
+
 Clock_Params clockParams;
 Clock_Handle clockHandler;
 Clock_Handle clockHandler2;
 extern Timer_Handle myTimer;
-
-uint16_t rawData;
-I2C_Handle i2cHandle;
 
 //Moving average filtering with buffer
 SlidingWindow_32 ADC0Window;
@@ -155,13 +156,13 @@ SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
 int16_t accelX, accelY, accelZ;
 
+uint16_t rawData;
+
 extern void InitSensorDriver();
 
 extern void InitTasks();
 
-extern void ReadSensorsFxn();
-
-extern void InitI2C_opt3001();
+extern void InitI2C_OPT3001();
 
 extern void InitI2C_BMI160();
 
@@ -169,33 +170,37 @@ extern void InitADC0_CurrentSense();
 
 extern void InitADC1_CurrentSense();
 
-extern void clockHandlerFxn(UArg arg);
+extern void OPT3001_ClockHandlerFxn();
 
-extern void EnableADCSequencers();
-
-extern void adcSeqStart();
-
-extern void ADC0_Read();
-
-extern void ADC1_Read();
+extern void ADC_ClockHandlerFxn();
 
 extern void ADC0_FilterFxn();
 
 extern void ADC1_FilterFxn();
 
+extern void OPT3001Fxn();
+
+extern void BMI160Fxn();
+
 extern bool GetLuxValue_OPT3001(uint16_t *rawData);
 
 extern bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ);
 
-extern void ProcessAccelDataFxn();
+extern void ReadSensorsFxn();
 
-extern void ConvertRawAccelToGs();
+extern void ADC0_Read();
+
+extern void ADC1_Read();
+
+extern void ProcessAccelDataFxn();
 
 extern void ProcessLuxDataFxn();
 
-extern void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result);
-
 extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
+
+extern void ConvertRawAccelToGs();
+
+extern void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result);
 
 extern void SetLowLimit_OPT3001(float val);
 
@@ -215,8 +220,4 @@ extern bool WriteHalfwordI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t
 
 extern bool WriteByteI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t data);
 
-extern void OPT3001Fxn();
-
-extern void BMI160Fxn();
-
-#endif // __TOUCH_H__
+#endif // __SENSORS_H__

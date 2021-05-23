@@ -2,17 +2,12 @@
 #include "bmi160.h"
 
 //*************************** SWI/HWIS **************************************
-void OPT3001Fxn()
-{
-    Event_post(eventHandler, Event_Id_00);
-}
-
-void clockHandlerFxn(UArg arg) {
+void OPT3001_ClockHandlerFxn() {
     Event_post(eventHandler, Event_Id_01);
     Clock_start(clockHandler);
 }
 
-void EnableADCSequencers() {
+void ADC_ClockHandlerFxn() {
     ADCProcessorTrigger(ADC0_BASE, ADC_SEQ);
     ADCProcessorTrigger(ADC1_BASE, ADC_SEQ);
     Clock_start(clockHandler2);
@@ -20,6 +15,11 @@ void EnableADCSequencers() {
 
 void BMI160Fxn() {
     Event_post(eventHandler, Event_Id_02);
+}
+
+void OPT3001Fxn()
+{
+    Event_post(eventHandler, Event_Id_00);
 }
 
 //*************************** INITIALISATION **************************************
@@ -30,7 +30,7 @@ void InitSensorDriver() {
 
     eventHandler = Event_create(NULL, &eb);
     if(eventHandler == NULL) {
-        System_abort("Sensors event create failed");
+        System_abort("Sensors event handle create failed");
     }
 
     /* Create I2C for usage */
@@ -40,23 +40,28 @@ void InitSensorDriver() {
     i2cParams.transferMode = I2C_MODE_BLOCKING;
     i2cHandle = I2C_open(0, &i2cParams);
     if (i2cHandle == NULL) {
-        System_abort("Error Initializing I2C\n");
+        System_abort("Error Initializing I2C Handle\n");
     }
 
     Clock_Params_init(&clockParams);
     clockParams.period = CLOCK_PERIOD_2HZ;
     clockParams.startFlag = FALSE;
-    clockHandler = Clock_create(clockHandlerFxn, CLOCK_TIMEOUT, &clockParams, &eb);
+    clockHandler = Clock_create(OPT3001_ClockHandlerFxn, CLOCK_TIMEOUT, &clockParams, &eb);
     if (clockHandler == NULL) {
      System_abort("Clock 1 create failed");
     }
 
-    Clock_Params_init(&clockParams);
     clockParams.period = CLOCK_PERIOD_150HZ;
-    clockParams.startFlag = FALSE;
-    clockHandler2 = Clock_create(EnableADCSequencers, CLOCK_TIMEOUT, &clockParams, &eb);
+    clockHandler2 = Clock_create(ADC_ClockHandlerFxn, CLOCK_TIMEOUT, &clockParams, &eb);
     if (clockHandler == NULL) {
      System_abort("Clock 2 create failed");
+    }
+
+    //Create Hwi Gate Mutex
+    GateHwi_Params_init(&gHwiprms);
+    gateHwi = GateHwi_create(&gHwiprms, NULL);
+    if (gateHwi == NULL) {
+        System_abort("Gate Hwi create failed");
     }
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
@@ -67,7 +72,7 @@ void InitTasks() {
     Task_Params_init(&taskParams);
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
-    //taskParams.instance->name = "initI2C_opt3001";
+    taskParams.instance->name = "sensorTask";
     taskParams.priority = 0;
     Task_construct(&task0Struct, (Task_FuncPtr)ReadSensorsFxn, &taskParams, NULL);
 
@@ -76,24 +81,27 @@ void InitTasks() {
     swiParams.trigger = 0;
     Swi_construct(&swi0Struct, (Swi_FuncPtr)ADC0_FilterFxn, &swiParams, NULL);
     swi0Handle = Swi_handle(&swi0Struct);
+    if (swi0Handle == NULL) {
+     System_abort("SWI 0 ADC0 filter create failed");
+    }
 
-    Swi_Params_init(&swiParams);
-    swiParams.priority = 1;
-    swiParams.trigger = 0;
     Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
     swi1Handle = Swi_handle(&swi1Struct);
+    if (swi1Handle == NULL) {
+     System_abort("SWI 1 ADC1 filter create failed");
+    }
 
-    Swi_Params_init(&swiParams);
-    swiParams.priority = 1;
-    swiParams.trigger = 0;
     Swi_construct(&swi2Struct, (Swi_FuncPtr)ProcessAccelDataFxn, &swiParams, NULL);
     swi2Handle = Swi_handle(&swi2Struct);
+    if (swi2Handle == NULL) {
+     System_abort("SWI 2 process accel data create failed");
+    }
 
-    Swi_Params_init(&swiParams);
-    swiParams.priority = 1;
-    swiParams.trigger = 0;
     Swi_construct(&swi3Struct, (Swi_FuncPtr)ProcessLuxDataFxn, &swiParams, NULL);
     swi3Handle = Swi_handle(&swi3Struct);
+    if (swi3Handle == NULL) {
+     System_abort("SWI 3 process lux data create failed");
+    }
 
     Hwi_Params_init(&hwiParams);
     hwiParams.priority = 0;
@@ -102,14 +110,13 @@ void InitTasks() {
      System_abort("ADC0 Hwi create failed");
     }
 
-    hwiParams.priority = 0;
     hwi_ADC1 = Hwi_create(ADC1_SEQ1_VEC_NUM, (Hwi_FuncPtr)ADC1_Read, &hwiParams, NULL);
     if (hwi_ADC1 == NULL) {
      System_abort("ADC1 Hwi create failed");
     }
 }
 
-//*************************** ACCELEROMETER **************************************
+//*************************** ACCELEROMETER BMI160 **************************************
 void InitI2C_BMI160() {
     uint8_t val;
     uint8_t data;
@@ -130,8 +137,11 @@ void InitI2C_BMI160() {
     accelXFilt.startFilter = false;
 
     ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_CHIP_ID, &data);
-    System_printf("Device ID: %d, should be = 209\n", data);
-    System_flush();
+    if(data != BMI160_ID) {
+        System_printf("Device ID: %d, should be = 209\n", data);
+        System_flush();
+        System_abort("Wrong bmi160 device ID returned - ABORTING");
+    }
 
     /* Issue a soft-reset to bring the device into a clean state */
     val =  BMI160_CMD_SOFT_RESET;
@@ -167,20 +177,20 @@ void InitI2C_BMI160() {
     val =  BMI160_DIR_OUTPUT | BMI160_DIR_OPENDRAIN;
     WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_OUT_CTRL, val);
 
-    //check error status of CHIP
-    ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMM150_OPMODE_REG_DEFAULT, &data);
-    System_printf("Error code: %d\n", data);
-    System_flush();
+    #ifdef DEBUG_MODE
+        //check error status of CHIP
+        ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMM150_OPMODE_REG_DEFAULT, &data);
+        System_printf("Error code: %d\n", data);
 
-    //check PMU register to make sure accel powered up
-    ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_PMU_STATUS, &data);
-    System_printf("PMU status: %d\n", data);
-    System_flush();
+        //check PMU register to make sure accel powered up
+        ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_PMU_STATUS, &data);
+        System_printf("PMU status: %d\n", data);
 
-    //Check the interrupt status to make sure correct interrupt raised
-    ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_STATUS_1, &data);
-    System_printf("Int status: %d\n", data);
-    System_flush();
+        //Check the interrupt status to make sure correct interrupt raised
+        ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_STATUS_1, &data);
+        System_printf("Int status: %d\n", data);
+        System_flush();
+    #endif
 }
 
 
@@ -246,8 +256,8 @@ void ConvertRawAccelToGs() {
     accelZFilt.G = accelZ_mG/1000;
 }
 
-//*************************** LIGHT SENSING **************************************
-void InitI2C_opt3001() {
+//*************************** LIGHT SENSING OPT3001 **************************************
+void InitI2C_OPT3001() {
     luxValueFilt.index = 0;
     luxValueFilt.sum = 0;
     luxValueFilt.avg = 0;

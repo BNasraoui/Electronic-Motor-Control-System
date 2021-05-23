@@ -28,7 +28,7 @@ void ReadSensorsFxn() {
     UInt gateKey;
     UInt events;
 
-    InitI2C_opt3001();
+    InitI2C_OPT3001();
     InitI2C_BMI160();
     InitADC0_CurrentSense();
     InitADC1_CurrentSense();
@@ -48,7 +48,7 @@ void ReadSensorsFxn() {
         if(events & NEW_OPT3001_DATA) {
             GetLuxValue_OPT3001(&rawData);
             Swi_post(swi3Handle);
-            System_printf("LUX: %d\n", luxValueFilt.avg);
+            System_printf("LUX: %f\n", luxValueFilt.avg);
         }
         if(events & NEW_ACCEL_DATA) {
             GetAccelData_BMI160(&accelX, &accelY, &accelZ);
@@ -85,17 +85,8 @@ int main(void)
     Board_initGPIO();
     Board_initI2C();
 
-    //This is the custom driver implementation init function
-    //That will use Fxn table etc
     //Board_initSensors();
     InitSensorDriver();
-
-    //Create Hwi Gate Mutex
-    GateHwi_Params_init(&gHwiprms);
-    gateHwi = GateHwi_create(&gHwiprms, NULL);
-    if (gateHwi == NULL) {
-        System_abort("Gate Hwi create failed");
-    }
 
     /* Turn on user LED  */
     GPIO_write(Board_LED0, Board_LED_ON);
