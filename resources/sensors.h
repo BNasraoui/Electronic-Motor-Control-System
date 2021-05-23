@@ -42,13 +42,15 @@
 /* Board Header file */
 #include "Board.h"
 
+#define GPIO_PORTP_BASE                 0x40065000  // GPIO Port P
+#define GPIO_PIN_2                      0x00000004  // GPIO pin 2
+#define P2_VECTOR_NUM              94
+
+/* OP3001 Register addresses */
 //OPT3001 slave address
 #define OPT3001_SLAVE_ADDRESS           0x47
 #define BMI160_SLAVE_ADDRESS            0x69
-#define GPIO_PORTP_BASE                 0x40065000  // GPIO Port P
-#define GPIO_PIN_2                      0x00000004  // GPIO pin 2
 
-/* OP3001 Register addresses */
 #define REG_RESULT                      0x00
 #define REG_CONFIGURATION               0x01
 #define REG_LOW_LIMIT                   0x02
@@ -73,13 +75,17 @@
 #define DATA_RDY_BIT                    0x0080  // Data ready
 #define TASKSTACKSIZE                   512
 
-#define P2_VECTOR_NUM              94
 #define ADC0_SEQ1_VEC_NUM          31
 #define ADC1_SEQ1_VEC_NUM          63
 #define ADC_SEQ                     1
 #define ADC_STEP                    0
 #define WINDOW_SIZE                 5
 #define ADC_RESOLUTION              0.0008
+#define SHUNT_R_VALUE               0.007
+
+#define CLOCK_PERIOD_150HZ          6    //6ms = ~150Hz
+#define CLOCK_PERIOD_2HZ            500 //500ms = 2Hz
+#define CLOCK_TIMEOUT               10  //ms
 
 #define LOW_HIGH_LIGHT_EVENT            Event_Id_00
 #define NEW_OPT3001_DATA                Event_Id_01
@@ -89,20 +95,31 @@
 
 typedef struct Sliding_Window32{
     uint8_t index;
+    bool startFilter;
     uint32_t sum;
-    uint32_t avg;
+    float avg;
     float voltage;
     float current;
     float power;
     uint32_t data[WINDOW_SIZE];
-} SlidingWindow32;
+} SlidingWindow_32;
 
-typedef struct Sliding_Window16{
+typedef struct Sliding_Window_16{
     uint8_t index;
+    bool startFilter;
+    int32_t sum;
+    float avg;
+    float G;
+    int16_t data[WINDOW_SIZE];
+} SlidingWindow_16;
+
+typedef struct Sliding_Window_u16{
+    uint8_t index;
+    bool startFilter;
     uint32_t sum;
-    uint32_t avg;
+    float avg;
     uint16_t data[WINDOW_SIZE];
-} SlidingWindow16;
+} SlidingWindow_u16;
 
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
@@ -130,12 +147,12 @@ uint16_t rawData;
 I2C_Handle i2cHandle;
 
 //Moving average filtering with buffer
-SlidingWindow32 ADC0Window;
-SlidingWindow32 ADC1Window;
-SlidingWindow16 luxValueFilt;
-SlidingWindow16 accelXFilt;
-SlidingWindow16 accelYFilt;
-SlidingWindow16 accelZFilt;
+SlidingWindow_32 ADC0Window;
+SlidingWindow_32 ADC1Window;
+SlidingWindow_u16 luxValueFilt;
+SlidingWindow_16 accelXFilt;
+SlidingWindow_16 accelYFilt;
+SlidingWindow_16 accelZFilt;
 int16_t accelX, accelY, accelZ;
 
 extern void InitSensorDriver();
@@ -171,6 +188,8 @@ extern bool GetLuxValue_OPT3001(uint16_t *rawData);
 extern bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ);
 
 extern void ProcessAccelDataFxn();
+
+extern void ConvertRawAccelToGs();
 
 extern void ProcessLuxDataFxn();
 

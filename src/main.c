@@ -33,10 +33,6 @@ void ReadSensorsFxn() {
     InitADC0_CurrentSense();
     InitADC1_CurrentSense();
 
-    //Clear interrupt bit because
-    //uint16_t val;
-    //ReadI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
-
     //enable Hwi for BMI160 and OPT3001
     GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
     GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
@@ -57,7 +53,7 @@ void ReadSensorsFxn() {
         if(events & NEW_ACCEL_DATA) {
             GetAccelData_BMI160(&accelX, &accelY, &accelZ);
             Swi_post(swi2Handle);
-            System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
+            System_printf("X: %f\t Y: %f\t Z: %f\n", accelXFilt.G, accelYFilt.G, accelZFilt.G);
         }
 
         if(events & LOW_HIGH_LIGHT_EVENT) {
@@ -68,13 +64,13 @@ void ReadSensorsFxn() {
             //Check if limit exceeded, respon accordingly
 
             //Update display
-            System_printf("ADC0: %d\n", ADC0Window.avg);
+            System_printf("ADC0: %f\n", ADC0Window.avg);
         }
         if(events & NEW_ADC1_DATA) {
             //Check if limit exceeded, respon accordingly
 
             //Update display
-            System_printf("ADC1: %d\n", ADC1Window.avg);
+            System_printf("ADC1: %f\n", ADC1Window.avg);
         }
 
         System_flush();
