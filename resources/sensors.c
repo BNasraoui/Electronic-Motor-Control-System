@@ -111,28 +111,26 @@ void InitSensorDriver() {
     }
 
     Clock_Params_init(&clockParams);
-    clockParams.period = 50;
+    clockParams.period = 500;
     clockParams.startFlag = FALSE;
-    clockHandler = Clock_create(clockHandlerFxn, 50, &clockParams, &eb);
+    clockHandler = Clock_create(clockHandlerFxn, 10, &clockParams, &eb);
     if (clockHandler == NULL) {
      System_abort("Clock 1 create failed");
     }
 
     Clock_Params_init(&clockParams);
-    clockParams.period = 3;
+    clockParams.period = 6;
     clockParams.startFlag = FALSE;
-    clockHandler2 = Clock_create(EnableADCSequencers, 3, &clockParams, &eb);
+    clockHandler2 = Clock_create(EnableADCSequencers, 10, &clockParams, &eb);
     if (clockHandler == NULL) {
      System_abort("Clock 2 create failed");
     }
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
-
 }
 
 void InitTasks() {
     Task_Params taskParams;
-
     Task_Params_init(&taskParams);
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
