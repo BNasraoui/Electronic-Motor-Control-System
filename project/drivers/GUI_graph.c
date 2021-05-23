@@ -50,35 +50,27 @@ void initGUIGraphs(void) {
 
     GraphFrame_init(&GraphBorder, 64, 32, 240, 112);
 
-    GraphData_init(&Graph_LUX, 1, 1200);
+    GraphData_init(&Graph_LUX, 1, 600);
 
-    GraphData_init(&Graph_ACCX, 3, 50000);
-    GraphData_init(&Graph_ACCY, 1, 120);
-    GraphData_init(&Graph_ACCZ, 1, 512);
-}
-
-void addDataToBuffer(float y) {
-    dataBuffer[dataHead] = y;
-
-    ++dataHead;
-    if (dataHead > DATA_BUFFER_SIZE) {
-        dataHead = 0;
-    }
+    GraphData_init(&Graph_ACCX, 8, 50000);
+    GraphData_init(&Graph_ACCY, 8, 55000);
+    GraphData_init(&Graph_ACCZ, 8, 45000);
 }
 
 void GUI_Graphing(void)
 {
     UInt events;
+    uint16_t skipper = 0;
 
     /* Draw frame */
     FrameDraw(&sGraphContext, "GUI Graphing");
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
-        XYGraph_init_display(&GraphBorder, "Lux");
+        XYGraph_init_display(&GraphBorder, "Lux [1:1]");
     }
 
     if (graphTypeActive == GRAPH_TYPE_ACCEL) {
-        XYGraph_init_display(&GraphBorder, "G");
+        XYGraph_init_display(&GraphBorder, "G [8:1]");
     }
 
     /* forever wait for data */
@@ -87,26 +79,61 @@ void GUI_Graphing(void)
         events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
 
         if (events & EVENT_GRAPH_LIGHT) {
+            if (accumulateGraphData(&Graph_LUX, luxValueFilt.avg)) {
+                clearGraphFrame(&GraphBorder);
+                clearGraphData(&GraphBorder, &Graph_LUX);
 
-            //addDataToBuffer((float) luxValueFilt.avg);
+                updateGraph(&GraphBorder, &Graph_LUX);
+                updateFrameScale(&GraphBorder);
 
-            updateGraph(&GraphBorder, &Graph_LUX, luxValueFilt.avg);
+                drawGraphFrame(&GraphBorder);
+                drawGraphData(&GraphBorder, &Graph_LUX, ClrYellow);
 
-            //dataBuffer[dataTail] = 0;
-            //++dataTail;
-            //if (dataTail > DATA_BUFFER_SIZE) dataTail = 0;
+                GraphBorder.maxOnDisplay = 0;
+            }
         }
 
         if (events & EVENT_GRAPH_ACCEL) {
-            // addDataToBuffer((float) luxValueFilt.avg);
 
-            updateGraph(&GraphBorder, &Graph_ACCX, accelXFilt.avg);
-            //updateGraph(&Graph_ACCY, accelYFilt.avg);
-            //updateGraph(&Graph_ACCY, accelZFilt.avg);
+            bool xready = accumulateGraphData(&Graph_ACCX, accelXFilt.avg);
+            bool yready = accumulateGraphData(&Graph_ACCY, accelYFilt.avg);
+            bool zready = accumulateGraphData(&Graph_ACCZ, accelZFilt.avg);
 
-            /*dataBuffer[dataTail] = 0;
-            ++dataTail;
-            if (dataTail > DATA_BUFFER_SIZE) dataTail = 0;*/
+            if (!(xready && yready && zready)) {
+                switch (skipper) {
+                    case (0) :
+                        updateGraph(&GraphBorder, &Graph_ACCX);
+                        drawGraphData(&GraphBorder, &Graph_ACCX, ClrYellow);
+                        break;
+                    case (1) :
+                        updateGraph(&GraphBorder, &Graph_ACCY);
+                        drawGraphData(&GraphBorder, &Graph_ACCY, ClrLime);
+                        break;
+                    case (2) :
+                        updateGraph(&GraphBorder, &Graph_ACCZ);
+                        drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
+                        break;
+                    case (5) :
+                        clearGraphFrame(&GraphBorder);
+                        break;
+                    case (6) :
+                        clearGraphData(&GraphBorder, &Graph_ACCX);
+                        clearGraphData(&GraphBorder, &Graph_ACCY);
+                        break;
+                    case (7) :
+                        clearGraphData(&GraphBorder, &Graph_ACCZ);
+                        updateFrameScale(&GraphBorder);
+                        drawGraphFrame(&GraphBorder);
+                        break;
+                }
+            }
+
+            ++skipper;
+            if (skipper > 7) {
+                skipper = 0;
+                GraphBorder.maxOnDisplay = 0;
+            }
+
         }
     }
 }

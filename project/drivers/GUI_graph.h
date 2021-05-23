@@ -63,11 +63,6 @@ tContext sGraphContext;
 
 uint32_t graphTypeActive;
 
-// Sensor Data Buffer
-float dataBuffer[DATA_BUFFER_SIZE];
-uint32_t dataHead;
-uint32_t dataTail;
-
 extern void initGUIGraphs(void);
 
 extern void GUI_Graphing(void);
