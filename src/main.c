@@ -25,7 +25,6 @@
 #include "Board.h"
 
 void ReadSensorsFxn() {
-    UInt gateKey;
     UInt events;
 
     InitI2C_OPT3001();
@@ -33,7 +32,7 @@ void ReadSensorsFxn() {
     InitADC0_CurrentSense();
     InitADC1_CurrentSense();
 
-    /* Create I2C for usage */
+    // re-init i2c in callback mode for periodic sensor reading
     I2C_close(i2cHandle);
     i2cParams.transferMode = I2C_MODE_CALLBACK;
     i2cParams.transferCallbackFxn = I2C_Callback;
@@ -42,12 +41,13 @@ void ReadSensorsFxn() {
         System_abort("Error Initializing I2C Handle\n");
     }
 
-    //enable Hwi for BMI160 and OPT3001
+    // enable Hwi for BMI160 and OPT3001
     GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
     GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
     GPIO_enableInt(Board_BMI160);
     GPIO_enableInt(Board_OPT3001);
 
+    //Start the timing clocks used to periodically trigger opt3001 and bmi160 reads
     Clock_start(clockHandler);
     Clock_start(clockHandler2);
 

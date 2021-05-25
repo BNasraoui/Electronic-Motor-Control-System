@@ -150,9 +150,7 @@ uint8_t txBuffer_OPT[2];
 Clock_Params clockParams;
 Clock_Handle clockHandler;
 Clock_Handle clockHandler2;
-extern Timer_Handle myTimer;
 
-//Moving average filtering with buffer
 SlidingWindow_32 ADC0Window;
 SlidingWindow_32 ADC1Window;
 SlidingWindow_u16 luxValueFilt;
@@ -160,12 +158,13 @@ SlidingWindow_16 accelXFilt;
 SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
 int16_t accelX, accelY, accelZ;
-
 uint16_t rawData;
 
 extern void InitSensorDriver();
 
 extern void InitTasks();
+
+extern void ReadSensorsFxn();
 
 extern void InitI2C_OPT3001();
 
@@ -191,21 +190,17 @@ extern bool GetLuxValue_OPT3001(uint16_t *rawData);
 
 extern bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ);
 
-extern void ReadSensorsFxn();
-
 extern void ADC0_Read();
 
 extern void ADC1_Read();
 
 extern void ProcessAccelDataFxn();
 
+extern void ConvertRawAccelToGs();
+
 extern void ProcessLuxDataFxn();
 
 extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
-
-extern void ConvertRawAccelToGs();
-
-extern void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result);
 
 extern void SetLowLimit_OPT3001(float val);
 
@@ -213,9 +208,11 @@ extern void SetHighLimit_OPT3001(float val);
 
 extern uint16_t CalculateLimitReg(float luxValue);
 
-extern bool BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg);
+extern void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg);
 
-extern bool BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg);
+extern void BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg);
+
+extern void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result);
 
 extern bool ReadHalfWordI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
 

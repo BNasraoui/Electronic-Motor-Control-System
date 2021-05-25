@@ -530,6 +530,66 @@ bool WriteByteI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, ui
     return true;
 }
 
+
+void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg)
+{
+    UInt gateKey;
+    txBuffer_OPT[0] = ui8Reg;
+
+    gateKey = GateHwi_enter(gateHwi);
+    i2cTransactionCallback.slaveAddress = slaveAddress;
+    i2cTransactionCallback.writeBuf = txBuffer_OPT;
+    i2cTransactionCallback.writeCount = 1;
+    i2cTransactionCallback.readBuf = rxBuffer_OPT;
+    i2cTransactionCallback.readCount = 2;
+    I2C_transfer(i2cHandle, &i2cTransactionCallback);
+    GateHwi_leave(gateHwi, gateKey);
+}
+
+void BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg)
+{
+    UInt gateKey;
+    uint8_t txBuffer_BMI[1];
+    txBuffer_BMI[0] = ui8Reg;
+
+    gateKey = GateHwi_enter(gateHwi);
+    i2cTransactionCallback.slaveAddress = slaveAddress;
+    i2cTransactionCallback.writeBuf = txBuffer_BMI;
+    i2cTransactionCallback.writeCount = 1;
+    i2cTransactionCallback.readBuf = rxBuffer_BMI;
+    i2cTransactionCallback.readCount = 6;
+    I2C_transfer(i2cHandle, &i2cTransactionCallback);
+    GateHwi_leave(gateHwi, gateKey);
+}
+
+void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
+    UInt gateKey;
+
+    //We must protect the integrity of the I2C transaction
+    //If it's used whilst we are processing then issues arise
+    gateKey = GateHwi_enter(gateHwi);
+    if(result) {
+        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
+            //shift data from buffers to accel axis
+            accelX = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
+            accelY = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
+            accelZ = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
+            Swi_post(swiHandle_accelDataProc);
+        }
+        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
+            //Only call Swi if we've requested result reg
+            if(txBuffer_OPT[0] == REG_RESULT) {
+                Swi_post(swiHandle_LuxDataProc);
+            }
+        }
+    }
+    else {
+        System_printf("Bad i2c transaction");
+    }
+    System_flush();
+    GateHwi_leave(gateHwi, gateKey);
+}
+
 void SensorOpt3001Convert(uint16_t rawData, float *convertedLux) {
     uint16_t e, m;
 
@@ -558,145 +618,3 @@ uint16_t CalculateLimitReg(float luxValue) {
     uint16_t reg = bytes[1] << 8 | bytes[0];
     return reg;
 }
-
-//********************************CODE GRAVEYARD***************************************
-//    txBuffer[0] = REG_CONFIGURATION;
-//    txBuffer[1] = 0xC4;
-//    txBuffer[2] = 0x10;
-
-
-bool BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg)
-{
-    uint8_t txBuffer_BMI[1];
-    txBuffer_BMI[0] = ui8Reg;
-
-    i2cTransactionCallback.slaveAddress = slaveAddress;
-    i2cTransactionCallback.writeBuf = txBuffer_BMI;
-    i2cTransactionCallback.writeCount = 1;
-    i2cTransactionCallback.readBuf = rxBuffer_BMI;
-    i2cTransactionCallback.readCount = 6;
-    I2C_transfer(i2cHandle, &i2cTransactionCallback);
-    return true;
-}
-
-bool BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg)
-{
-    //uint8_t txBuffer_OPT[1];
-    txBuffer_OPT[0] = ui8Reg;
-
-    i2cTransactionCallback.slaveAddress = slaveAddress;
-    i2cTransactionCallback.writeBuf = txBuffer_OPT;
-    i2cTransactionCallback.writeCount = 1;
-    i2cTransactionCallback.readBuf = rxBuffer_OPT;
-    i2cTransactionCallback.readCount = 2;
-    I2C_transfer(i2cHandle, &i2cTransactionCallback);
-    return true;
-}
-
-
-//**************************************CODE GRRAVEYARD********************************
-void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
-    UInt gateKey;
-
-    //We must protect the integrity of the I2C transaction
-    //If it's used whilst we are processing then issues arise
-    gateKey = GateHwi_enter(gateHwi);
-    if(result) {
-        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
-            //Put data into x,y,z buffers
-            accelX = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
-            accelY = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
-            accelZ = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
-            Swi_post(swiHandle_accelDataProc);
-        }
-        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
-            if(txBuffer_OPT[0] == REG_RESULT) {
-                Swi_post(swiHandle_LuxDataProc);
-            }
-            else {
-
-            }
-        }
-    }
-    else {
-        System_printf("Bad i2c transaction");
-    }
-    System_flush();
-    GateHwi_leave(gateHwi, gateKey);
-}
-
-//    //Reinitialise the I2C interface in callback mode
-//    I2C_close(i2cHandle);
-//    i2cParams.transferMode = I2C_MODE_CALLBACK;
-//    i2cParams.transferCallbackFxn = I2C_Callback;
-//    i2cHandle = I2C_open(0, &i2cParams);
-//    if (i2cHandle == NULL) {
-//        System_abort("Error Initializing I2C in callback mode\n");
-//    } else {
-//        System_printf("I2C Initialized in callback mode\n");
-//    }
-
-////This is needed if we use i2c callback mode
-////I2C_Transaction i2cTransaction_GLOBAL;
-//typedef struct Sensors_Config      *Sensors_Handle;
-//
-//typedef struct SensorsTiva_Object {
-//
-//}SensorsTiva_Object;
-//
-///*!
-// *  @brief  SENSORS Parameters
-// *
-// *  Params used to initialise the sensors driver
-// *
-// */
-//typedef struct Sensors_Params_Params {
-//   // Sensors_Params_TransferMode    transferMode; /*!< Blocking or Callback mode */
-//   // Sensors_Params_CallbackFxn     transferCallbackFxn; /*!< Callback function pointer */
-//   // Sensors_Params_BitRate         bitRate; /*!< I2C bus bit rate */
-//  //  uintptr_t           custom;  /*!< Custom argument used by driver implementation */
-//} Sensors_Params;
-//
-///*!
-// *
-// */
-//typedef struct SENSORS_FxnTable {
-//    /*! Function to close the specified peripheral */
-//   // SENSORS_CloseFxn        closeFxn;
-//
-//    /*! Function to implementation specific control function */
-//   // SENSORS_ControlFxn      controlFxn;
-//
-//    /*! Function to initialize the given data object */
-//   // SENSORS_InitFxn         initFxn;
-//
-//    /*! Function to open the specified peripheral */
-//    //SENSORS_OpenFxn         openFxn;
-//
-//    /*! Function to initiate a I2C data transfer */
-//    //SENSORS_TransferFxn     transferFxn;
-//} SENSORS_FxnTable;
-//
-///*!
-// *
-// *
-// */
-//typedef struct Sensors_Config {
-//    /*! Pointer to a table of driver-specific implementations of I2C APIs */
-//    I2C_FxnTable const *fxnTablePtr;
-//
-//    /*! Pointer to a driver specific data object */
-//    void               *object;
-//
-//    /*! Pointer to a driver specific hardware attributes structure */
-//    void         const *hwAttrs;
-//} Sensors_Config;
-
-//typedef struct SensorsTiva_HWAttrs {
-//    /*! I2C Peripheral's base address */
-//    unsigned int baseAddr;
-//    /*! I2C Peripheral's interrupt vector */
-//    unsigned int intNum;
-//    /*! I2C Peripheral's interrupt priority */
-//    unsigned int intPriority;
-//} SensorsTiva_HWAttrs;
