@@ -42,20 +42,26 @@
 #include "drivers/GUI_XYGraph.h"
 #include "drivers/GUI_LogGraph.h"
 
-uint16_t getGraphY(struct XYGraphFrame* frame, float y) {
+float getGraphY(struct XYGraphFrame* frame, float y) {
     return (frame->height + frame->pos_y - (y * frame->axis_y_scale));
 }
 
 void drawGraphAxisY(struct XYGraphFrame* frame, bool draw) {
-    char str[8];
+    char str[16];
     uint16_t i, j;
-    uint16_t scale = 1;
+    float scale = 0.1F;
 
     // For each order of magnitude
-    for (i = 0; i < 5; i++) {
+    for (i = 0; i < 6; i++) {
         if (frame->y_max < scale*25) {
             // Draw magnitude indicator
-            sprintf(str, "%d", scale);
+            if (scale < 100) {
+                sprintf(str, "%.1f", scale);
+            }
+            else
+            {
+                sprintf(str, "%.0f", scale);
+            }
 
             if (draw) GrContextForegroundSet(&sGraphContext, 0x00787878);
             GrLineDraw(&sGraphContext, frame->pos_x, getGraphY(frame, scale), frame->pos_x + frame->width, getGraphY(frame, scale));
@@ -120,14 +126,14 @@ void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_
     frame->axisXSpacing = w/AXIS_X_DATA_POINTS;
 }
 
-void GraphData_init(struct XYGraphData *graph, uint16_t density, uint16_t estop) {
+void GraphData_init(struct XYGraphData *graph, uint16_t density, float estop) {
     graph->density = density;
     graph->y_estop = estop;
     graph->graphHead = 0;
     // graph->y_max = 1;
 }
 
-void drawDataPoint(struct XYGraphFrame* frame, struct XYGraphData* graph, uint16_t dx, uint16_t dy) {
+void drawDataPoint(struct XYGraphFrame* frame, struct XYGraphData* graph, float dx, float dy) {
     GrLineDraw(&sGraphContext, graph->prevDataX, getGraphY(frame, graph->prevDataY), dx, getGraphY(frame, dy));
     graph->prevDataX = dx;
     graph->prevDataY = dy;
@@ -143,10 +149,16 @@ void drawAllGraphData(struct XYGraphFrame* frame, struct XYGraphData *graph) {
     }
 }
 
-void drawCurrentValue(struct XYGraphFrame* frame, struct XYGraphData* graph, uint16_t val) {
-    char str2[8];
+void drawCurrentValue(struct XYGraphFrame* frame, struct XYGraphData* graph, float val) {
+    char str2[16];
 
-    sprintf(str2, "%d", val);
+    if (val < 100) {
+        sprintf(str2, "%.1f", val);
+    }
+    else
+    {
+        sprintf(str2, "%.0f", val);
+    }
 
     GrLineDraw(&sGraphContext, frame->pos_x - 48, getGraphY(frame, val), frame->pos_x - 6, getGraphY(frame, val));
     GrStringDraw(&sGraphContext, str2, 8, frame->pos_x - 48, getGraphY(frame, val)-7, 1);
@@ -203,9 +215,9 @@ void drawGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, uint32
 
 }
 
-uint16_t getMax(struct XYGraphData *graph) {
+float getMax(struct XYGraphData *graph) {
     uint16_t i;
-    uint16_t m = 0;
+    float m = 0;
     for (i = 0; i < graph->graphHead + 1; ++i) {
         if (graph->data[i] > m) m = graph->data[i];
     }
@@ -219,7 +231,7 @@ void updateFrameScale(struct XYGraphFrame *frame) {
 }
 
 void adjustGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
-    uint16_t newData = graph->data[graph->graphHead];
+    float newData = graph->data[graph->graphHead];
     if (graph->updateFlag) {
         graph->graphHead = 0;
         graph->data[graph->graphHead] = newData;
@@ -233,7 +245,7 @@ void adjustGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     }
 }
 
-void addGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t newData) {
+void addGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, float newData) {
 
     if (graph->prevDataX == 0 && graph->prevDataY == 0) {
         graph->prevDataX = frame->pos_x;
@@ -248,12 +260,12 @@ void addGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_
         graph->updateFlag = true;
     }
 
-    uint16_t max = getMax(graph);
+    float max = getMax(graph);
     if (max > frame->maxOnDisplay) frame->maxOnDisplay = max;
 }
 
 void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
-    uint16_t densityAvg = graph->densitySum / graph->density;
+    float densityAvg = graph->densitySum / graph->density;
     graph->densityCount = 0;
     graph->densitySum = 0;
 
@@ -262,9 +274,9 @@ void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
 
 }
 
-bool accumulateGraphData(struct XYGraphData *graph, uint16_t newData) {
+bool accumulateGraphData(struct XYGraphData *graph, float newData) {
     graph->densityCount += 1;
-    graph->densitySum += newData;
+    graph->densitySum += newData * -1.0F;
     if (graph->densityCount >= graph->density) {
         return true;
     }

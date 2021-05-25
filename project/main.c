@@ -154,7 +154,7 @@ int main(void)
 
     /* GUI init */
     initGUIGraphs();
-    graphTypeActive = GRAPH_TYPE_ACCEL;
+    graphTypeActive = GRAPH_TYPE_LIGHT;
 
     /* Sensor init */
     //This is the custom driver implementation init function
