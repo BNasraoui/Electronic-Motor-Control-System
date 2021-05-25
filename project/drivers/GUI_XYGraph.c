@@ -138,92 +138,115 @@ void drawAllGraphData(struct XYGraphFrame* frame, struct XYGraphData *graph) {
     graph->prevDataY = graph->data[0];
 
     uint16_t i;
-    for (i = 0; i < graph->graphHead; i++) {
+    for (i = 0; i < graph->graphHead + 1; i++) {
         drawDataPoint(frame, graph, frame->pos_x + (i * frame->axisXSpacing), graph->data[i]);
     }
 }
 
-void drawCurrentValue(struct XYGraphFrame* frame, struct XYGraphData* graph) {
+void drawCurrentValue(struct XYGraphFrame* frame, struct XYGraphData* graph, uint16_t val) {
     char str2[8];
-    uint16_t val = graph->data[graph->graphHead - 1];
 
     sprintf(str2, "%d", val);
 
-    GrLineDraw(&sGraphContext, frame->pos_x - 48, getGraphY(frame, val), frame->pos_x, getGraphY(frame, val));
+    GrLineDraw(&sGraphContext, frame->pos_x - 48, getGraphY(frame, val), frame->pos_x - 6, getGraphY(frame, val));
     GrStringDraw(&sGraphContext, str2, 8, frame->pos_x - 48, getGraphY(frame, val)-7, 1);
 }
 
 void clearGraphFrame(struct XYGraphFrame *frame) {
+    if (frame->updateFlag) {
+        GrContextForegroundSet(&sGraphContext, ClrBlack);
+        drawGraphAxisY(frame, false);
+    }
     // GrContextForegroundSet(&sGraphContext, ClrBlack);
+}
+
+void drawEStopBar(struct XYGraphFrame *frame, struct XYGraphData *graph) {
+    uint16_t y = getGraphY(frame, graph->y_estop);
+    if (y >= frame->pos_y) {
+        // GrLineDraw(&sGraphContext, frame->pos_x, y, frame->width + frame->pos_x, y);
+    }
 }
 
 void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     GrContextForegroundSet(&sGraphContext, ClrBlack);
-    drawAllGraphData(frame, graph);
-    drawCurrentValue(frame, graph);
-    // drawLogLine(graph, false, 0);
-
-    // e-stop
-    GrLineDraw(&sGraphContext, frame->pos_x, getGraphY(frame, graph->y_estop), frame->width + frame->pos_x, getGraphY(frame, graph->y_estop));
+    if (graph->updateFlag || frame->updateFlag) {
+        drawEStopBar(frame, graph);
+        drawAllGraphData(frame, graph);
+        // drawLogLine(graph, false, 0);
+    }
+    if (graph->data[graph->graphHead - 1] != graph->data[graph->graphHead] || graph->graphHead - 1 == 0) drawCurrentValue(frame, graph, graph->data[graph->graphHead - 1]);
 }
 
 void drawGraphFrame(struct XYGraphFrame *frame) {
-    GrContextForegroundSet(&sGraphContext, ClrWhite);
-    drawGraphAxis(frame);
-    drawGraphAxisY(frame, true);
+    if (frame->updateFlag) {
+        GrContextForegroundSet(&sGraphContext, ClrWhite);
+        drawGraphAxis(frame);
+        drawGraphAxisY(frame, true);
+    }
 }
 
 void drawGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, uint32_t colour) {
     // e-stop
-    GrContextForegroundSet(&sGraphContext, ClrRed);
-    GrLineDraw(&sGraphContext, frame->pos_x, getGraphY(frame, graph->y_estop), frame->width + frame->pos_x, getGraphY(frame, graph->y_estop));
+    if (frame->updateFlag || graph->updateFlag) {
+        GrContextForegroundSet(&sGraphContext, ClrRed);
+        drawEStopBar(frame, graph);
+        GrContextForegroundSet(&sGraphContext, colour);
+        drawAllGraphData(frame, graph);
+        // drawLogLine(graph, true, value);
+    }
+    else
+    {
+        GrContextForegroundSet(&sGraphContext, colour);
+        drawDataPoint(frame, graph, frame->pos_x + (graph->graphHead * frame->axisXSpacing), graph->data[graph->graphHead]);
+    }
+    if (graph->data[graph->graphHead - 1] != graph->data[graph->graphHead] || graph->graphHead - 1 == 0) drawCurrentValue(frame, graph, graph->data[graph->graphHead]);
 
-    GrContextForegroundSet(&sGraphContext, colour);
-    drawAllGraphData(frame, graph);
-    drawCurrentValue(frame, graph);
-    // drawLogLine(graph, true, value);
 }
 
 uint16_t getMax(struct XYGraphData *graph) {
     uint16_t i;
-    float m = 0.0F;
-    for (i = 0; i < AXIS_X_DATA_POINTS; ++i) {
+    uint16_t m = 0;
+    for (i = 0; i < graph->graphHead + 1; ++i) {
         if (graph->data[i] > m) m = graph->data[i];
     }
     return m;
 }
 
 void updateFrameScale(struct XYGraphFrame *frame) {
-    if (frame->maxOnDisplay > frame->y_max || frame->maxOnDisplay < frame->y_max*0.95F) {
-        GrContextForegroundSet(&sGraphContext, ClrBlack);
-        drawGraphAxisY(frame, false);
+    if (frame->maxOnDisplay > frame->y_max || frame->maxOnDisplay < (frame->y_max/1.2F)*0.9F) {
+        frame->updateFlag = true;
+    }
+}
 
-        if (frame->maxOnDisplay != 0) {
-            frame->axis_y_scale = frame->axis_y_scale * (frame->y_max/frame->maxOnDisplay);
-            frame->y_max = frame->maxOnDisplay;
-        }
+void adjustGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
+    uint16_t newData = graph->data[graph->graphHead];
+    if (graph->updateFlag) {
+        graph->graphHead = 0;
+        graph->data[graph->graphHead] = newData;
+        graph->prevDataX = frame->pos_x;
+        graph->prevDataY = newData;
+    }
+
+    if ((frame->updateFlag) && (frame->maxOnDisplay != 0)) {
+        frame->axis_y_scale = frame->axis_y_scale * (frame->y_max/(frame->maxOnDisplay*1.2F));
+        frame->y_max = frame->maxOnDisplay * 1.2F;
     }
 }
 
 void addGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t newData) {
+
     if (graph->prevDataX == 0 && graph->prevDataY == 0) {
-        graph->prevDataX = frame->pos_x + (graph->graphHead * frame->axisXSpacing);
+        graph->prevDataX = frame->pos_x;
         graph->prevDataY = getGraphY(frame, newData);
     }
 
-    // If graph x axis is full, shift all data back one index
-    if (graph->graphHead == AXIS_X_DATA_POINTS) {
-        uint16_t i;
-        for (i = 0; i < AXIS_X_DATA_POINTS; i++) {
-            graph->data[i] = graph->data[i+1];
-        }
-        --graph->graphHead;
-    }
-
-    // Copy data from the sensor buffer, to the graph buffer
+    ++graph->graphHead;
     graph->data[graph->graphHead] = newData;
 
-    if (graph->graphHead < AXIS_X_DATA_POINTS) ++graph->graphHead;
+    // Copy data from the sensor buffer, to the graph buffer
+    if (graph->graphHead == AXIS_X_DATA_POINTS) {
+        graph->updateFlag = true;
+    }
 
     uint16_t max = getMax(graph);
     if (max > frame->maxOnDisplay) frame->maxOnDisplay = max;
@@ -235,6 +258,8 @@ void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     graph->densitySum = 0;
 
     addGraphData(frame, graph, densityAvg);
+
+
 }
 
 bool accumulateGraphData(struct XYGraphData *graph, uint16_t newData) {

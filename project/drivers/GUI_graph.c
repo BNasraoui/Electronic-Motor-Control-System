@@ -58,16 +58,22 @@ void initGUIGraphs(void) {
 }
 
 void graphLag(struct XYGraphFrame* frame) {
+    static UInt32 last = 0;
+
     graphLagEnd = Clock_getTicks();
     Uint32 oldT = graphLagTotal;
     graphLagTotal = (double) (graphLagEnd - graphLagStart);
     graphLagStart = 0;
 
-    GrContextForegroundSet(&sGraphContext, ClrBlack);
-    drawGraphLag(frame, oldT);
+    if (graphLagTotal != last) {
+        GrContextForegroundSet(&sGraphContext, ClrBlack);
+        drawGraphLag(frame, oldT);
 
-    GrContextForegroundSet(&sGraphContext, 0x00787878);
-    drawGraphLag(frame, graphLagTotal);
+        GrContextForegroundSet(&sGraphContext, 0x00787878);
+        drawGraphLag(frame, graphLagTotal);
+
+        last = graphLagTotal;
+    }
 }
 
 void GUI_Graphing(void)
@@ -94,16 +100,21 @@ void GUI_Graphing(void)
         if (events & EVENT_GRAPH_LIGHT) {
 
             if (accumulateGraphData(&Graph_LUX, luxValueFilt.avg)) {
-                clearGraphFrame(&GraphBorder);
-                clearGraphData(&GraphBorder, &Graph_LUX);
-
                 updateGraph(&GraphBorder, &Graph_LUX);
                 updateFrameScale(&GraphBorder);
 
+                clearGraphFrame(&GraphBorder);
+                clearGraphData(&GraphBorder, &Graph_LUX);
+
+                adjustGraph(&GraphBorder, &Graph_LUX);
+
                 drawGraphFrame(&GraphBorder);
+
                 drawGraphData(&GraphBorder, &Graph_LUX, ClrYellow);
 
                 GraphBorder.maxOnDisplay = 0;
+                GraphBorder.updateFlag = false;
+                Graph_LUX.updateFlag = false;
 
                 graphLag(&GraphBorder);
             }
@@ -115,45 +126,83 @@ void GUI_Graphing(void)
             bool yready = accumulateGraphData(&Graph_ACCY, accelYFilt.avg);
             bool zready = accumulateGraphData(&Graph_ACCZ, accelZFilt.avg);
 
-            if (!(xready && yready && zready)) {
+            if (xready && yready && zready) {
                 /* If the data is still being accumulated by the graphs, draw the last set of data */
+                /*
+                updateGraph(&GraphBorder, &Graph_ACCX);
+                updateGraph(&GraphBorder, &Graph_ACCY);
+                updateGraph(&GraphBorder, &Graph_ACCZ);
+
+                clearGraphFrame(&GraphBorder);
+                clearGraphData(&GraphBorder, &Graph_ACCX);
+                clearGraphData(&GraphBorder, &Graph_ACCY);
+                clearGraphData(&GraphBorder, &Graph_ACCZ);
+
+                adjustGraph(&GraphBorder, &Graph_ACCX);
+                adjustGraph(&GraphBorder, &Graph_ACCY);
+                adjustGraph(&GraphBorder, &Graph_ACCZ);
+
+                drawGraphFrame(&GraphBorder);
+
+                drawGraphData(&GraphBorder, &Graph_ACCX, ClrYellow);
+                drawGraphData(&GraphBorder, &Graph_ACCY, ClrLime);
+                drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
+
+                GraphBorder.maxOnDisplay = 0;
+                GraphBorder.updateFlag = false;
+                Graph_LUX.updateFlag = false;
+
+                graphLag(&GraphBorder);
+                */
+                GraphBorder.maxOnDisplay = 0;
+                GraphBorder.updateFlag = false;
+                Graph_ACCX.updateFlag = false;
+                Graph_ACCY.updateFlag = false;
+                Graph_ACCZ.updateFlag = false;
+
+                updateGraph(&GraphBorder, &Graph_ACCX);
+                updateGraph(&GraphBorder, &Graph_ACCY);
+                updateGraph(&GraphBorder, &Graph_ACCZ);
+                updateFrameScale(&GraphBorder);
+
+                skipper = 0;
+
+            }
+            else
+            {
                 switch (skipper) {
-                    case (0) :
-                        updateGraph(&GraphBorder, &Graph_ACCX);
-                        drawGraphData(&GraphBorder, &Graph_ACCX, ClrYellow);
-                        break;
                     case (1) :
-                        updateGraph(&GraphBorder, &Graph_ACCY);
-                        drawGraphData(&GraphBorder, &Graph_ACCY, ClrLime);
+                        clearGraphFrame(&GraphBorder);
+                        clearGraphData(&GraphBorder, &Graph_ACCX);
                         break;
                     case (2) :
-                        updateGraph(&GraphBorder, &Graph_ACCZ);
-                        drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
-                        break;
-                    case (GRAPH_ACCEL_DENSITY-3) :
-                        clearGraphFrame(&GraphBorder);
-                        break;
-                    case (GRAPH_ACCEL_DENSITY-2) :
-                        clearGraphData(&GraphBorder, &Graph_ACCX);
                         clearGraphData(&GraphBorder, &Graph_ACCY);
                         break;
-                    case (GRAPH_ACCEL_DENSITY-1) :
+                    case (3) :
                         clearGraphData(&GraphBorder, &Graph_ACCZ);
-                        updateFrameScale(&GraphBorder);
+                        break;
+                    case (4) :
+                        adjustGraph(&GraphBorder, &Graph_ACCX);
+                        adjustGraph(&GraphBorder, &Graph_ACCY);
+                        adjustGraph(&GraphBorder, &Graph_ACCZ);
+                        break;
+                    case (5) :
                         drawGraphFrame(&GraphBorder);
+                        drawGraphData(&GraphBorder, &Graph_ACCX, ClrYellow);
+                        break;
+                    case (6) :
+                        drawGraphData(&GraphBorder, &Graph_ACCY, ClrLime);
+                        break;
+                    case (7) :
+                        drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
 
+                        break;
+                    default :
                         graphLag(&GraphBorder);
-
                         break;
                 }
             }
-
             ++skipper;
-            if (skipper > 7) {
-                skipper = 0;
-                GraphBorder.maxOnDisplay = 0;
-            }
-
         }
     }
 }
