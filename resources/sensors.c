@@ -25,9 +25,14 @@ void OPT3001Fxn()
     Event_post(eventHandler, Event_Id_00);
 }
 
+void watchDogBite() {
+    System_printf("watchdog not happy");
+    System_flush();
+}
+
 //*************************** INITIALISATION **************************************
 void InitSensorDriver() {
-
+    Watchdog_Params watchDogParams;
     Error_init(&eb);
     InitTasks();
 
@@ -67,7 +72,14 @@ void InitSensorDriver() {
         System_abort("Gate Hwi create failed");
     }
 
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+    Watchdog_Params_init(&watchDogParams);
+    watchDogParams.resetMode = Watchdog_RESET_OFF;
+    watchDogParams.callbackFxn = watchDogBite;
+    watchDogParams.resetMode = Watchdog_RESET_OFF;
+    watchDogHandle = Watchdog_open(EK_TM4C1294XL_WATCHDOG0, &watchDogParams);
+    if (!watchDogHandle) {
+        System_printf("Watchdog did not open");
+    }
 }
 
 void InitTasks() {
@@ -537,12 +549,14 @@ void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg)
     txBuffer_OPT[0] = ui8Reg;
 
     gateKey = GateHwi_enter(gateHwi);
+
     i2cTransactionCallback.slaveAddress = slaveAddress;
     i2cTransactionCallback.writeBuf = txBuffer_OPT;
     i2cTransactionCallback.writeCount = 1;
     i2cTransactionCallback.readBuf = rxBuffer_OPT;
     i2cTransactionCallback.readCount = 2;
     I2C_transfer(i2cHandle, &i2cTransactionCallback);
+
     GateHwi_leave(gateHwi, gateKey);
 }
 
@@ -553,12 +567,14 @@ void BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg)
     txBuffer_BMI[0] = ui8Reg;
 
     gateKey = GateHwi_enter(gateHwi);
+
     i2cTransactionCallback.slaveAddress = slaveAddress;
     i2cTransactionCallback.writeBuf = txBuffer_BMI;
     i2cTransactionCallback.writeCount = 1;
     i2cTransactionCallback.readBuf = rxBuffer_BMI;
     i2cTransactionCallback.readCount = 6;
     I2C_transfer(i2cHandle, &i2cTransactionCallback);
+
     GateHwi_leave(gateHwi, gateKey);
 }
 

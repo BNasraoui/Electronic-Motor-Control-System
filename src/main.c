@@ -86,15 +86,16 @@ void ReadSensorsFxn() {
 
         System_flush();
         GPIO_write(Board_LED1, Board_LED_OFF);
+        Watchdog_clear(watchDogHandle);
     }
 }
 
-int main(void)
-{
+int main(void) {
     /* Call board init functions */
     Board_initGeneral();
     Board_initGPIO();
     Board_initI2C();
+    Board_initWatchdog();
 
     //Board_initSensors();
     InitSensorDriver();
@@ -104,6 +105,5 @@ int main(void)
 
     /* Start BIOS */
     BIOS_start();
-
     return (0);
 }

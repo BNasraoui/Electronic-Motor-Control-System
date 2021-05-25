@@ -28,6 +28,7 @@
 #include <ti/drivers/GPIO.h>
 #include <ti/drivers/UART.h>
 #include <ti/drivers/I2C.h>
+#include <ti/drivers/Watchdog.h>
 
 #include "driverlib/sysctl.h"
 #include "driverlib/gpio.h"
@@ -151,6 +152,8 @@ Clock_Params clockParams;
 Clock_Handle clockHandler;
 Clock_Handle clockHandler2;
 
+Watchdog_Handle watchDogHandle;
+
 SlidingWindow_32 ADC0Window;
 SlidingWindow_32 ADC1Window;
 SlidingWindow_u16 luxValueFilt;
@@ -159,6 +162,8 @@ SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
 int16_t accelX, accelY, accelZ;
 uint16_t rawData;
+
+extern void watchDogBite();
 
 extern void InitSensorDriver();
 
