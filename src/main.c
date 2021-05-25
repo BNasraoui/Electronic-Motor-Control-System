@@ -33,11 +33,21 @@ void ReadSensorsFxn() {
     InitADC0_CurrentSense();
     InitADC1_CurrentSense();
 
+    /* Create I2C for usage */
+    I2C_close(i2cHandle);
+    i2cParams.transferMode = I2C_MODE_CALLBACK;
+    i2cParams.transferCallbackFxn = I2C_Callback;
+    i2cHandle = I2C_open(0, &i2cParams);
+    if (i2cHandle == NULL) {
+        System_abort("Error Initializing I2C Handle\n");
+    }
+
     //enable Hwi for BMI160 and OPT3001
     GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
     GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
     GPIO_enableInt(Board_BMI160);
     GPIO_enableInt(Board_OPT3001);
+
     Clock_start(clockHandler);
     Clock_start(clockHandler2);
 
@@ -46,13 +56,14 @@ void ReadSensorsFxn() {
         events = Event_pend(eventHandler, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04), BIOS_WAIT_FOREVER);
 
         if(events & NEW_OPT3001_DATA) {
-            GetLuxValue_OPT3001(&rawData);
-            Swi_post(swi3Handle);
+            //GetLuxValue_OPT3001(&rawData);
+            //Swi_post(swi3Handle);
+            //GPIO_write(Board_LED0, Board_LED_OFF);
             System_printf("LUX: %f\n", luxValueFilt.avg);
         }
         if(events & NEW_ACCEL_DATA) {
-            GetAccelData_BMI160(&accelX, &accelY, &accelZ);
-            Swi_post(swi2Handle);
+            //GetAccelData_BMI160(&accelX, &accelY, &accelZ);
+            //Swi_post(swi2Handle);
             System_printf("X: %f\t Y: %f\t Z: %f\n", accelXFilt.G, accelYFilt.G, accelZFilt.G);
         }
 

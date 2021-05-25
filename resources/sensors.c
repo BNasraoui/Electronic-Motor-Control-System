@@ -3,7 +3,9 @@
 
 //*************************** SWI/HWIS **************************************
 void OPT3001_ClockHandlerFxn() {
-    Event_post(eventHandler, Event_Id_01);
+    //Event_post(eventHandler, Event_Id_01);
+    BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION);
+    BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_RESULT);
     Clock_start(clockHandler);
 }
 
@@ -14,7 +16,8 @@ void ADC_ClockHandlerFxn() {
 }
 
 void BMI160Fxn() {
-    Event_post(eventHandler, Event_Id_02);
+    //Event_post(eventHandler, Event_Id_02);
+    BufferReadI2C_BMI160(BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L);
 }
 
 void OPT3001Fxn()
@@ -34,7 +37,7 @@ void InitSensorDriver() {
     }
 
     /* Create I2C for usage */
-    I2C_Params i2cParams;
+    //I2C_Params i2cParams;
     I2C_Params_init(&i2cParams);
     i2cParams.bitRate = I2C_100kHz;
     i2cParams.transferMode = I2C_MODE_BLOCKING;
@@ -80,26 +83,26 @@ void InitTasks() {
     swiParams.priority = 1;
     swiParams.trigger = 0;
     Swi_construct(&swi0Struct, (Swi_FuncPtr)ADC0_FilterFxn, &swiParams, NULL);
-    swi0Handle = Swi_handle(&swi0Struct);
-    if (swi0Handle == NULL) {
+    swiHandle_ADC0DataProc = Swi_handle(&swi0Struct);
+    if (swiHandle_ADC0DataProc == NULL) {
      System_abort("SWI 0 ADC0 filter create failed");
     }
 
     Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
-    swi1Handle = Swi_handle(&swi1Struct);
-    if (swi1Handle == NULL) {
+    swiHandle_ADC1DataProc = Swi_handle(&swi1Struct);
+    if (swiHandle_ADC1DataProc == NULL) {
      System_abort("SWI 1 ADC1 filter create failed");
     }
 
     Swi_construct(&swi2Struct, (Swi_FuncPtr)ProcessAccelDataFxn, &swiParams, NULL);
-    swi2Handle = Swi_handle(&swi2Struct);
-    if (swi2Handle == NULL) {
+    swiHandle_accelDataProc = Swi_handle(&swi2Struct);
+    if (swiHandle_accelDataProc == NULL) {
      System_abort("SWI 2 process accel data create failed");
     }
 
     Swi_construct(&swi3Struct, (Swi_FuncPtr)ProcessLuxDataFxn, &swiParams, NULL);
-    swi3Handle = Swi_handle(&swi3Struct);
-    if (swi3Handle == NULL) {
+    swiHandle_LuxDataProc = Swi_handle(&swi3Struct);
+    if (swiHandle_LuxDataProc == NULL) {
      System_abort("SWI 3 process lux data create failed");
     }
 
@@ -243,6 +246,8 @@ void ProcessAccelDataFxn() {
     if((accelXFilt.index + 1) == WINDOW_SIZE && accelXFilt.startFilter == false) {
         accelXFilt.startFilter = true;
     }
+
+    Event_post(eventHandler, Event_Id_02);
 }
 
 void ConvertRawAccelToGs() {
@@ -304,6 +309,7 @@ bool GetLuxValue_OPT3001(uint16_t *rawData) {
 
 void ProcessLuxDataFxn() {
     float lux;
+    static bool led_state = false;
 
     SensorOpt3001Convert(rawData, &lux);
     luxValueFilt.sum = luxValueFilt.sum - luxValueFilt.data[luxValueFilt.index];
@@ -318,6 +324,9 @@ void ProcessLuxDataFxn() {
     if((luxValueFilt.index + 1) == WINDOW_SIZE  && luxValueFilt.startFilter == false) {
         luxValueFilt.startFilter = true;
     }
+    led_state = !led_state;
+    GPIO_write(Board_LED0, led_state);
+    Event_post(eventHandler, Event_Id_01);
 }
 
 //***************************CURRENT SENSING**************************************
@@ -377,7 +386,7 @@ void ADC0_Read() {
     ADC0Window.sum = ADC0Window.sum - ADC0Window.data[ADC0Window.index];
     ADCSequenceDataGet(ADC0_BASE, ADC_SEQ, pui32ADC0Value);
     ADC0Window.data[ADC0Window.index] = pui32ADC0Value[0];
-    Swi_post(swi0Handle);
+    Swi_post(swiHandle_ADC0DataProc);
 }
 
 void ADC0_FilterFxn() {
@@ -404,7 +413,7 @@ void ADC1_Read() {
     ADC1Window.sum = ADC1Window.sum - ADC1Window.data[ADC1Window.index];
     ADCSequenceDataGet(ADC1_BASE, ADC_SEQ , pui32ADC1Value);
     ADC1Window.data[ADC1Window.index] = pui32ADC1Value[0];
-    Swi_post(swi1Handle);
+    Swi_post(swiHandle_ADC1DataProc);
 }
 
 void ADC1_FilterFxn() {
@@ -556,60 +565,65 @@ uint16_t CalculateLimitReg(float luxValue) {
 //    txBuffer[2] = 0x10;
 
 
-//bool BufferReadI2C_BMI160(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
-//{
-//    txBuffer_BMI[0] = ui8Reg;
-//
-//    i2cTransaction_BMI.slaveAddress = slaveAddress;
-//    i2cTransaction_BMI.writeBuf = txBuffer_BMI;
-//    i2cTransaction_BMI.writeCount = 1;
-//    i2cTransaction_BMI.readBuf = rxBuffer_BMI;
-//    i2cTransaction_BMI.readCount = numBytes;
-//    I2C_transfer(handle, &i2cTransaction_BMI);
-//    return true;
-//}
+bool BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg)
+{
+    uint8_t txBuffer_BMI[1];
+    txBuffer_BMI[0] = ui8Reg;
 
-//bool BufferReadI2C_OPT3001(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes)
-//{
-//    txBuffer_OPT[0] = ui8Reg;
-//    i2cTransaction_OPT.slaveAddress = slaveAddress;
-//    i2cTransaction_OPT.writeBuf = txBuffer_OPT;
-//    i2cTransaction_OPT.writeCount = 1;
-//    i2cTransaction_OPT.readBuf = rxBuffer_OPT;
-//    i2cTransaction_OPT.readCount = numBytes;
-//    I2C_transfer(handle, &i2cTransaction_OPT);
-//    return true;
-//}
+    i2cTransactionCallback.slaveAddress = slaveAddress;
+    i2cTransactionCallback.writeBuf = txBuffer_BMI;
+    i2cTransactionCallback.writeCount = 1;
+    i2cTransactionCallback.readBuf = rxBuffer_BMI;
+    i2cTransactionCallback.readCount = 6;
+    I2C_transfer(i2cHandle, &i2cTransactionCallback);
+    return true;
+}
+
+bool BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg)
+{
+    //uint8_t txBuffer_OPT[1];
+    txBuffer_OPT[0] = ui8Reg;
+
+    i2cTransactionCallback.slaveAddress = slaveAddress;
+    i2cTransactionCallback.writeBuf = txBuffer_OPT;
+    i2cTransactionCallback.writeCount = 1;
+    i2cTransactionCallback.readBuf = rxBuffer_OPT;
+    i2cTransactionCallback.readCount = 2;
+    I2C_transfer(i2cHandle, &i2cTransactionCallback);
+    return true;
+}
 
 
 //**************************************CODE GRRAVEYARD********************************
-//void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
-//    UInt gateKey;
-//
-//    //We must protect the integrity of the I2C transaction
-//    //If it's used whilst we are processing then issues arise
-//    gateKey = GateHwi_enter(gateHwi);
-//    if(result) {
-//        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
-//            //Put data into x,y,z buffers
-//            Swi_post(swi2Handle);
-//        }
-//        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
-//            if(txBuffer_OPT[0] == REG_RESULT) {
-//                Swi_post(swi3Handle);
-//            }
-//            else {
-//
-//            }
-//        }
-//    }
-//    else {
-//        System_printf("Bad i2c transaction");
-//
-//    }
-//    System_flush();
-//    GateHwi_leave(gateHwi, gateKey);
-//}
+void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
+    UInt gateKey;
+
+    //We must protect the integrity of the I2C transaction
+    //If it's used whilst we are processing then issues arise
+    gateKey = GateHwi_enter(gateHwi);
+    if(result) {
+        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
+            //Put data into x,y,z buffers
+            accelX = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
+            accelY = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
+            accelZ = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
+            Swi_post(swiHandle_accelDataProc);
+        }
+        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
+            if(txBuffer_OPT[0] == REG_RESULT) {
+                Swi_post(swiHandle_LuxDataProc);
+            }
+            else {
+
+            }
+        }
+    }
+    else {
+        System_printf("Bad i2c transaction");
+    }
+    System_flush();
+    GateHwi_leave(gateHwi, gateKey);
+}
 
 //    //Reinitialise the I2C interface in callback mode
 //    I2C_close(i2cHandle);

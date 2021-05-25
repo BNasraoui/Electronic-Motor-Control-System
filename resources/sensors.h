@@ -135,12 +135,17 @@ GateHwi_Params gHwiprms;
 
 Swi_Params swiParams;
 Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
-Swi_Handle swi0Handle, swi1Handle, swi2Handle, swi3Handle;
+Swi_Handle swiHandle_ADC0DataProc, swiHandle_ADC1DataProc, swiHandle_accelDataProc, swiHandle_LuxDataProc;
 
 Event_Handle eventHandler;
 Error_Block eb;
 
 I2C_Handle i2cHandle;
+I2C_Params i2cParams;
+I2C_Transaction i2cTransactionCallback;
+uint8_t rxBuffer_BMI[6];
+uint8_t rxBuffer_OPT[2];
+uint8_t txBuffer_OPT[2];
 
 Clock_Params clockParams;
 Clock_Handle clockHandler;
@@ -208,9 +213,9 @@ extern void SetHighLimit_OPT3001(float val);
 
 extern uint16_t CalculateLimitReg(float luxValue);
 
-extern bool BufferReadI2C_OPT3001(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes);
+extern bool BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg);
 
-extern bool BufferReadI2C_BMI160(I2C_Handle handle, uint8_t slaveAddress, uint8_t ui8Reg, int numBytes);
+extern bool BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg);
 
 extern bool ReadHalfWordI2C(I2C_Handle i2cHandle,uint8_t slaveAddress, uint8_t ui8Reg, uint8_t *data);
 
