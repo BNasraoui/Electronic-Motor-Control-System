@@ -66,7 +66,7 @@ void ReadSensorsFxn() {
             Swi_post(swi3Handle);
             //System_printf("LUX: %d\n", luxValueFilt.avg);
             if (graphTypeActive == GRAPH_TYPE_LIGHT) {
-                if (graphLagStart == 0) graphLagStart = Clock_getTicks();
+                graphLagStart = Clock_getTicks();
                 Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
             }
         }
@@ -76,7 +76,7 @@ void ReadSensorsFxn() {
             Swi_post(swi2Handle);
             //System_printf("X: %d\t Y: %d\t Z: %d\n", accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
             if (graphTypeActive == GRAPH_TYPE_ACCEL) {
-                if (graphLagStart == 0) graphLagStart = Clock_getTicks();
+                graphLagStart = Clock_getTicks();
                 Event_post(GU_eventHandle, EVENT_GRAPH_ACCEL);
             }
         }

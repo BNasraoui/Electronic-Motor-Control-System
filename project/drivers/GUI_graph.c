@@ -127,33 +127,7 @@ void GUI_Graphing(void)
             bool zready = accumulateGraphData(&Graph_ACCZ, accelZFilt.avg);
 
             if (xready && yready && zready) {
-                /* If the data is still being accumulated by the graphs, draw the last set of data */
-                /*
-                updateGraph(&GraphBorder, &Graph_ACCX);
-                updateGraph(&GraphBorder, &Graph_ACCY);
-                updateGraph(&GraphBorder, &Graph_ACCZ);
 
-                clearGraphFrame(&GraphBorder);
-                clearGraphData(&GraphBorder, &Graph_ACCX);
-                clearGraphData(&GraphBorder, &Graph_ACCY);
-                clearGraphData(&GraphBorder, &Graph_ACCZ);
-
-                adjustGraph(&GraphBorder, &Graph_ACCX);
-                adjustGraph(&GraphBorder, &Graph_ACCY);
-                adjustGraph(&GraphBorder, &Graph_ACCZ);
-
-                drawGraphFrame(&GraphBorder);
-
-                drawGraphData(&GraphBorder, &Graph_ACCX, ClrYellow);
-                drawGraphData(&GraphBorder, &Graph_ACCY, ClrLime);
-                drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
-
-                GraphBorder.maxOnDisplay = 0;
-                GraphBorder.updateFlag = false;
-                Graph_LUX.updateFlag = false;
-
-                graphLag(&GraphBorder);
-                */
                 GraphBorder.maxOnDisplay = 0;
                 GraphBorder.updateFlag = false;
                 Graph_ACCX.updateFlag = false;
@@ -195,12 +169,9 @@ void GUI_Graphing(void)
                         break;
                     case (7) :
                         drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
-
-                        break;
-                    default :
-                        graphLag(&GraphBorder);
                         break;
                 }
+                graphLag(&GraphBorder);
             }
             ++skipper;
         }
