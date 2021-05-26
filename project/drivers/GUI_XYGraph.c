@@ -43,10 +43,7 @@
 #include "drivers/GUI_LogGraph.h"
 
 float getGraphY(struct XYGraphFrame* frame, float y) {
-    //float s = (y / (abs(frame->maxOnDisplay) + abs(frame->minOnDisplay)))*frame->height;
-    //float y2 = (frame->height-abs(s));
     return (frame->zero - (y*frame->axis_y_scale));
-    //return (frame->pos_y + frame->height - abs(y2*frame->axis_y_scale));
 }
 
 void drawScaleReference(struct XYGraphFrame* frame, float scale, bool draw) {
@@ -129,13 +126,7 @@ void drawGraphLag(struct XYGraphFrame* frame, UInt32 time) {
     char str[16];
     sprintf(str, "-%dms", time);
 
-    GrStringDraw(&sGraphContext,
-             str,
-             16,
-             frame->pos_x + 96,
-             frame->pos_y + frame->height + 8,
-             1
-    );
+    GrStringDraw(&sGraphContext, str, 16, frame->pos_x + 96, frame->pos_y + frame->height + 8, 1);
 }
 
 void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
@@ -154,7 +145,6 @@ void GraphData_init(struct XYGraphData *graph, uint16_t density, float estop) {
     graph->density = density;
     graph->y_estop = estop;
     graph->graphHead = 0;
-    // graph->y_max = 1;
 }
 
 void drawDataPoint(struct XYGraphFrame* frame, struct XYGraphData* graph, float dx, float dy) {
@@ -193,7 +183,6 @@ void clearGraphFrame(struct XYGraphFrame *frame) {
         GrContextForegroundSet(&sGraphContext, ClrBlack);
         drawGraphAxisY(frame, false);
     }
-    // GrContextForegroundSet(&sGraphContext, ClrBlack);
 }
 
 void drawEStopBar(struct XYGraphFrame *frame, struct XYGraphData *graph) {
@@ -210,7 +199,8 @@ void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph) {
         drawAllGraphData(frame, graph);
         // drawLogLine(graph, false, 0);
     }
-    if (graph->data[graph->graphHead - 1] != graph->data[graph->graphHead] || graph->graphHead - 1 == 0) drawCurrentValue(frame, graph, graph->data[graph->graphHead - 1]);
+    if (graph->data[graph->graphHead - 1] != graph->data[graph->graphHead] || graph->graphHead - 1 == 0)
+        drawCurrentValue(frame, graph, graph->data[graph->graphHead - 1]);
 }
 
 void drawGraphFrame(struct XYGraphFrame *frame) {
@@ -258,7 +248,8 @@ float getMin(struct XYGraphData *graph) {
 }
 
 void updateFrameScale(struct XYGraphFrame *frame) {
-    if ((frame->maxOnDisplay != frame->y_max) || (frame->minOnDisplay != frame->y_min)) {
+    if ((frame->maxOnDisplay > frame->y_max || frame->maxOnDisplay < (frame->y_max/1.2F)*0.9F) ||
+            (frame->minOnDisplay < frame->y_min) || frame->minOnDisplay > (frame->y_min/1.2F)*0.9F) {
         frame->updateFlag = true;
     }
 }
@@ -274,36 +265,38 @@ void adjustGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     }
 
     if (frame->updateFlag) {
-        frame->axis_y_scale = ((float)frame->height) / (float) (abs(frame->maxOnDisplay) + abs(frame->minOnDisplay));
-        frame->y_max = frame->maxOnDisplay;
-        frame->y_min = frame->minOnDisplay;
+        frame->axis_y_scale = ((float)frame->height) / (float) (abs(frame->maxOnDisplay*1.2F) + abs(frame->minOnDisplay*1.2F));
+        frame->y_max = frame->maxOnDisplay * 1.2F;
+        frame->y_min = frame->minOnDisplay * 1.2F;
 
-        s = abs(frame->maxOnDisplay) + abs(frame->minOnDisplay);
-        if (frame->minOnDisplay >= 0 && frame->maxOnDisplay > frame->minOnDisplay) {
-            m = (frame->minOnDisplay / s) * frame->height;
+        s = abs(frame->y_max) + abs(frame->y_min);
+        if (frame->y_min >= 0 && frame->y_max > frame->y_min) {
+            m = (frame->y_min / s) * frame->height;
             z = (frame->pos_y + frame->height) - m;
             frame->zero = z;
         }
         else
         {
-            m = (frame->maxOnDisplay / s) * frame->height;
+            m = (frame->y_max / s) * frame->height;
             z = (frame->pos_y) + m;
             frame->zero = z;
         }
     }
+}
 
+void resetFrameBounds(struct XYGraphFrame *frame) {
     if (frame->minOnDisplay >= 0 && frame->maxOnDisplay > frame->minOnDisplay) {
-        frame->maxOnDisplay = graph->data[0];
+        frame->maxOnDisplay = 1;
         frame->minOnDisplay = 0;
     }
     else if (frame->maxOnDisplay <= 0 && frame->minOnDisplay < frame->maxOnDisplay) {
         frame->maxOnDisplay = 0;
-        frame->minOnDisplay = graph->data[0];
+        frame->minOnDisplay = -1;
     }
     else
     {
-        frame->maxOnDisplay = graph->data[0];
-        frame->minOnDisplay = graph->data[0];
+        frame->maxOnDisplay = 1;
+        frame->minOnDisplay = -1;
     }
 }
 

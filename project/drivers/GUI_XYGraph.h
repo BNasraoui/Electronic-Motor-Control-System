@@ -14,7 +14,6 @@ struct XYGraphData {
     float prevDataX;
     float prevDataY;
     float data[AXIS_X_DATA_POINTS];
-    // uint16_t y_max;
     float y_estop;
 
     uint16_t graphHead;
@@ -61,6 +60,8 @@ extern void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph
 extern void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph);
 
 extern void drawGraphLag(struct XYGraphFrame* frame, UInt32 time);
+
+extern void resetFrameBounds(struct XYGraphFrame *frame);
 
 extern bool accumulateGraphData(struct XYGraphData *graph, float newData);
 

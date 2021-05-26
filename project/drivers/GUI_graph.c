@@ -110,6 +110,7 @@ void GUI_Graphing(void)
                 clearGraphData(&GraphBorder, &Graph_LUX);
 
                 adjustGraph(&GraphBorder, &Graph_LUX);
+                resetFrameBounds(&GraphBorder);
 
                 drawGraphFrame(&GraphBorder);
 
@@ -161,6 +162,7 @@ void GUI_Graphing(void)
                         adjustGraph(&GraphBorder, &Graph_ACCX);
                         adjustGraph(&GraphBorder, &Graph_ACCY);
                         adjustGraph(&GraphBorder, &Graph_ACCZ);
+                        resetFrameBounds(&GraphBorder);
                         break;
                     case (5) :
                         drawGraphFrame(&GraphBorder);
@@ -171,9 +173,9 @@ void GUI_Graphing(void)
                         break;
                     case (7) :
                         drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
+                        graphLag(&GraphBorder);
                         break;
                 }
-                graphLag(&GraphBorder);
             }
             ++skipper;
         }
