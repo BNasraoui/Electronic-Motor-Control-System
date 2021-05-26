@@ -92,6 +92,9 @@ void GUI_Graphing(void)
         XYGraph_init_display(&GraphBorder, "G [8:1]");
     }
 
+    time_t t;
+    srand((unsigned) time(&t));
+
     /* forever wait for data */
     while (1) {
 
@@ -112,7 +115,7 @@ void GUI_Graphing(void)
 
                 drawGraphData(&GraphBorder, &Graph_LUX, ClrYellow);
 
-                GraphBorder.maxOnDisplay = 0;
+
                 GraphBorder.updateFlag = false;
                 Graph_LUX.updateFlag = false;
 
@@ -128,7 +131,6 @@ void GUI_Graphing(void)
 
             if (xready && yready && zready) {
 
-                GraphBorder.maxOnDisplay = 0;
                 GraphBorder.updateFlag = false;
                 Graph_ACCX.updateFlag = false;
                 Graph_ACCY.updateFlag = false;

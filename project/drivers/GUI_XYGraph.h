@@ -28,7 +28,10 @@ struct XYGraphData {
 struct XYGraphFrame {
     float axis_y_scale;
     float maxOnDisplay;
+    float minOnDisplay;
     float y_max;
+    float y_min;
+    float zero;
     uint16_t pos_x;
     uint16_t pos_y;
     uint16_t width;
