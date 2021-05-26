@@ -50,14 +50,14 @@ void initGUIGraphs(void) {
 
     GraphFrame_init(&GraphBorder, 64, 32, 240, 112);
 
-    GraphData_init(&Graph_LUX, GRAPH_LIGHT_DENSITY, 600);
+    GraphData_init(&Graph_LUX, SINGLE_PLOT_DENSITY, 600);
 
-    GraphData_init(&Graph_ACCX, GRAPH_ACCEL_DENSITY, 50000);
-    GraphData_init(&Graph_ACCY, GRAPH_ACCEL_DENSITY, 55000);
-    GraphData_init(&Graph_ACCZ, GRAPH_ACCEL_DENSITY, 45000);
+    GraphData_init(&Graph_ACCX, TRIPLE_PLOT_DENSITY, 5000);
+    GraphData_init(&Graph_ACCY, TRIPLE_PLOT_DENSITY, 8000);
+    GraphData_init(&Graph_ACCZ, TRIPLE_PLOT_DENSITY, 9000);
 }
 
-void graphLag(struct XYGraphFrame* frame) {
+void graphLag(struct XYGraphFrame* frame, uint16_t average) {
     static UInt32 last = 0;
 
     graphLagEnd = Clock_getTicks();
@@ -66,34 +66,107 @@ void graphLag(struct XYGraphFrame* frame) {
     graphLagStart = 0;
 
     if (graphLagTotal != last) {
-        GrContextForegroundSet(&sGraphContext, ClrBlack);
-        drawGraphLag(frame, oldT);
+        GrContextForegroundSet(&sGraphContext, BACKGROUND_COLOUR);
+        drawGraphLag(frame, oldT, average);
 
-        GrContextForegroundSet(&sGraphContext, 0x00787878);
-        drawGraphLag(frame, graphLagTotal);
+        GrContextForegroundSet(&sGraphContext, LAG_COLOUR);
+        drawGraphLag(frame, graphLagTotal, average);
 
         last = graphLagTotal;
     }
 }
 
+void drawSinglePlot(struct XYGraphFrame* frame, struct XYGraphData* graph, float data) {
+    if (accumulateGraphData(graph, data, SINGLE_PLOT_DENSITY)) {
+        updateGraph(frame, graph, SINGLE_PLOT_DENSITY);
+        updateFrameScale(frame);
+
+        clearGraphFrame(frame);
+        clearGraphData(frame, graph);
+
+        adjustGraph(frame, graph);
+        resetFrameBounds(frame);
+
+        drawGraphFrame(frame);
+
+        drawGraphData(frame, graph, PLOT_A_COLOUR);
+
+        frame->updateFlag = false;
+        graph->updateFlag = false;
+
+        graphLag(frame, SINGLE_PLOT_DENSITY);
+    }
+}
+
+void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, struct XYGraphData* graph2, struct XYGraphData* graph3, float data1, float data2, float data3) {
+    static uint16_t skipper = 0;
+
+    bool ready1 = accumulateGraphData(graph1, data1, TRIPLE_PLOT_DENSITY);
+    bool ready2 = accumulateGraphData(graph2, data2, TRIPLE_PLOT_DENSITY);
+    bool ready3 = accumulateGraphData(graph3, data3, TRIPLE_PLOT_DENSITY);
+
+    if (ready1 && ready2 && ready3) {
+        frame->updateFlag = false;
+        graph1->updateFlag = false;
+        graph2->updateFlag = false;
+        graph3->updateFlag = false;
+
+        updateGraph(frame, graph1, TRIPLE_PLOT_DENSITY);
+        updateGraph(frame, graph2, TRIPLE_PLOT_DENSITY);
+        updateGraph(frame, graph3, TRIPLE_PLOT_DENSITY);
+        updateFrameScale(frame);
+
+        skipper = 0;
+    }
+    else
+    {
+        switch (skipper) {
+            case (1) :
+                clearGraphFrame(frame);
+                clearGraphData(frame, graph1);
+                break;
+            case (2) :
+                clearGraphData(frame, graph2);
+                break;
+            case (3) :
+                clearGraphData(frame, graph3);
+                break;
+            case (4) :
+                adjustGraph(frame, graph1);
+                adjustGraph(frame, graph2);
+                adjustGraph(frame, graph3);
+                resetFrameBounds(frame);
+                break;
+            case (5) :
+                drawGraphFrame(frame);
+                drawGraphData(frame, graph1, PLOT_A_COLOUR);
+                break;
+            case (6) :
+                drawGraphData(frame, graph2, PLOT_B_COLOUR);
+                break;
+            case (7) :
+                drawGraphData(frame, graph3, PLOT_C_COLOUR);
+                graphLag(frame, TRIPLE_PLOT_DENSITY);
+                break;
+        }
+    }
+    ++skipper;
+}
+
 void GUI_Graphing(void)
 {
     UInt events;
-    uint16_t skipper = 0;
 
     /* Draw frame */
     FrameDraw(&sGraphContext, "GUI Graphing");
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
-        XYGraph_init_display(&GraphBorder, "Lux [1:1]");
+        SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "Light");
     }
 
     if (graphTypeActive == GRAPH_TYPE_ACCEL) {
-        XYGraph_init_display(&GraphBorder, "G [8:1]");
+        TriplePlotGraph_init_display(&GraphBorder, "G [8:1]", "x", "y", "z");
     }
-
-    time_t t;
-    srand((unsigned) time(&t));
 
     /* forever wait for data */
     while (1) {
@@ -101,83 +174,11 @@ void GUI_Graphing(void)
         events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
 
         if (events & EVENT_GRAPH_LIGHT) {
-
-            if (accumulateGraphData(&Graph_LUX, luxValueFilt.avg)) {
-                updateGraph(&GraphBorder, &Graph_LUX);
-                updateFrameScale(&GraphBorder);
-
-                clearGraphFrame(&GraphBorder);
-                clearGraphData(&GraphBorder, &Graph_LUX);
-
-                adjustGraph(&GraphBorder, &Graph_LUX);
-                resetFrameBounds(&GraphBorder);
-
-                drawGraphFrame(&GraphBorder);
-
-                drawGraphData(&GraphBorder, &Graph_LUX, ClrYellow);
-
-
-                GraphBorder.updateFlag = false;
-                Graph_LUX.updateFlag = false;
-
-                graphLag(&GraphBorder);
-            }
+            drawSinglePlot(&GraphBorder, &Graph_LUX, luxValueFilt.avg);
         }
 
         if (events & EVENT_GRAPH_ACCEL) {
-
-            bool xready = accumulateGraphData(&Graph_ACCX, accelXFilt.avg);
-            bool yready = accumulateGraphData(&Graph_ACCY, accelYFilt.avg);
-            bool zready = accumulateGraphData(&Graph_ACCZ, accelZFilt.avg);
-
-            if (xready && yready && zready) {
-
-                GraphBorder.updateFlag = false;
-                Graph_ACCX.updateFlag = false;
-                Graph_ACCY.updateFlag = false;
-                Graph_ACCZ.updateFlag = false;
-
-                updateGraph(&GraphBorder, &Graph_ACCX);
-                updateGraph(&GraphBorder, &Graph_ACCY);
-                updateGraph(&GraphBorder, &Graph_ACCZ);
-                updateFrameScale(&GraphBorder);
-
-                skipper = 0;
-
-            }
-            else
-            {
-                switch (skipper) {
-                    case (1) :
-                        clearGraphFrame(&GraphBorder);
-                        clearGraphData(&GraphBorder, &Graph_ACCX);
-                        break;
-                    case (2) :
-                        clearGraphData(&GraphBorder, &Graph_ACCY);
-                        break;
-                    case (3) :
-                        clearGraphData(&GraphBorder, &Graph_ACCZ);
-                        break;
-                    case (4) :
-                        adjustGraph(&GraphBorder, &Graph_ACCX);
-                        adjustGraph(&GraphBorder, &Graph_ACCY);
-                        adjustGraph(&GraphBorder, &Graph_ACCZ);
-                        resetFrameBounds(&GraphBorder);
-                        break;
-                    case (5) :
-                        drawGraphFrame(&GraphBorder);
-                        drawGraphData(&GraphBorder, &Graph_ACCX, ClrYellow);
-                        break;
-                    case (6) :
-                        drawGraphData(&GraphBorder, &Graph_ACCY, ClrLime);
-                        break;
-                    case (7) :
-                        drawGraphData(&GraphBorder, &Graph_ACCZ, ClrLightSkyBlue);
-                        graphLag(&GraphBorder);
-                        break;
-                }
-            }
-            ++skipper;
+            drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
         }
     }
 }

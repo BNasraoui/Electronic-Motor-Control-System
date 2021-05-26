@@ -8,7 +8,12 @@
 #ifndef DRIVERS_GUI_XYGRAPH_H_
 #define DRIVERS_GUI_XYGRAPH_H_
 
+#define FRAME_COLOUR ClrWhite
+#define FRAME_COLOUR2 ClrDarkGray
+
 #define AXIS_X_DATA_POINTS 80
+#define SCALE_UP 1.2
+#define SCALE_DOWN 0.9
 
 struct XYGraphData {
     float prevDataX;
@@ -35,11 +40,14 @@ struct XYGraphFrame {
     uint16_t pos_y;
     uint16_t width;
     uint16_t height;
+    uint16_t bottom;
     uint16_t axisXSpacing;
     bool updateFlag;
 } GraphBorder;
 
-extern void XYGraph_init_display(struct XYGraphFrame* frame, char* units);
+extern void SinglePlotGraph_init_display(struct XYGraphFrame* frame, char* units, char* key);
+
+extern void TriplePlotGraph_init_display(struct XYGraphFrame* frame, char* units, char* key1, char* key2, char* key3);
 
 extern void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
@@ -57,13 +65,13 @@ extern void drawGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph,
 
 extern void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph);
 
-extern void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph);
+extern void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t density);
 
-extern void drawGraphLag(struct XYGraphFrame* frame, UInt32 time);
+extern void drawGraphLag(struct XYGraphFrame* frame, UInt32 time, uint16_t average);
 
 extern void resetFrameBounds(struct XYGraphFrame *frame);
 
-extern bool accumulateGraphData(struct XYGraphData *graph, float newData);
+extern bool accumulateGraphData(struct XYGraphData *graph, float newData, uint16_t density);
 
 
 #endif /* DRIVERS_GUI_XYGRAPH_H_ */

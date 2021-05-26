@@ -59,8 +59,15 @@
 #define GRAPH_TYPE_LIGHT 1
 #define GRAPH_TYPE_ACCEL 2
 
-#define GRAPH_LIGHT_DENSITY 1
-#define GRAPH_ACCEL_DENSITY 8
+#define SINGLE_PLOT_DENSITY 1
+#define TRIPLE_PLOT_DENSITY 8
+
+#define PLOT_A_COLOUR ClrYellow
+#define PLOT_B_COLOUR ClrLime
+#define PLOT_C_COLOUR ClrLightSkyBlue
+
+#define BACKGROUND_COLOUR ClrBlack
+#define LAG_COLOUR ClrMagenta
 
 tContext sGraphContext;
 
