@@ -25,7 +25,6 @@ struct XYGraphData {
 
     float densitySum;
     uint16_t densityCount;
-    uint16_t density;
     bool updateFlag;
 } Graph_LUX, Graph_ACCX, Graph_ACCY, Graph_ACCZ;
 
@@ -51,7 +50,7 @@ extern void TriplePlotGraph_init_display(struct XYGraphFrame* frame, char* units
 
 extern void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
-extern void GraphData_init(struct XYGraphData *graph, uint16_t density, float estop);
+extern void GraphData_init(struct XYGraphData *graph, float estop);
 
 extern void drawGraphFrame(struct XYGraphFrame *frame);
 
@@ -65,7 +64,7 @@ extern void drawGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph,
 
 extern void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph);
 
-extern void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t density);
+extern void addDataToGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t density);
 
 extern void drawGraphLag(struct XYGraphFrame* frame, UInt32 time, uint16_t average);
 

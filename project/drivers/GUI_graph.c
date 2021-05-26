@@ -50,11 +50,11 @@ void initGUIGraphs(void) {
 
     GraphFrame_init(&GraphBorder, 64, 32, 240, 112);
 
-    GraphData_init(&Graph_LUX, SINGLE_PLOT_DENSITY, 600);
+    GraphData_init(&Graph_LUX, 600);
 
-    GraphData_init(&Graph_ACCX, TRIPLE_PLOT_DENSITY, 5000);
-    GraphData_init(&Graph_ACCY, TRIPLE_PLOT_DENSITY, 8000);
-    GraphData_init(&Graph_ACCZ, TRIPLE_PLOT_DENSITY, 9000);
+    GraphData_init(&Graph_ACCX, 5000);
+    GraphData_init(&Graph_ACCY, 8000);
+    GraphData_init(&Graph_ACCZ, 9000);
 }
 
 void graphLag(struct XYGraphFrame* frame, uint16_t average) {
@@ -78,7 +78,8 @@ void graphLag(struct XYGraphFrame* frame, uint16_t average) {
 
 void drawSinglePlot(struct XYGraphFrame* frame, struct XYGraphData* graph, float data) {
     if (accumulateGraphData(graph, data, SINGLE_PLOT_DENSITY)) {
-        updateGraph(frame, graph, SINGLE_PLOT_DENSITY);
+
+        addDataToGraph(frame, graph, SINGLE_PLOT_DENSITY);
         updateFrameScale(frame);
 
         clearGraphFrame(frame);
@@ -88,7 +89,6 @@ void drawSinglePlot(struct XYGraphFrame* frame, struct XYGraphData* graph, float
         resetFrameBounds(frame);
 
         drawGraphFrame(frame);
-
         drawGraphData(frame, graph, PLOT_A_COLOUR);
 
         frame->updateFlag = false;
@@ -111,9 +111,9 @@ void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, stru
         graph2->updateFlag = false;
         graph3->updateFlag = false;
 
-        updateGraph(frame, graph1, TRIPLE_PLOT_DENSITY);
-        updateGraph(frame, graph2, TRIPLE_PLOT_DENSITY);
-        updateGraph(frame, graph3, TRIPLE_PLOT_DENSITY);
+        addDataToGraph(frame, graph1, TRIPLE_PLOT_DENSITY);
+        addDataToGraph(frame, graph2, TRIPLE_PLOT_DENSITY);
+        addDataToGraph(frame, graph3, TRIPLE_PLOT_DENSITY);
         updateFrameScale(frame);
 
         skipper = 0;
@@ -161,7 +161,7 @@ void GUI_Graphing(void)
     FrameDraw(&sGraphContext, "GUI Graphing");
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
-        SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "Light");
+        SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");
     }
 
     if (graphTypeActive == GRAPH_TYPE_ACCEL) {

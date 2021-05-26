@@ -167,8 +167,7 @@ void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_
     frame->zero = (h/2) + y;
 }
 
-void GraphData_init(struct XYGraphData *graph, uint16_t density, float estop) {
-    graph->density = density;
+void GraphData_init(struct XYGraphData *graph, float estop) {
     graph->y_estop = estop;
     graph->graphHead = 0;
 }
@@ -229,6 +228,7 @@ void drawEStopBar(struct XYGraphFrame *frame, struct XYGraphData *graph) {
 
 void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     GrContextForegroundSet(&sGraphContext, BACKGROUND_COLOUR);
+
     if (graph->updateFlag || frame->updateFlag) {
         drawEStopBar(frame, graph);
         drawAllGraphData(frame, graph);
@@ -350,8 +350,12 @@ void resetFrameBounds(struct XYGraphFrame *frame) {
     }
 }
 
+void addDataToGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t density) {
+    /* Calculate new data from average of sum */
+    float newData = graph->densitySum / density;
+    graph->densityCount = 0;
+    graph->densitySum = 0;
 
-void addGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, float newData) {
     /* If previous data points on the frame are undefined, set defaults */
     if (graph->prevDataX == 0 && graph->prevDataY == 0) {
         graph->prevDataX = frame->pos_x;
@@ -374,14 +378,6 @@ void addGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, float n
     /* Get the smallest value in this graph */
     float min = getMin(graph);
     if (min < frame->minOnDisplay) frame->minOnDisplay = min;
-}
-
-void updateGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t density) {
-    float densityAvg = graph->densitySum / density;
-    graph->densityCount = 0;
-    graph->densitySum = 0;
-
-    addGraphData(frame, graph, densityAvg);
 }
 
 bool accumulateGraphData(struct XYGraphData *graph, float newData, uint16_t density) {
