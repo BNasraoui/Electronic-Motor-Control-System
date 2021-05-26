@@ -21,14 +21,14 @@
 #define EVENT_GRAPH_CURR                Event_Id_13
 
 /* Tasks */
-Task_Struct sensorTaskStruct;
-Char sensorTaskStack[TASKSTACKSIZE];
+//Task_Struct sensorTaskStruct;
+//Char sensorTaskStack[TASKSTACKSIZE];
 
 Task_Struct graphTaskStruct;
 Char graphTaskStack[TASKSTACKSIZE];
 
 /* Events */
-Event_Handle eventHandler;
+// Event_Handle eventHandler;
 
 Event_Handle GU_eventHandle;
 

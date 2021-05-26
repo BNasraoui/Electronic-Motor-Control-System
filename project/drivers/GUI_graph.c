@@ -160,6 +160,7 @@ void GUI_Graphing(void)
     /* Draw frame */
     FrameDraw(&sGraphContext, "GUI Graphing");
 
+
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
         SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");
     }
@@ -171,14 +172,14 @@ void GUI_Graphing(void)
     /* forever wait for data */
     while (1) {
 
-        events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
+        events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_WAIT_FOREVER);
 
         if (events & EVENT_GRAPH_LIGHT) {
             drawSinglePlot(&GraphBorder, &Graph_LUX, luxValueFilt.avg);
         }
 
         if (events & EVENT_GRAPH_ACCEL) {
-            drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.avg, accelYFilt.avg, accelZFilt.avg);
+            drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
         }
     }
 }

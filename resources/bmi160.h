@@ -169,6 +169,7 @@ THE SOFTWARE.
 #define BMI160_SPI_READ_BIT         7
 
 #define BMI160_RA_CHIP_ID           0x00
+#define BMI160_ID                  0xD1
 
 #define BMI160_ACC_PMU_STATUS_BIT   4
 #define BMI160_ACC_PMU_STATUS_LEN   2
@@ -453,6 +454,12 @@ THE SOFTWARE.
 #define BMI160_GYRO_BW_OSR2_MODE             UINT8_C(0x01)
 #define BMI160_GYRO_BW_NORMAL_MODE           UINT8_C(0x02)
 
+#define BMI160_DIR_OUTPUT                    0x08
+#define BMI160_DIR_PUSHPULL                  0x00
+#define BMI160_DIR_OPENDRAIN                 0x04
+
+#define BMI160_2G_RANGE                      65535
+
 /**
  * Interrupt Latch Mode options
  * @see setInterruptLatch()
@@ -475,6 +482,27 @@ typedef enum {
     BMI160_LATCH_MODE_2_56_S,   /**< Temporary,   2.56 seconds      */
     BMI160_LATCH_MODE_LATCH,    /**< Latched, @see resetInterrupt() */
 } BMI160InterruptLatchMode;
+
+typedef enum {
+    BMI160_INT2_MAP_PMU = 0x01,
+    BMI160_INT2_MAP_FIFO_FULL = 0x02,
+    BMI160_INT2_MAP_FIFO_WATERMARK = 0x04,
+    BMI160_INT2_MAP_DATAREADY = 0x08,
+    BMI160_INT1_MAP_PMU = 0x10,
+    BMI160_INT1_MAP_FIFO_FULL = 0x20,
+    BMI160_INT1_MAP_FIFO_WATERMARK = 0x40,
+    BMI160_INT1_MAP_DATAREADY = 0x80
+}BMI160IntMap;
+
+typedef enum {
+    BMI160_INT1EN_HIGH_G_X = 0x01,
+    BMI160_INT1EN_HIGH_G_Y = 0x02,
+    BMI160_INT1EN_HIGH_G_Z = 0x04,
+    BMI160_INT1EN_STEP_DETECTOR = 0x08,
+    BMI160_INT1EN_DATAREADY = 0x10,
+    BMI160_INT1EN_FIFOFULL = 0x20,
+    BMI160_INT2_MAP_FIFOWATERMARK = 0x40,
+}BMI160Int1Enable;
 
 /**
  * Digital Low-Pass Filter Mode options
