@@ -6,13 +6,13 @@ void OPT3001_ClockHandlerFxn() {
     //Event_post(eventHandler, Event_Id_01);
     BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION);
     BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_RESULT);
-    Clock_start(clockHandler);
+    Clock_start(opt3001_ClockHandler);
 }
 
 void ADC_ClockHandlerFxn() {
     ADCProcessorTrigger(ADC0_BASE, ADC_SEQ);
     ADCProcessorTrigger(ADC1_BASE, ADC_SEQ);
-    Clock_start(clockHandler2);
+    Clock_start(adc_ClockHandler);
 }
 
 void BMI160Fxn() {
@@ -26,14 +26,19 @@ void OPT3001Fxn()
 }
 
 void watchDogBite() {
+
     System_printf("watchdog not happy");
     System_flush();
+    Clock_start(adc_ClockHandler);
+    //Post events to each task
+    //Event_post(eventHandler, Event_Id_00);
 }
 
 //*************************** INITIALISATION **************************************
 void InitSensorDriver() {
     Watchdog_Params watchDogParams;
     Error_init(&eb);
+
     InitTasks();
 
     eventHandler = Event_create(NULL, &eb);
@@ -54,15 +59,21 @@ void InitSensorDriver() {
     Clock_Params_init(&clockParams);
     clockParams.period = CLOCK_PERIOD_2HZ;
     clockParams.startFlag = FALSE;
-    clockHandler = Clock_create(OPT3001_ClockHandlerFxn, CLOCK_TIMEOUT, &clockParams, &eb);
-    if (clockHandler == NULL) {
-     System_abort("Clock 1 create failed");
+    opt3001_ClockHandler = Clock_create(OPT3001_ClockHandlerFxn, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+    if (opt3001_ClockHandler == NULL) {
+     System_abort("opt3001 clock handle create failed");
     }
 
     clockParams.period = CLOCK_PERIOD_150HZ;
-    clockHandler2 = Clock_create(ADC_ClockHandlerFxn, CLOCK_TIMEOUT, &clockParams, &eb);
-    if (clockHandler == NULL) {
-     System_abort("Clock 2 create failed");
+    adc_ClockHandler = Clock_create(ADC_ClockHandlerFxn, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+    if (adc_ClockHandler == NULL) {
+     System_abort("adc clock handle create failed");
+    }
+
+    clockParams.period = CLOCK_PERIOD_1HZ;
+    watchDog_ClockHandler = Clock_create(ADC_ClockHandlerFxn, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+    if (watchDog_ClockHandler == NULL) {
+     System_abort("watchdog clock create failed");
     }
 
     //Create Hwi Gate Mutex

@@ -48,10 +48,11 @@ void ReadSensorsFxn() {
     GPIO_enableInt(Board_OPT3001);
 
     //Start the timing clocks used to periodically trigger opt3001 and bmi160 reads
-    Clock_start(clockHandler);
-    Clock_start(clockHandler2);
+    Clock_start(opt3001_ClockHandler);
+    Clock_start(adc_ClockHandler);
+    Clock_start(watchDog_ClockHandler);
 
-    while (1) {
+    for(;;) {
         GPIO_write(Board_LED1, Board_LED_ON);
         events = Event_pend(eventHandler, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04), BIOS_WAIT_FOREVER);
 
@@ -82,6 +83,9 @@ void ReadSensorsFxn() {
 
             //Update display
             System_printf("ADC1: %f\n", ADC1Window.avg);
+        }
+        if(events & KICK_DOG) {
+            System_printf("Setting bit to tell watchdog that this task is ok");
         }
 
         System_flush();
