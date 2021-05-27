@@ -59,9 +59,6 @@ void taskStatusCheck() {
 
 /* Sensor Task Function */
 void ReadSensorsFxn() {
-    UInt events;
-    UInt gateKey;
-
     InitI2C_OPT3001();
     InitI2C_BMI160();
     InitADC0_CurrentSense();
@@ -79,61 +76,7 @@ void ReadSensorsFxn() {
     Clock_start(watchDog_ClockHandler);
 
     for(;;) {
-        events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
-
-        if(events & NEW_OPT3001_DATA) {
-            GetLuxValue_OPT3001(&rawData);
-            Swi_post(swiHandle_LuxDataProc);
-            //System_printf("LUX: %f\n", luxValueFilt.avg);
-
-            if (graphTypeActive == GRAPH_TYPE_LIGHT) {
-                if (graphLagStart == 0) graphLagStart = Clock_getTicks();
-                Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
-            }
-
-        }
-
-        if(events & NEW_ACCEL_DATA) {
-            GetAccelData_BMI160(&accelX, &accelY, &accelZ);
-            Swi_post(swiHandle_accelDataProc);
-            //System_printf("X: %f\t Y: %f\t Z: %f\n", accelXFilt.G, accelYFilt.G, accelZFilt.G);
-
-            if (graphTypeActive == GRAPH_TYPE_ACCEL) {
-                if (graphLagStart == 0) graphLagStart = Clock_getTicks();
-                Event_post(GU_eventHandle, EVENT_GRAPH_ACCEL);
-            }
-        }
-
-        if(events & LOW_HIGH_LIGHT_EVENT) {
-            //TURN ON/OFF HEADLIGHTS
-            //System_printf("LOW/HIGH light even\n");
-        }
-
-        if(events & NEW_ADC0_DATA) {
-            //Check if limit exceeded, respond accordingly
-
-            //Update display
-            //System_printf("ADC0: %f\n", ADC0Window.avg);
-        }
-
-        if(events & NEW_ADC1_DATA) {
-            //Check if limit exceeded, respon accordingly
-
-            //Update display
-            //System_printf("ADC1: %f\n", ADC1Window.avg);
-        }
-
-        if(events & KICK_DOG) {
-            //System_printf("Setting bit to tell watchdog that this task is ok");
-            gateKey = GateHwi_enter(gateHwi);
-            watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_SENSOR;
-            //For testing
-            watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_MOTOR;
-            watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_GUI;
-            GateHwi_leave(gateHwi, gateKey);
-        }
-
-        //System_flush();
+        ProcessSensorEvents();
     }
 }
 

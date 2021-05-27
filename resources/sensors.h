@@ -172,6 +172,8 @@ extern void InitInterrupts();
 
 extern void ReadSensorsFxn();
 
+extern void ProcessSensorEvents();
+
 extern void InitI2C_OPT3001();
 
 extern void InitI2C_BMI160();
