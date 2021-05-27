@@ -1,6 +1,6 @@
 #
 # This file was generated based on the configuration script:
-#     C:\Users\mhalp\Desktop\EmbededSystems\Assessment\EGH456_GROUP6\project\empty.cfg
+#     C:\Users\jesse\Dropbox\Sem1_2021\Embedded\CCS_Workspace\EGH456_GROUP6\project\empty.cfg
 #
 # This makefile may be included in other makefiles that need to build
 # the libraries containing the compiled source files generated as
@@ -14,7 +14,7 @@
 #
 # The absolute path to the generated source directory (at the time the
 # sources were generated) is:
-#    C:\Users\mhalp\Desktop\EmbededSystems\Assessment\EGH456_GROUP6\project\src
+#    C:\Users\jesse\Dropbox\Sem1_2021\Embedded\CCS_Workspace\EGH456_GROUP6\project\src
 #
 GEN_SRC_DIR ?= ../src
 

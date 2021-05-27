@@ -3,9 +3,9 @@
 
 //*************************** SWI/HWIS **************************************
 void OPT3001_ClockHandlerFxn() {
-    //Event_post(eventHandler, Event_Id_01);
-    BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION);
-    BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_RESULT);
+    Event_post(sensors_eventHandle, NEW_OPT3001_DATA);
+    //BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION);
+    //BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_RESULT);
     Clock_start(opt3001_ClockHandler);
 }
 
@@ -16,22 +16,12 @@ void ADC_ClockHandlerFxn() {
 }
 
 void BMI160Fxn() {
-    //Event_post(eventHandler, Event_Id_02);
-    BufferReadI2C_BMI160(BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L);
+    Event_post(sensors_eventHandle, NEW_ACCEL_DATA);
+    //BufferReadI2C_BMI160(BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L);
 }
 
-void OPT3001Fxn()
-{
-    Event_post(eventHandler, Event_Id_00);
-}
-
-void watchDogBite() {
-
-    System_printf("watchdog not happy");
-    System_flush();
-    Clock_start(adc_ClockHandler);
-    //Post events to each task
-    //Event_post(eventHandler, Event_Id_00);
+void OPT3001Fxn() {
+    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
 }
 
 //*************************** INITIALISATION **************************************
@@ -39,12 +29,7 @@ void InitSensorDriver() {
     Watchdog_Params watchDogParams;
     Error_init(&eb);
 
-    InitTasks();
-
-    eventHandler = Event_create(NULL, &eb);
-    if(eventHandler == NULL) {
-        System_abort("Sensors event handle create failed");
-    }
+    InitInterrupts();
 
     /* Create I2C for usage */
     //I2C_Params i2cParams;
@@ -71,7 +56,7 @@ void InitSensorDriver() {
     }
 
     clockParams.period = CLOCK_PERIOD_1HZ;
-    watchDog_ClockHandler = Clock_create(ADC_ClockHandlerFxn, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+    watchDog_ClockHandler = Clock_create(taskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
     if (watchDog_ClockHandler == NULL) {
      System_abort("watchdog clock create failed");
     }
@@ -93,7 +78,7 @@ void InitSensorDriver() {
     }
 }
 
-void InitTasks() {
+void InitInterrupts() {
 
     System_printf("IN InitTasks\n");
     System_flush();
@@ -230,6 +215,7 @@ bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ) {
     i2cTransaction.readCount = 6;
     I2C_transfer(i2cHandle, &i2cTransaction);
 
+    // shift bytes read from bmi160 to form raw accel data
     *accelX = (((int16_t)rxBuffer[1])  << 8) | rxBuffer[0];
     *accelY = (((int16_t)rxBuffer[3])  << 8) | rxBuffer[2];
     *accelZ = (((int16_t)rxBuffer[5])  << 8) | rxBuffer[4];
@@ -266,7 +252,7 @@ void ProcessAccelDataFxn() {
         accelXFilt.startFilter = true;
     }
 
-    Event_post(eventHandler, Event_Id_02);
+    //Event_post(sensors_eventHandle, Event_Id_02);
 }
 
 void ConvertRawAccelToGs() {
@@ -343,9 +329,11 @@ void ProcessLuxDataFxn() {
     if((luxValueFilt.index + 1) == WINDOW_SIZE  && luxValueFilt.startFilter == false) {
         luxValueFilt.startFilter = true;
     }
+
     led_state = !led_state;
     GPIO_write(Board_LED0, led_state);
-    Event_post(eventHandler, Event_Id_01);
+
+    //Event_post(sensors_eventHandle, Event_Id_01);
 }
 
 //***************************CURRENT SENSING**************************************
@@ -417,7 +405,7 @@ void ADC0_FilterFxn() {
         ADC0Window.voltage = ADC1Window.avg / ADC_RESOLUTION;
         ADC0Window.current = ADC0Window.voltage / SHUNT_R_VALUE;
         ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
-        Event_post(eventHandler, Event_Id_03);
+        Event_post(sensors_eventHandle, Event_Id_03);
     }
 
     if((ADC0Window.index + 1) == WINDOW_SIZE && ADC0Window.startFilter == false) {
@@ -444,7 +432,7 @@ void ADC1_FilterFxn() {
         ADC1Window.voltage = ADC1Window.avg / ADC_RESOLUTION;
         ADC1Window.current = ADC1Window.voltage / SHUNT_R_VALUE;
         ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
-        Event_post(eventHandler, Event_Id_04);
+        Event_post(sensors_eventHandle, Event_Id_04);
     }
 
     if((ADC1Window.index + 1) == WINDOW_SIZE && ADC1Window.startFilter == false) {
@@ -549,70 +537,6 @@ bool WriteByteI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, ui
     return true;
 }
 
-
-void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg)
-{
-    UInt gateKey;
-    txBuffer_OPT[0] = ui8Reg;
-
-    gateKey = GateHwi_enter(gateHwi);
-
-    i2cTransactionCallback.slaveAddress = slaveAddress;
-    i2cTransactionCallback.writeBuf = txBuffer_OPT;
-    i2cTransactionCallback.writeCount = 1;
-    i2cTransactionCallback.readBuf = rxBuffer_OPT;
-    i2cTransactionCallback.readCount = 2;
-    I2C_transfer(i2cHandle, &i2cTransactionCallback);
-
-    GateHwi_leave(gateHwi, gateKey);
-}
-
-void BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg)
-{
-    UInt gateKey;
-    uint8_t txBuffer_BMI[1];
-    txBuffer_BMI[0] = ui8Reg;
-
-    gateKey = GateHwi_enter(gateHwi);
-
-    i2cTransactionCallback.slaveAddress = slaveAddress;
-    i2cTransactionCallback.writeBuf = txBuffer_BMI;
-    i2cTransactionCallback.writeCount = 1;
-    i2cTransactionCallback.readBuf = rxBuffer_BMI;
-    i2cTransactionCallback.readCount = 6;
-    I2C_transfer(i2cHandle, &i2cTransactionCallback);
-
-    GateHwi_leave(gateHwi, gateKey);
-}
-
-void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
-    UInt gateKey;
-
-    //We must protect the integrity of the I2C transaction
-    //If it's used whilst we are processing then issues arise
-    gateKey = GateHwi_enter(gateHwi);
-    if(result) {
-        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
-            //shift data from buffers to accel axis
-            accelX = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
-            accelY = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
-            accelZ = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
-            Swi_post(swiHandle_accelDataProc);
-        }
-        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
-            //Only call Swi if we've requested result reg
-            if(txBuffer_OPT[0] == REG_RESULT) {
-                Swi_post(swiHandle_LuxDataProc);
-            }
-        }
-    }
-    else {
-        System_printf("Bad i2c transaction");
-    }
-    System_flush();
-    GateHwi_leave(gateHwi, gateKey);
-}
-
 void SensorOpt3001Convert(uint16_t rawData, float *convertedLux) {
     uint16_t e, m;
 
@@ -634,10 +558,88 @@ void SetHighLimit_OPT3001(float val) {
 
 uint16_t CalculateLimitReg(float luxValue) {
     uint8_t E = 6;
-    uint16_t result = luxValue / (0.01 * pow(2, E));
     unsigned char bytes[2];
+
+    //lux equation given in datasheet re-arrages for result bits of reg
+    uint16_t result = luxValue / (0.01 * pow(2, E));
+    //create bytes of 16bit register
     bytes[0] = (E << 4 & 0x000000F0) | (result >> 8 & 0x0000000F);
     bytes[1] = (result & 0x000000F0) | (result & 0x0000000F);
+    //Join bytes to form 16-bit register
     uint16_t reg = bytes[1] << 8 | bytes[0];
+
     return reg;
 }
+
+//********************** CODE GRAVEYARD ****************************************
+//void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg)
+//{
+//    UInt gateKey;
+//    txBuffer_OPT[0] = ui8Reg;
+//
+//    gateKey = GateHwi_enter(gateHwi);
+//
+//    i2cTransactionCallback.slaveAddress = slaveAddress;
+//    i2cTransactionCallback.writeBuf = txBuffer_OPT;
+//    i2cTransactionCallback.writeCount = 1;
+//    i2cTransactionCallback.readBuf = rxBuffer_OPT;
+//    i2cTransactionCallback.readCount = 2;
+//    I2C_transfer(i2cHandle, &i2cTransactionCallback);
+//
+//    GateHwi_leave(gateHwi, gateKey);
+//}
+//
+//void BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg)
+//{
+//    UInt gateKey;
+//    uint8_t txBuffer_BMI[1];
+//    txBuffer_BMI[0] = ui8Reg;
+//
+//    gateKey = GateHwi_enter(gateHwi);
+//
+//    i2cTransactionCallback.slaveAddress = slaveAddress;
+//    i2cTransactionCallback.writeBuf = txBuffer_BMI;
+//    i2cTransactionCallback.writeCount = 1;
+//    i2cTransactionCallback.readBuf = rxBuffer_BMI;
+//    i2cTransactionCallback.readCount = 6;
+//    I2C_transfer(i2cHandle, &i2cTransactionCallback);
+//
+//    GateHwi_leave(gateHwi, gateKey);
+//}
+//
+//void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
+//    UInt gateKey;
+//
+//    //We must protect the integrity of the I2C transaction
+//    //If it's used whilst we are processing then issues can arise
+//    gateKey = GateHwi_enter(gateHwi);
+//    if(result) {
+//        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
+//            //shift data from buffers to form raw accel
+//            accelX = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
+//            accelY = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
+//            accelZ = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
+//            Swi_post(swiHandle_accelDataProc);
+//        }
+//        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
+//            //Only call Swi if we've requested result reg
+//            if(txBuffer_OPT2[1] == REG_RESULT) {
+//                Swi_post(swiHandle_LuxDataProc);
+//            }
+//        }
+//    }
+//    else {
+//        System_printf("Bad i2c transaction");
+//    }
+//    GateHwi_leave(gateHwi, gateKey);
+//    System_flush();
+//}
+
+//    // re-init i2c in callback mode for periodic sensor reading
+//    I2C_close(i2cHandle);
+//    i2cParams.transferMode = I2C_MODE_CALLBACK;
+//    i2cParams.transferCallbackFxn = I2C_Callback;
+//    i2cHandle = I2C_open(0, &i2cParams);
+//    if (i2cHandle == NULL) {
+//        System_abort("Error Initializing I2C Handle\n");
+//    }
