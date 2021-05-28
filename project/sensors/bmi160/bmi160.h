@@ -28,6 +28,8 @@ THE SOFTWARE.
 #ifndef _BMI160_H_
 #define _BMI160_H_
 
+#include "sensors/sensors.h"
+
 #define BMI160_SLAVE_ADDRESS            0x69
 
 /********** Define for magnetometer *************/
@@ -706,6 +708,8 @@ typedef enum {
 extern void InitI2C_BMI160();
 
 extern bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ);
+
+extern void ProcessAccelDataFxn();
 
 extern void ConvertRawAccelToGs();
 

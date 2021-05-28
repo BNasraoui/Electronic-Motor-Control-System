@@ -19,6 +19,7 @@
 #include <ti/drivers/GPIO.h>
 
 #include "driverlib/gpio.h"
+#include "driverlib/adc.h"
 
 /* Tiva C series macros header files */
 #include "inc/hw_ints.h"
@@ -30,13 +31,12 @@
 /* Created libraries for sub-systems */
 #include "general.h"
 
-#include "sensors.h"
-#include "driverlib/adc.h"
-#include "bmi160.h"
-
+#include "sensors/sensors.h"
+#include "sensors/bmi160/bmi160.h"
+#include "sensors/opt3001/opt3001.h"
 #include "drivers/GUI_graph.h"
 
-void watchDogBite() {
+void WatchDogBite() {
     UInt gateKey;
 
     if(watchDogCheck == ALLTASKS_CHECKEDIN) {
@@ -50,7 +50,7 @@ void watchDogBite() {
     Clock_start(watchDog_ClockHandler);
 }
 
-void taskStatusCheck() {
+void TaskStatusCheck() {
     Event_post(sensors_eventHandle, KICK_DOG);
     Event_post(GU_eventHandle, KICK_DOG);
     //Add event post for motor task
@@ -117,11 +117,7 @@ void InitEvents(void) {
     if(sensors_eventHandle == NULL)  System_abort("Sensors event create failed");
 }
 
-/*
- *  ======== main ========
- */
-int main(void)
-{
+int main(void) {
     /* Call board init functions */
     Board_initGeneral();
     Board_initGPIO();

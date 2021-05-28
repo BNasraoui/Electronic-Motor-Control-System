@@ -48,33 +48,6 @@
 #define GPIO_PIN_2                      0x00000004  // GPIO pin 2
 #define P2_VECTOR_NUM                   94
 
-/* OP3001 Register addresses */
-//OPT3001 slave address
-#define OPT3001_SLAVE_ADDRESS           0x47
-#define BMI160_SLAVE_ADDRESS            0x69
-
-#define REG_RESULT                      0x00
-#define REG_CONFIGURATION               0x01
-#define REG_LOW_LIMIT                   0x02
-#define REG_HIGH_LIMIT                  0x03
-
-#define REG_MANUFACTURER_ID             0x7E
-#define REG_DEVICE_ID                   0x7F
-
-/* Register values */
-#define MANUFACTURER_ID                 0x5449  // TI
-#define DEVICE_ID                       0x3001  // Opt 3001
-#define CONFIG_RESET                    0xC810
-#define CONFIG_TEST                     0xCC10
-#define CONFIG_ENABLE                   0x10C4 // 100 ms, continuous
-#define CONFIG_DISABLE                  0x10C0 // 0xC010   - 100 ms, shutdown
-
-#define CONFIG_VAL                      0x10C4 // latched window-style comparison and INT pin reports active low
-#define LOW_LIMIT                       0xFF0F // Full-scale range (Lux) = 40.95
-#define HIGH_LIMIT                      0xFF6F // Full scale range (Lux) = 2620.80
-
-/* Bit values */
-#define DATA_RDY_BIT                    0x0080  // Data ready
 // #define TASKSTACKSIZE                   512
 
 #define ADC0_SEQ1_VEC_NUM               31
@@ -127,7 +100,6 @@ typedef struct Sliding_Window_u16{
 Task_Struct task0Struct;
 Char task0Stack[TASKSTACKSIZE];
 
-Hwi_Handle hwi_OPT3001;
 Hwi_Handle hwi_ADC0;
 Hwi_Handle hwi_ADC1;
 Hwi_Params hwiParams;
@@ -155,66 +127,46 @@ Watchdog_Handle watchDogHandle;
 
 SlidingWindow_32 ADC0Window;
 SlidingWindow_32 ADC1Window;
-SlidingWindow_u16 luxValueFilt;
 SlidingWindow_16 accelXFilt;
 SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
 int16_t accelX, accelY, accelZ;
-uint16_t rawData;
 
-extern void watchDogBite();
+extern void WatchDogBite();
 
-extern void taskStatusCheck();
+extern void ADC_ClockHandlerFxn();
+
+extern void TaskStatusCheck();
 
 extern void InitSensorDriver();
 
 extern void InitInterrupts();
 
-extern void ReadSensorsFxn();
-
-extern void ProcessSensorEvents();
-
-extern void InitI2C_OPT3001();
-
-extern void InitI2C_BMI160();
-
 extern void InitADC0_CurrentSense();
 
 extern void InitADC1_CurrentSense();
 
-extern void OPT3001_ClockHandlerFxn();
+extern void ProcessSensorEvents();
 
-extern void ADC_ClockHandlerFxn();
+extern void ReadSensorsFxn();
 
 extern void ADC0_FilterFxn();
 
 extern void ADC1_FilterFxn();
 
-extern void OPT3001Fxn();
-
 extern void BMI160Fxn();
 
-extern bool GetLuxValue_OPT3001(uint16_t *rawData);
+extern void OPT3001Fxn();
 
-extern bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ);
+extern void ProcessAccelDataFxn();
 
 extern void ADC0_Read();
 
 extern void ADC1_Read();
 
-extern void ProcessAccelDataFxn();
+extern void GetLightLevel();
 
-extern void ConvertRawAccelToGs();
-
-extern void ProcessLuxDataFxn();
-
-extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
-
-extern void SetLowLimit_OPT3001(float val);
-
-extern void SetHighLimit_OPT3001(float val);
-
-extern uint16_t CalculateLimitReg(float luxValue);
+extern void GetAccelData();
 
 extern void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg);
 

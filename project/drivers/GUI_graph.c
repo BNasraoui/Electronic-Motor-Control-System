@@ -38,7 +38,8 @@
 #include "Board.h"
 
 /* GUI Graphing Header file */
-#include "sensors.h"
+#include "sensors/sensors.h"
+#include "sensors/opt3001/opt3001.h"
 #include "drivers/GUI_graph.h"
 #include "drivers/GUI_XYGraph.h"
 

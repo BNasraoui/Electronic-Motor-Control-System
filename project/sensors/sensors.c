@@ -1,5 +1,6 @@
 #include "sensors.h"
-#include "bmi160.h"
+#include "bmi160/bmi160.h"
+#include "opt3001/opt3001.h"
 #include "general.h"
 #include "GUI_graph.h"
 
@@ -58,7 +59,7 @@ void InitSensorDriver() {
     }
 
     clockParams.period = CLOCK_PERIOD_1HZ;
-    watchDog_ClockHandler = Clock_create(taskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+    watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
     if (watchDog_ClockHandler == NULL) {
      System_abort("watchdog clock create failed");
     }
@@ -72,7 +73,7 @@ void InitSensorDriver() {
 
     Watchdog_Params_init(&watchDogParams);
     watchDogParams.resetMode = Watchdog_RESET_OFF;
-    watchDogParams.callbackFxn = watchDogBite;
+    watchDogParams.callbackFxn = WatchDogBite;
     watchDogParams.resetMode = Watchdog_RESET_OFF;
     watchDogHandle = Watchdog_open(EK_TM4C1294XL_WATCHDOG0, &watchDogParams);
     if (!watchDogHandle) {
@@ -131,20 +132,17 @@ void ProcessSensorEvents() {
     events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
 
     if(events & NEW_OPT3001_DATA) {
-        GetLuxValue_OPT3001(&rawData);
-        Swi_post(swiHandle_LuxDataProc);
+        GetLightLevel();
         //System_printf("LUX: %f\n", luxValueFilt.avg);
 
         if (graphTypeActive == GRAPH_TYPE_LIGHT) {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
             Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
         }
-
     }
 
     if(events & NEW_ACCEL_DATA) {
-        GetAccelData_BMI160(&accelX, &accelY, &accelZ);
-        Swi_post(swiHandle_accelDataProc);
+        GetAccelData();
         //System_printf("X: %f\t Y: %f\t Z: %f\n", accelXFilt.G, accelYFilt.G, accelZFilt.G);
 
         if (graphTypeActive == GRAPH_TYPE_ACCEL) {
@@ -183,217 +181,14 @@ void ProcessSensorEvents() {
     }
 }
 
-//*************************** ACCELEROMETER BMI160 **************************************
-void InitI2C_BMI160() {
-    uint8_t val;
-    uint8_t data;
-
-    accelXFilt.index = 0;
-    accelXFilt.sum = 0;
-    accelXFilt.avg = 0;
-    accelXFilt.startFilter = false;
-
-    accelYFilt.index = 0;
-    accelYFilt.sum = 0;
-    accelYFilt.avg = 0;
-    accelXFilt.startFilter = false;
-
-    accelZFilt.index = 0;
-    accelZFilt.sum = 0;
-    accelZFilt.avg = 0;
-    accelXFilt.startFilter = false;
-
-    ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_CHIP_ID, &data);
-    if(data != BMI160_ID) {
-        System_printf("Device ID: %d, should be = 209\n", data);
-        System_flush();
-        System_abort("Wrong bmi160 device ID returned - ABORTING");
-    }
-
-    /* Issue a soft-reset to bring the device into a clean state */
-    val =  BMI160_CMD_SOFT_RESET;
-    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-    Task_sleep(10);
-
-    /* Power up the accelerometer */
-    val =  BMI160_CMD_ACC_MODE_NORMAL;
-    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_CMD, val);
-    Task_sleep(5);
-
-    //Set the bandwidth for accell/gyro to normal and set 100Hz for both
-    val =  BMI160_ACCEL_RATE_200HZ;
-    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_FOC_CONF_DEFAULT, val);
-
-    //Set the full scale range to 2g
-    val =  BMI160_ACCEL_RANGE_2G;
-    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_RANGE, val);
-
-    //Interrupt raised when data ready
-    val =  BMI160_INT1EN_DATAREADY;
-    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_EN_1, val);
-
-    //Map FIFO full interrupt type to int1
-    val =  BMI160_INT1_MAP_DATAREADY;
-    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_MAP_1, val);
-
-    //Set latching mode
-    val =  BMI160_LATCH_MODE_NONE;
-    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_LATCH, val);
-
-    //Set pin direction as output, select open-drain
-    val =  BMI160_DIR_OUTPUT | BMI160_DIR_OPENDRAIN;
-    WriteByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_OUT_CTRL, val);
-
-    #ifdef DEBUG_MODE
-        //check error status of CHIP
-        ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMM150_OPMODE_REG_DEFAULT, &data);
-        System_printf("Error code: %d\n", data);
-
-        //check PMU register to make sure accel powered up
-        ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_PMU_STATUS, &data);
-        System_printf("PMU status: %d\n", data);
-
-        //Check the interrupt status to make sure correct interrupt raised
-        ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_INT_STATUS_1, &data);
-        System_printf("Int status: %d\n", data);
-        System_flush();
-    #endif
+void GetLightLevel() {
+    GetLuxValue_OPT3001(&rawData);
+    Swi_post(swiHandle_LuxDataProc);
 }
 
-
-bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ) {
-    I2C_Transaction i2cTransaction;
-    uint8_t rxBuffer[6];
-    uint8_t txBuffer[1];
-
-    txBuffer[0] = BMI160_RA_ACCEL_X_L;
-
-    i2cTransaction.slaveAddress = BMI160_SLAVE_ADDRESS;
-    i2cTransaction.writeBuf = txBuffer;
-    i2cTransaction.writeCount = 1;
-    i2cTransaction.readBuf = rxBuffer;
-    i2cTransaction.readCount = 6;
-    I2C_transfer(i2cHandle, &i2cTransaction);
-
-    // shift bytes read from bmi160 to form raw accel data
-    *accelX = (((int16_t)rxBuffer[1])  << 8) | rxBuffer[0];
-    *accelY = (((int16_t)rxBuffer[3])  << 8) | rxBuffer[2];
-    *accelZ = (((int16_t)rxBuffer[5])  << 8) | rxBuffer[4];
-
-    return true;
-}
-
-void ProcessAccelDataFxn() {
-    accelXFilt.sum = accelXFilt.sum - accelXFilt.data[accelXFilt.index];
-    accelYFilt.sum = accelYFilt.sum - accelYFilt.data[accelYFilt.index];
-    accelZFilt.sum = accelZFilt.sum - accelZFilt.data[accelZFilt.index];
-
-    accelXFilt.data[accelXFilt.index] = accelX;
-    accelYFilt.data[accelYFilt.index] = accelY;
-    accelZFilt.data[accelZFilt.index] = accelZ;
-
-    accelXFilt.sum = accelXFilt.sum + accelXFilt.data[accelXFilt.index];
-    accelYFilt.sum = accelYFilt.sum + accelYFilt.data[accelYFilt.index];
-    accelZFilt.sum = accelZFilt.sum + accelZFilt.data[accelZFilt.index];
-
-    accelXFilt.index = (accelXFilt.index + 1) % WINDOW_SIZE;
-    accelYFilt.index = (accelYFilt.index + 1) % WINDOW_SIZE;
-    accelZFilt.index = (accelZFilt.index + 1) % WINDOW_SIZE;
-
-    if(accelXFilt.startFilter) {
-        accelXFilt.avg = (float)accelXFilt.sum / WINDOW_SIZE;
-        accelYFilt.avg = (float)accelYFilt.sum / WINDOW_SIZE;
-        accelZFilt.avg = (float)accelZFilt.sum / WINDOW_SIZE;
-        ConvertRawAccelToGs();
-    }
-
-    //All indexes incremented at same time so only check one filter
-    if((accelXFilt.index + 1) == WINDOW_SIZE && accelXFilt.startFilter == false) {
-        accelXFilt.startFilter = true;
-    }
-
-    //Event_post(sensors_eventHandle, Event_Id_02);
-}
-
-void ConvertRawAccelToGs() {
-    //convert to Gs
-    float scale_2g = 4000.0/BMI160_2G_RANGE;
-    float accelX_mG = accelXFilt.avg * scale_2g;
-    float accelY_mG = accelYFilt.avg * scale_2g;
-    float accelZ_mG = accelZFilt.avg * scale_2g;
-    accelXFilt.G = accelX_mG/1000;
-    accelYFilt.G = accelY_mG/1000;
-    accelZFilt.G = accelZ_mG/1000;
-}
-
-//*************************** LIGHT SENSING OPT3001 **************************************
-void InitI2C_OPT3001() {
-    luxValueFilt.index = 0;
-    luxValueFilt.sum = 0;
-    luxValueFilt.avg = 0;
-    luxValueFilt.startFilter = false;
-    uint8_t data;
-    uint16_t val;
-
-    //Read device ID
-    bool success = ReadByteI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
-    while(data != 48) {
-        System_printf("I2C FAIL\t trying again in 5ms\n");
-        System_flush();
-        Task_sleep(5);
-        bool success = ReadByteI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_DEVICE_ID, &data);
-    }
-
-    val =  CONFIG_VAL;
-    WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
-
-    //Configure the default high/low limits
-    SetLowLimit_OPT3001(40.95);
-    SetHighLimit_OPT3001(2620.8);
-
-    IntEnable(INT_GPIOP2);
-}
-
-bool GetLuxValue_OPT3001(uint16_t *rawData) {
-    bool success;
-    uint16_t val;
-
-    success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
-
-    if (success) {
-        success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
-    }
-
-    if (success) {
-        // Swap bytes
-        *rawData = (val << 8) | (val>>8 & 0xFF);
-    }
-
-    return (success);
-}
-
-void ProcessLuxDataFxn() {
-    float lux;
-    static bool led_state = false;
-
-    SensorOpt3001Convert(rawData, &lux);
-    luxValueFilt.sum = luxValueFilt.sum - luxValueFilt.data[luxValueFilt.index];
-    luxValueFilt.data[luxValueFilt.index] = (uint16_t)lux;
-    luxValueFilt.sum = luxValueFilt.sum + luxValueFilt.data[luxValueFilt.index];
-    luxValueFilt.index = (luxValueFilt.index + 1) % WINDOW_SIZE;
-
-    if(luxValueFilt.startFilter) {
-        luxValueFilt.avg = (float)luxValueFilt.sum / WINDOW_SIZE;
-    }
-
-    if((luxValueFilt.index + 1) == WINDOW_SIZE  && luxValueFilt.startFilter == false) {
-        luxValueFilt.startFilter = true;
-    }
-
-    led_state = !led_state;
-    GPIO_write(Board_LED0, led_state);
-
-    //Event_post(sensors_eventHandle, Event_Id_01);
+void GetAccelData() {
+    GetAccelData_BMI160(&accelX, &accelY, &accelZ);
+    Swi_post(swiHandle_accelDataProc);
 }
 
 //***************************CURRENT SENSING**************************************
@@ -595,40 +390,6 @@ bool WriteByteI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, ui
     }
 
     return true;
-}
-
-void SensorOpt3001Convert(uint16_t rawData, float *convertedLux) {
-    uint16_t e, m;
-
-    m = rawData & 0x0FFF;
-    e = (rawData & 0xF000) >> 12;
-
-    *convertedLux = m * (0.01 * exp2(e));
-}
-
-void SetLowLimit_OPT3001(float val) {
-    uint16_t reg = CalculateLimitReg(val);
-    WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_LOW_LIMIT, (uint8_t*)&reg);
-}
-
-void SetHighLimit_OPT3001(float val) {
-    uint16_t reg = CalculateLimitReg(val);
-    WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_HIGH_LIMIT, (uint8_t*)&reg);
-}
-
-uint16_t CalculateLimitReg(float luxValue) {
-    uint8_t E = 6;
-    unsigned char bytes[2];
-
-    //lux equation given in datasheet re-arrages for result bits of reg
-    uint16_t result = luxValue / (0.01 * pow(2, E));
-    //create bytes of 16bit register
-    bytes[0] = (E << 4 & 0x000000F0) | (result >> 8 & 0x0000000F);
-    bytes[1] = (result & 0x000000F0) | (result & 0x0000000F);
-    //Join bytes to form 16-bit register
-    uint16_t reg = bytes[1] << 8 | bytes[0];
-
-    return reg;
 }
 
 //********************** CODE GRAVEYARD ****************************************
