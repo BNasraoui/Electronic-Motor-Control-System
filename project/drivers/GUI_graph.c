@@ -23,20 +23,21 @@ void initGUIGraphs(void) {
     TouchScreenInit(SYS_CLK_SPEED);
     TouchScreenCallbackSet(WidgetPointerMessage);
 
-    GraphFrame_init(&GraphBorder, 32, 32, 272, 112);
+    GraphFrame_init(&GraphBorder, 32, 32, 272, 112, false);
 
     GraphData_init(&Graph_LUX, 600);
 
     GraphData_init(&Graph_ACCX, 5000);
     GraphData_init(&Graph_ACCY, 8000);
     GraphData_init(&Graph_ACCZ, 9000);
+
+    GraphData_init(&Graph_CURR, 9000);
 }
 
 void graphLag(struct XYGraphFrame* frame) {
     static UInt32 last = 0;
 
     graphLagEnd = Clock_getTicks();
-    //Uint32 oldT = graphLagTotal;
     graphLagTotal = (double) (graphLagEnd - graphLagStart);
     graphLagStart = 0;
 
@@ -52,26 +53,27 @@ void graphLag(struct XYGraphFrame* frame) {
 }
 
 void drawSinglePlot(struct XYGraphFrame* frame, struct XYGraphData* graph, float data) {
-    //if (accumulateGraphData(graph, data, SINGLE_PLOT_DENSITY)) {
+    addDataToGraph(frame, graph, data);
+    updateFrameScale(frame);
 
-        addDataToGraph(frame, graph, data);
-        updateFrameScale(frame);
+    clearGraphFrame(frame);
+    drawLogValue(frame, graph, false, frame->pos_y + frame->height + 38);
+    clearGraphData(frame, graph);
 
-        clearGraphFrame(frame);
-        clearGraphData(frame, graph);
+    adjustGraph(frame, graph);
+    adjustFrame(frame);
 
-        adjustGraph(frame, graph);
-        adjustFrame(frame);
+    drawGraphFrame(frame);
+    drawGraphData(frame, graph, PLOT_A_COLOUR);
 
-        drawGraphFrame(frame);
-        drawGraphData(frame, graph, PLOT_A_COLOUR);
+    GrContextForegroundSet(&sGraphContext, PLOT_A_COLOUR);
+    drawLogValue(frame, graph, true, frame->pos_y + frame->height + 38);
 
-        resetFrameBounds(frame);
-        frame->updateFlag = false;
-        graph->updateFlag = false;
+    resetFrameBounds(frame);
+    frame->updateFlag = false;
+    graph->updateFlag = false;
 
-        graphLag(frame);
-    //}
+    graphLag(frame);
 }
 
 void drawDataValue(struct XYGraphFrame* frame, char* name, float data, uint16_t x, uint16_t y) {
@@ -149,10 +151,17 @@ void GUI_Graphing(void)
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
         SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");
+        GraphBorder.descaleEnabled = true;
     }
 
     if (graphTypeActive == GRAPH_TYPE_ACCEL) {
         TriplePlotGraph_init_display(&GraphBorder, "G [8:1]", "x", "y", "z");
+        GraphBorder.descaleEnabled = false;
+    }
+
+    if (graphTypeActive == GRAPH_TYPE_CURR) {
+        SinglePlotGraph_init_display(&GraphBorder, "A [1:1]", "amps");
+        GraphBorder.descaleEnabled = true;
     }
 
     /* forever wait for data */
@@ -166,6 +175,10 @@ void GUI_Graphing(void)
 
         if (events & EVENT_GRAPH_ACCEL) {
             drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
+        }
+
+        if (events & EVENT_GRAPH_CURR) {
+            drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.avg);
         }
     }
 }

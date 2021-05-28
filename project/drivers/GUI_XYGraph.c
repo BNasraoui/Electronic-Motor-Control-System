@@ -47,7 +47,7 @@ void drawAxisY(struct XYGraphFrame* frame, float scale, bool draw) {
 
 void drawGraphAxisY(struct XYGraphFrame* frame, bool draw) {
     uint16_t i;
-    float scale = 0.1F;
+    float scale = MINIMUM_MAGNITUDE;
 
     // For each order of magnitude
     for (i = 0; i < 6; i++) {
@@ -126,7 +126,7 @@ void drawGraphLag(struct XYGraphFrame* frame, UInt32 time) {
     }*/
 }
 
-void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h, bool descale_enabled) {
     frame->y_max = 0;
     frame->y_min = 0;
     frame->axis_y_scale = h;
@@ -137,6 +137,7 @@ void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_
     frame->bottom = y + h;
     frame->axisXSpacing = w/AXIS_X_DATA_POINTS;
     frame->zero = (h/2) + y;
+    frame->descaleEnabled = descale_enabled;
 }
 
 void GraphData_init(struct XYGraphData *graph, float estop) {
@@ -162,11 +163,11 @@ void drawAllGraphData(struct XYGraphFrame* frame, struct XYGraphData *graph) {
 
 float filterData(float data) {
     if (data < 0) {
-        return (data + fabs(fmod(data, -0.1F)));
+        return (data + fabs(fmod(data, -MINIMUM_MAGNITUDE)));
     }
     else
     {
-        return (data - fmod(data, 0.1F));
+        return (data - fmod(data, MINIMUM_MAGNITUDE));
     }
 }
 
@@ -191,43 +192,6 @@ void drawEStopBar(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     uint16_t y = getGraphY(frame, graph->y_estop);
     if (y >= frame->pos_y) {
         // GrLineDraw(&sGraphContext, frame->pos_x, y, frame->width + frame->pos_x, y);
-    }
-}
-
-void drawLogBar(struct XYGraphFrame *frame, uint16_t y) {
-    uint32_t i;
-    for (i = 0; i < 4; i++) {
-        GrLineDraw(&sGraphContext, frame->pos_x + (64*i), y + 3, frame->pos_x + (64*i), y);
-    }
-
-    GrLineDraw(&sGraphContext, frame->pos_x, y, frame->pos_x + (64*(i-1)), y);
-    //if (draw) GrContextForegroundSet(&sGraphContext, ClrRed);
-    //GrLineDraw(&sGraphContext, frame->pos_x + (32*log10(graph->y_estop)), y + 4, frame->pos_x + (32*log10(graph->y_estop)), y + 1);
-    //GrLineDraw(&sGraphContext, frame->pos_x + (32*log10(graph->y_estop)), y - 4, frame->pos_x + (32*log10(graph->y_estop)), y - 7);
-}
-
-void drawLogValue(struct XYGraphFrame *frame, struct XYGraphData *graph, bool draw, uint16_t y) {
-    float scaleUp = 10.0F;
-    float value;
-    if (draw) {
-        value = graph->data[graph->graphHead] * scaleUp;
-    }
-    else
-    {
-        value = graph->data[graph->graphHead - 1] * scaleUp;
-    }
-
-    if (graph->data[graph->graphHead] != graph->data[graph->graphHead - 1]) {
-        if (!draw) GrContextForegroundSet(&sGraphContext, BACKGROUND_COLOUR);
-        if (value > 0.1F * scaleUp) {
-            GrLineDraw(&sGraphContext, frame->pos_x, y, frame->pos_x + (64*log10(value)), y);
-            GrLineDraw(&sGraphContext, frame->pos_x, y + 1, frame->pos_x + (64*log10(value)), y + 1);
-        }
-        else if (value < -0.1F * scaleUp)
-        {
-            GrLineDraw(&sGraphContext, frame->pos_x + (64*3), y, frame->pos_x + (64*3) - (64*log10(fabs(value))), y);
-            GrLineDraw(&sGraphContext, frame->pos_x + (64*3), y + 1, frame->pos_x + (64*3) - (64*log10(fabs(value))), y + 1);
-        }
     }
 }
 
@@ -328,8 +292,10 @@ void adjustFrame(struct XYGraphFrame *frame) {
 }
 
 void resetFrameBounds(struct XYGraphFrame *frame) {
-    //frame->maxOnDisplay = 0;
-    //frame->minOnDisplay = 0;
+    if (frame->descaleEnabled) {
+        frame->maxOnDisplay = 0;
+        frame->minOnDisplay = 0;
+    }
 }
 
 void addDataToGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, float newData) {

@@ -11,6 +11,8 @@
 #define FRAME_COLOUR ClrWhite
 #define FRAME_COLOUR2 ClrDarkGray
 
+#define MINIMUM_MAGNITUDE 0.1
+
 #define AXIS_X_DATA_POINTS 136
 #define SCALE_UP 1.2
 #define SCALE_DOWN 0.9
@@ -26,7 +28,7 @@ struct XYGraphData {
     float densitySum;
     uint16_t densityCount;
     bool updateFlag;
-} Graph_LUX, Graph_ACCX, Graph_ACCY, Graph_ACCZ;
+} Graph_LUX, Graph_ACCX, Graph_ACCY, Graph_ACCZ, Graph_CURR;
 
 struct XYGraphFrame {
     float axis_y_scale;
@@ -42,13 +44,14 @@ struct XYGraphFrame {
     uint16_t bottom;
     uint16_t axisXSpacing;
     bool updateFlag;
+    bool descaleEnabled;
 } GraphBorder;
 
 extern void SinglePlotGraph_init_display(struct XYGraphFrame* frame, char* units, char* key);
 
 extern void TriplePlotGraph_init_display(struct XYGraphFrame* frame, char* units, char* key1, char* key2, char* key3);
 
-extern void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+extern void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h, bool descale_enabled);
 
 extern void GraphData_init(struct XYGraphData *graph, float estop);
 
