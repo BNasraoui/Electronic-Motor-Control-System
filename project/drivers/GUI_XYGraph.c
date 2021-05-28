@@ -99,7 +99,7 @@ void TriplePlotGraph_init_display(struct XYGraphFrame* frame, char* units, char*
 
     GrContextForegroundSet(&sGraphContext, LAG_COLOUR);
     GrStringDraw(&sGraphContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGraphContext, "ms", 8),frame->bottom + 8, 1);
-    GrStringDraw(&sGraphContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGraphContext, "ms", 8),frame->bottom + 24, 1);
+    // GrStringDraw(&sGraphContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGraphContext, "ms", 8),frame->bottom + 24, 1);
 
     uint16_t l1 = GrStringWidthGet(&sGraphContext, key1, 8);
     uint16_t l2 = GrStringWidthGet(&sGraphContext, key2, 8);
@@ -112,17 +112,17 @@ void TriplePlotGraph_init_display(struct XYGraphFrame* frame, char* units, char*
     GrStringDraw(&sGraphContext, key3, 8, frame->pos_x + +l1 + l2 + 8, frame->bottom + 8, 1);
 }
 
-void drawGraphLag(struct XYGraphFrame* frame, UInt32 time, uint16_t average) {
+void drawGraphLag(struct XYGraphFrame* frame, UInt32 time) {
     char str[8];
-    char stra[8];
+    //char stra[8];
 
     sprintf(str, "-%d", time);
     GrStringDraw(&sGraphContext, str, 8, frame->pos_x + frame->width - 24 - GrStringWidthGet(&sGraphContext, str, 8),frame->bottom + 8, 1);
 
-    if (average > 1) {
+    /*if (average > 1) {
         sprintf(stra, "~-%d", time/average);
         GrStringDraw(&sGraphContext, stra, 8, frame->pos_x + frame->width - 24 - GrStringWidthGet(&sGraphContext, stra, 8),frame->bottom + 24, 1);
-    }
+    }*/
 }
 
 void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
@@ -157,14 +157,32 @@ void drawAllGraphData(struct XYGraphFrame* frame, struct XYGraphData *graph) {
     for (i = 0; i < graph->graphHead + 1; i++) {
         drawDataPoint(frame, graph, frame->pos_x + (i * frame->axisXSpacing), graph->data[i]);
     }
+
+
+}
+
+float filterData(float data) {
+    if (data < 0) {
+        return (data + fabs(fmod(data, -0.1F)));
+    }
+    else
+    {
+        return (data - fmod(data, 0.1F));
+    }
 }
 
 void drawCurrentValue(struct XYGraphFrame* frame, struct XYGraphData* graph, float val) {
-    char str2[16];
+    GrLineDraw(&sGraphContext, frame->pos_x - 8, getGraphY(frame, val), frame->pos_x - 6, getGraphY(frame, val));
 
-    if (getGraphY(frame, graph->data[graph->graphHead - 1]) != getGraphY(frame, graph->data[graph->graphHead])) {
+    /*
+    float n = graph->data[graph->graphHead - 1];
+    float m = graph->data[graph->graphHead];
 
-        if (val < 100) {
+    if ((getGraphY(frame, n) != getGraphY(frame, m)) && (filterData(n) != filterData(m))) {
+
+        char str2[16];
+
+        if (val < 100.0F && val > -100.0F) {
             sprintf(str2, "%.1f", val);
         }
         else
@@ -175,6 +193,7 @@ void drawCurrentValue(struct XYGraphFrame* frame, struct XYGraphData* graph, flo
         GrLineDraw(&sGraphContext, frame->pos_x - 12, getGraphY(frame, val), frame->pos_x - 6, getGraphY(frame, val));
         GrStringDraw(&sGraphContext, str2, 8, frame->pos_x - 56, getGraphY(frame, val)-7, 1);
     }
+    */
 }
 
 void drawZero(struct XYGraphFrame *frame) {
@@ -196,6 +215,38 @@ void drawEStopBar(struct XYGraphFrame *frame, struct XYGraphData *graph) {
         // GrLineDraw(&sGraphContext, frame->pos_x, y, frame->width + frame->pos_x, y);
     }
 }
+/*
+void drawLogLine(struct XYGraphFrame *frame, struct XYGraphData *graph, bool draw) {
+    float value;
+    if (draw) {
+        value = graph->data[graph->graphHead];
+    }
+    else
+    {
+        value = graph->data[graph->graphHead - 1];
+    }
+
+    if (draw) GrContextForegroundSet(&sGraphContext, FRAME_COLOUR);
+    uint32_t i;
+    for (i = 0; i < 6; i++) {
+        GrLineDraw(&sGraphContext, frame->pos_x + (32*i), (frame->pos_y*2) + frame->height + 3, frame->pos_x + (32*i), (frame->pos_y*2) + frame->height);
+    }
+
+    GrLineDraw(&sGraphContext, frame->pos_x, (frame->pos_y*2) + frame->height, frame->pos_x + (32*i), (frame->pos_y*2) + frame->height);
+    if (draw) GrContextForegroundSet(&sGraphContext, ClrRed);
+    GrLineDraw(&sGraphContext, frame->pos_x + (32*log10(graph->y_estop)), (frame->pos_y*2) + frame->height + 4, frame->pos_x + (32*log10(graph->y_estop)), (frame->pos_y*2) + frame->height + 1);
+    GrLineDraw(&sGraphContext, frame->pos_x + (32*log10(graph->y_estop)), (frame->pos_y*2) + frame->height - 4, frame->pos_x + (32*log10(graph->y_estop)), (frame->pos_y*2) + frame->height - 7);
+
+    if (draw) {
+        GrContextForegroundSet(&sGraphContext, ClrYellow);
+        if (value > 0)
+        GrLineDraw(&sGraphContext, frame->pos_x, (frame->pos_y*2) + frame->height - 2, frame->pos_x + (32*log10(value)), (frame->pos_y*2) + frame->height - 2);
+    }
+    else
+    {
+        GrLineDraw(&sGraphContext, frame->pos_x, (frame->pos_y*2) + frame->height - 2, frame->width + frame->pos_x, (frame->pos_y*2) + frame->height - 2);
+    }
+}*/
 
 void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     GrContextForegroundSet(&sGraphContext, BACKGROUND_COLOUR);
@@ -203,7 +254,7 @@ void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     if (graph->updateFlag || frame->updateFlag) {
         drawEStopBar(frame, graph);
         drawAllGraphData(frame, graph);
-        // drawLogLine(graph, false, 0);
+        //drawLogLine(frame, graph, false);
     }
 
     /* Draw the value of the head of the graph */
@@ -226,17 +277,15 @@ void drawGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, uint32
         drawEStopBar(frame, graph);
         GrContextForegroundSet(&sGraphContext, colour);
         drawAllGraphData(frame, graph);
-        // drawLogLine(graph, true, value);
+        //drawLogLine(frame, graph, true);
     }
 
     /* Draw next graph data point to the frame */
     GrContextForegroundSet(&sGraphContext, colour);
     drawDataPoint(frame, graph, frame->pos_x + (graph->graphHead * frame->axisXSpacing), graph->data[graph->graphHead]);
 
-
     /* Draw the value of the head of the graph */
     drawCurrentValue(frame, graph, graph->data[graph->graphHead]);
-
 }
 
 float getMax(struct XYGraphData *graph) {
@@ -259,15 +308,14 @@ float getMin(struct XYGraphData *graph) {
 
 void updateFrameScale(struct XYGraphFrame *frame) {
     /* Check if the data has exceeded the displayed limits, and if so, flag the frame to update */
-    if ((frame->maxOnDisplay > frame->y_max || frame->maxOnDisplay < (frame->y_max/SCALE_UP)*SCALE_DOWN) ||
-            (frame->minOnDisplay < frame->y_min) || frame->minOnDisplay > (frame->y_min/SCALE_UP)*SCALE_DOWN) {
+    if (((frame->maxOnDisplay > frame->y_max) || (frame->maxOnDisplay < (frame->y_max/SCALE_UP)*SCALE_DOWN)) ||
+            ((frame->minOnDisplay < frame->y_min) || (frame->minOnDisplay > (frame->y_min/SCALE_UP)*SCALE_DOWN))
+                    ) {
         frame->updateFlag = true;
     }
 }
 
 void adjustGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
-    float s, m, z;
-
     /* reset necessary graph data */
     float newData = graph->data[graph->graphHead];
     if (graph->updateFlag) {
@@ -276,56 +324,37 @@ void adjustGraph(struct XYGraphFrame *frame, struct XYGraphData *graph) {
         graph->prevDataX = frame->pos_x;
         graph->prevDataY = newData;
     }
+}
+
+void adjustFrame(struct XYGraphFrame *frame) {
+    float s, m;
 
     /* adjust y-scale and zero */
     if (frame->updateFlag) {
         /* Set scale so that max axis-y is SCALE_UP larger than that of the largest value,
          * this minimizes re-scaling for minor fluctuations */
-        frame->axis_y_scale = ((float)frame->height) / (float) (abs(frame->maxOnDisplay*SCALE_UP) + abs(frame->minOnDisplay*SCALE_UP));
         frame->y_max = frame->maxOnDisplay * SCALE_UP;
         frame->y_min = frame->minOnDisplay * SCALE_UP;
+        frame->axis_y_scale = ((float)frame->height) / (fabs(frame->y_max) + fabs(frame->y_min));
 
         /* Find where zero would be, given the maximum and minimum values on the graph */
-        s = abs(frame->y_max) + abs(frame->y_min);
-        /* If all data is only positive */
-        if (frame->y_min >= 0 && frame->y_max > frame->y_min) {
-            m = (frame->y_min / s) * frame->height;
-            z = (frame->pos_y + frame->height) - m;
-            frame->zero = z;
-        }
-        else
-        {
-            m = (frame->y_max / s) * frame->height;
-            z = (frame->pos_y) + m;
-            frame->zero = z;
-        }
+        s = fabs(frame->y_max) + fabs(frame->y_min);
+        m = (frame->y_min / s) * frame->height;
+        frame->zero = (frame->pos_y + frame->height) + m;
     }
 }
 
 void resetFrameBounds(struct XYGraphFrame *frame) {
-    /* If all data is only positive */
-    if (frame->minOnDisplay >= 0 && frame->maxOnDisplay > frame->minOnDisplay) {
-        frame->maxOnDisplay = 1;
-        frame->minOnDisplay = 0;
-    }
-    /* If all data is only negative */
-    else if (frame->maxOnDisplay <= 0 && frame->minOnDisplay < frame->maxOnDisplay) {
-        frame->maxOnDisplay = 0;
-        frame->minOnDisplay = -1;
-    }
-    /* Both */
-    else
-    {
-        frame->maxOnDisplay = 1;
-        frame->minOnDisplay = -1;
-    }
+    frame->maxOnDisplay = 0;
+    frame->minOnDisplay = 0;
 }
 
-void addDataToGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t density) {
+void addDataToGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, float newData) {
     /* Calculate new data from average of sum */
-    float newData = graph->densitySum / density;
-    graph->densityCount = 0;
-    graph->densitySum = 0;
+    //float newData = graph->densitySum / density;
+    //graph->densityCount = 0;
+    //graph->densitySum = 0;
+    //newData = filterData(newData);
 
     /* If previous data points on the frame are undefined, set defaults */
     if (graph->prevDataX == 0 && graph->prevDataY == 0) {
