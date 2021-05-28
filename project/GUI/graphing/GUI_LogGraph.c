@@ -5,9 +5,9 @@
  *      Author: Mitchell
  */
 
-#include "GUI_graph.h"
-#include "GUI_XYGraph.h"
-#include "GUI_LogGraph.h"
+#include "GUI/graphing/GUI_graph.h"
+#include "GUI/graphing/GUI_XYGraph.h"
+#include "GUI/graphing/GUI_LogGraph.h"
 
 /*
 void drawLogLine(struct XYGraphData *graph, bool draw, float value) {

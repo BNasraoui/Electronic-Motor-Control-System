@@ -1,4 +1,5 @@
 /* XDCtools Header files */
+#include <GUI/gui.h>
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
 
@@ -34,7 +35,7 @@
 #include "sensors/sensors.h"
 #include "sensors/bmi160/bmi160.h"
 #include "sensors/opt3001/opt3001.h"
-#include "drivers/GUI_graph.h"
+#include "GUI/graphing/GUI_graph.h"
 
 void WatchDogBite() {
     UInt gateKey;
@@ -84,6 +85,17 @@ void GUITaskFxn(void) {
     GUI_Graphing();
 }
 
+//Void heartBeatFxn(UArg arg0, UArg arg1)
+//{
+//    while (1) {
+//        SysCtlDelay(100);
+//        getCurrentTime();
+//        WidgetMessageQueueProcess();
+//
+////        TouchScreenIntHandler
+//    }
+//}
+
 void InitTasks(void) {
     Task_Params taskParams;
     Task_Params_init(&taskParams);
@@ -96,11 +108,15 @@ void InitTasks(void) {
     taskParams.priority = 2;
     Task_construct(&task0Struct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
 
-    /* GUI Task */
-    taskParams.stackSize = GUI_TASKSTACKSIZE;
-    taskParams.stack = &graphTaskStack;
+//    /* GUI Task */
+//    taskParams.stackSize = GUI_TASKSTACKSIZE;
+//    taskParams.stack = &graphTaskStack;
+//    taskParams.priority = 1;
+//    Task_construct(&graphTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
+
+    taskParams.stack = &task1Stack;
     taskParams.priority = 1;
-    Task_construct(&graphTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
+    Task_construct(&task1Struct, (Task_FuncPtr)eStopFxn, &taskParams, NULL);
 }
 
 void InitEvents(void) {
@@ -112,7 +128,7 @@ void InitEvents(void) {
     GU_eventHandle = Event_create(&taskEventParams, NULL);
     if (GU_eventHandle == NULL) System_abort("GUI event create failed");
 
-    sensors_eventHandle = Event_create(NULL, NULL);
+    sensors_eventHandle = Event_create(&taskEventParams, NULL);
     if(sensors_eventHandle == NULL)  System_abort("Sensors event create failed");
 }
 
@@ -130,7 +146,10 @@ int main(void) {
 
     /* GUI init */
     initGUIGraphs();
-    graphTypeActive = GRAPH_TYPE_ACCEL;
+    //graphTypeActive = GRAPH_TYPE_ACCEL;
+
+    initTime();
+    DrawHomeScreen();
 
     watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
 

@@ -15,8 +15,8 @@
 /* GUI Graphing Header file */
 #include "sensors/sensors.h"
 #include "sensors/opt3001/opt3001.h"
-#include "drivers/GUI_graph.h"
-#include "drivers/GUI_XYGraph.h"
+#include "GUI/graphing/GUI_graph.h"
+#include "GUI/graphing/GUI_XYGraph.h"
 
 void initGUIGraphs(void) {
     Kentec320x240x16_SSD2119Init(SYS_CLK_SPEED);
@@ -24,13 +24,13 @@ void initGUIGraphs(void) {
     TouchScreenInit(SYS_CLK_SPEED);
     TouchScreenCallbackSet(WidgetPointerMessage);
 
-    GraphFrame_init(&GraphBorder, 32, 32, 272, 112);
-
-    GraphData_init(&Graph_LUX, 600);
-
-    GraphData_init(&Graph_ACCX, 5000);
-    GraphData_init(&Graph_ACCY, 8000);
-    GraphData_init(&Graph_ACCZ, 9000);
+//    GraphFrame_init(&GraphBorder, 32, 32, 272, 112);
+//
+//    GraphData_init(&Graph_LUX, 600);
+//
+//    GraphData_init(&Graph_ACCX, 5000);
+//    GraphData_init(&Graph_ACCY, 8000);
+//    GraphData_init(&Graph_ACCZ, 9000);
 }
 
 void graphLag(struct XYGraphFrame* frame) {

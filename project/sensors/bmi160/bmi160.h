@@ -25,8 +25,8 @@ THE SOFTWARE.
 ===============================================
 */
 
-#ifndef _BMI160_H_
-#define _BMI160_H_
+#ifndef __BMI160_H__
+#define __BMI160_H__
 
 #include "sensors/sensors.h"
 
