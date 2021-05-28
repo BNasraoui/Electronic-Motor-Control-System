@@ -11,7 +11,7 @@
 #define FRAME_COLOUR ClrWhite
 #define FRAME_COLOUR2 ClrDarkGray
 
-#define AXIS_X_DATA_POINTS 80
+#define AXIS_X_DATA_POINTS 136
 #define SCALE_UP 1.2
 #define SCALE_DOWN 0.9
 
@@ -58,15 +58,17 @@ extern void clearGraphFrame(struct XYGraphFrame *frame);
 
 extern void adjustGraph(struct XYGraphFrame *frame, struct XYGraphData *graph);
 
+extern void adjustFrame(struct XYGraphFrame *frame);
+
 extern void updateFrameScale(struct XYGraphFrame *frame);
 
 extern void drawGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, uint32_t colour);
 
 extern void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph);
 
-extern void addDataToGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, uint16_t density);
+extern void addDataToGraph(struct XYGraphFrame *frame, struct XYGraphData *graph, float density);
 
-extern void drawGraphLag(struct XYGraphFrame* frame, UInt32 time, uint16_t average);
+extern void drawGraphLag(struct XYGraphFrame* frame, UInt32 time);
 
 extern void resetFrameBounds(struct XYGraphFrame *frame);
 

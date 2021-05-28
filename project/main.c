@@ -90,14 +90,14 @@ void InitTasks(void) {
 
     /* Sensor Task */
     Task_Params_init(&taskParams);
-    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stackSize = SENSOR_TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
     taskParams.instance->name = "sensorTask";
     taskParams.priority = 2;
     Task_construct(&task0Struct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
 
     /* GUI Task */
-    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stackSize = GUI_TASKSTACKSIZE;
     taskParams.stack = &graphTaskStack;
     taskParams.priority = 1;
     Task_construct(&graphTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);

@@ -98,7 +98,7 @@ typedef struct Sliding_Window_u16{
 } SlidingWindow_u16;
 
 Task_Struct task0Struct;
-Char task0Stack[TASKSTACKSIZE];
+Char task0Stack[SENSOR_TASKSTACKSIZE];
 
 Hwi_Handle hwi_ADC0;
 Hwi_Handle hwi_ADC1;

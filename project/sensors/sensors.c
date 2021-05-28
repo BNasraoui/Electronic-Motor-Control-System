@@ -114,6 +114,8 @@ void InitInterrupts() {
 }
 
 void ProcessSensorEvents() {
+    static float delay = 0;
+
     UInt events;
     UInt gateKey;
     events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
@@ -133,8 +135,12 @@ void ProcessSensorEvents() {
         //System_printf("X: %f\t Y: %f\t Z: %f\n", accelXFilt.G, accelYFilt.G, accelZFilt.G);
 
         if (graphTypeActive == GRAPH_TYPE_ACCEL) {
-            if (graphLagStart == 0) graphLagStart = Clock_getTicks();
-            Event_post(GU_eventHandle, EVENT_GRAPH_ACCEL);
+            ++delay;
+            if (delay >= 8) {
+                delay = 0;
+                if (graphLagStart == 0) graphLagStart = Clock_getTicks();
+                Event_post(GU_eventHandle, EVENT_GRAPH_ACCEL);
+            }
         }
     }
 
