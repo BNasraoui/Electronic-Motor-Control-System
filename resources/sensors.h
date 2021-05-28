@@ -95,9 +95,6 @@
 #define NEW_ACCEL_DATA                  Event_Id_02
 #define NEW_ADC0_DATA                   Event_Id_03
 #define NEW_ADC1_DATA                   Event_Id_04
-#define KICK_DOG                        Event_Id_05
-
-#define DEBUG_MODE                      0
 
 typedef struct Sliding_Window32{
     uint8_t index;
@@ -141,15 +138,13 @@ Swi_Params swiParams;
 Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
 Swi_Handle swiHandle_ADC0DataProc, swiHandle_ADC1DataProc, swiHandle_accelDataProc, swiHandle_LuxDataProc;
 
-Event_Handle eventHandler;
+Event_Handle sensors_eventHandle;
 Error_Block eb;
 
 I2C_Handle i2cHandle;
 I2C_Params i2cParams;
 I2C_Transaction i2cTransactionCallback;
 uint8_t rxBuffer_BMI[6];
-uint8_t rxBuffer_OPT[2];
-uint8_t txBuffer_OPT[2];
 
 Clock_Params clockParams;
 Clock_Handle adc_ClockHandler;
@@ -169,11 +164,15 @@ uint16_t rawData;
 
 extern void watchDogBite();
 
+extern void taskStatusCheck();
+
 extern void InitSensorDriver();
 
-extern void InitTasks();
+extern void InitInterrupts();
 
 extern void ReadSensorsFxn();
+
+extern void ProcessSensorEvents();
 
 extern void InitI2C_OPT3001();
 
@@ -220,6 +219,8 @@ extern uint16_t CalculateLimitReg(float luxValue);
 extern void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg);
 
 extern void BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg);
+
+extern void BufferReadResultI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg);
 
 extern void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result);
 

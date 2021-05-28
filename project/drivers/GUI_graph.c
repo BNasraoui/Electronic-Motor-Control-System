@@ -145,7 +145,7 @@ void GUI_Graphing(void)
     }
 
     /* forever wait for data */
-    while (1) {
+    for(;;) {
 
         events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_WAIT_FOREVER);
 
