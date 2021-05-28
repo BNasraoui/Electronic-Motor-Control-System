@@ -1,5 +1,36 @@
 #include <GUI/gui.h>
 
+tPushButtonWidget g_sStartStopBttn;
+tCanvasWidget     g_sBackground;
+tCanvasWidget     g_sEstopText;
+tCanvasWidget     g_sEstopLight;
+tCanvasWidget     g_sDayAlert;
+tCanvasWidget     g_sDate;
+tPushButtonWidget g_sSwitcher;
+
+tCanvasWidget     g_sSpeedCanvas;
+tPushButtonWidget g_sSpeedSubBttn;
+tPushButtonWidget g_sSpeedAddBttn;
+tCanvasWidget     g_sCurrentCanvas;
+tPushButtonWidget g_sCurrentSubBttn;
+tPushButtonWidget g_sCurrentAddBttn;
+tCanvasWidget     g_sAccelCanvas;
+tPushButtonWidget g_sAccelSubBttn;
+tPushButtonWidget g_sAccelAddBttn;
+tCanvasWidget     g_sEstopText;
+
+void StartStopBttnPress(tWidget *psWidget);
+void onSpeedChange(tWidget *psWidget);
+void onCurrentChange(tWidget *psWidget);
+void onAccelChange(tWidget *psWidget);
+void DrawHomeScreen();
+void RemoveHomeScreen();
+
+void onDayNightChange();
+void onTabSwap();
+void initTime();
+void getCurrentTime();
+
 // The canvas widget acting as the background to the display.
 Canvas(g_sBackground, 0, &g_sStartStopBttn, 0,
        &g_sKentec320x240x16_SSD2119, 10, 25, 300, (240 - 25 -10),
@@ -381,7 +412,8 @@ void DrawHomeScreen(){
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
 
     //GPIO_write(Board_LED0, Board_LED_ON);
-    FrameDraw(&sContext, "EGH456 Group 6");
+    /* Draw frame */
+    FrameDraw(&sContext, "GUI Graphing");
     System_printf("Starting the example\nSystem provider is set to SysMin. "
                   "Halt the target to view any SysMin contents in ROV.\n");
     /* SysMin will only print to the console when you call flush or exit */

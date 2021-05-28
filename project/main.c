@@ -1,5 +1,4 @@
 /* XDCtools Header files */
-#include <GUI/gui.h>
 #include <xdc/std.h>
 #include <xdc/runtime/System.h>
 
@@ -29,13 +28,14 @@
 /* Board Header file */
 #include "Board.h"
 
-/* Created libraries for sub-systems */
-#include "general.h"
-
 #include "sensors/sensors.h"
 #include "sensors/bmi160/bmi160.h"
 #include "sensors/opt3001/opt3001.h"
 #include "GUI/graphing/GUI_graph.h"
+#include <GUI/gui.h>
+
+/* Created libraries for sub-systems */
+#include "general.h"
 
 void WatchDogBite() {
     UInt gateKey;
@@ -58,6 +58,10 @@ void TaskStatusCheck() {
     //Add event post for main GUI if we use it
 }
 
+void UpdateWidgetQueue() {
+    WidgetMessageQueueProcess();
+    Clock_start(widgetQueue_ClockHandler);
+}
 /* Sensor Task Function */
 void ReadSensorsFxn() {
     InitI2C_OPT3001();
@@ -74,6 +78,7 @@ void ReadSensorsFxn() {
     Clock_start(opt3001_ClockHandler);
     Clock_start(adc_ClockHandler);
     Clock_start(watchDog_ClockHandler);
+    Clock_start(widgetQueue_ClockHandler);
 
     for(;;) {
         ProcessSensorEvents();
@@ -145,8 +150,14 @@ int main(void) {
     InitSensorDriver();
 
     /* GUI init */
-    initGUIGraphs();
+    //initGUIGraphs();
     //graphTypeActive = GRAPH_TYPE_ACCEL;
+
+    //tContext sContext;
+    Kentec320x240x16_SSD2119Init(120000000);
+    GrContextInit(&sContext, &g_sKentec320x240x16_SSD2119);
+    TouchScreenInit(120000000);
+    TouchScreenCallbackSet(WidgetPointerMessage);
 
     initTime();
     DrawHomeScreen();

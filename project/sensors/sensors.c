@@ -1,8 +1,7 @@
 #include "sensors.h"
 #include "bmi160/bmi160.h"
 #include "opt3001/opt3001.h"
-#include "general.h"
-#include "GUI_graph.h"
+#include "GUI/graphing/GUI_graph.h"
 
 //*************************** SWI/HWIS **************************************
 void OPT3001_ClockHandlerFxn() {
@@ -60,6 +59,12 @@ void InitSensorDriver() {
     clockParams.period = CLOCK_PERIOD_1HZ;
     watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
     if (watchDog_ClockHandler == NULL) {
+     System_abort("watchdog clock create failed");
+    }
+
+    clockParams.period = CLOCK_PERIOD_1HZ;
+    widgetQueue_ClockHandler = Clock_create(UpdateWidgetQueue, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+    if (widgetQueue_ClockHandler == NULL) {
      System_abort("watchdog clock create failed");
     }
 

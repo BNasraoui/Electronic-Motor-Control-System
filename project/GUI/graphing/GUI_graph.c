@@ -6,12 +6,8 @@
  */
 
 /*
- *  ======== empty.c ========
+ *
  */
-
-/* Board Header file */
-#include "Board.h"
-
 /* GUI Graphing Header file */
 #include "sensors/sensors.h"
 #include "sensors/opt3001/opt3001.h"
@@ -109,10 +105,6 @@ void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, stru
 void GUI_Graphing(void)
 {
     UInt events;
-
-    /* Draw frame */
-    FrameDraw(&sGraphContext, "GUI Graphing");
-
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
         SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");

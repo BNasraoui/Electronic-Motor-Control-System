@@ -61,6 +61,7 @@
 #define CLOCK_PERIOD_150HZ              6    //6ms = ~150Hz
 #define CLOCK_PERIOD_2HZ                500  //500ms = 2Hz
 #define CLOCK_PERIOD_1HZ                1000
+#define CLOCK_PERIOD_10HZ               100
 #define CLOCK_TIMEOUT_MS                   10  //ms
 
 #define LOW_HIGH_LIGHT_EVENT            Event_Id_00
@@ -122,6 +123,7 @@ Clock_Params clockParams;
 Clock_Handle adc_ClockHandler;
 Clock_Handle opt3001_ClockHandler;
 Clock_Handle watchDog_ClockHandler;
+Clock_Handle widgetQueue_ClockHandler;
 
 Watchdog_Handle watchDogHandle;
 
@@ -135,6 +137,8 @@ int16_t accelX, accelY, accelZ;
 extern void WatchDogBite();
 
 extern void ADC_ClockHandlerFxn();
+
+extern void UpdateWidgetQueue();
 
 extern void TaskStatusCheck();
 
