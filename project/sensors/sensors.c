@@ -13,7 +13,6 @@ void OPT3001_ClockHandlerFxn() {
 }
 
 void ADC_ClockHandlerFxn() {
-    ADCProcessorTrigger(ADC0_BASE, ADC_SEQ);
     ADCProcessorTrigger(ADC1_BASE, ADC_SEQ);
     Clock_start(adc_ClockHandler);
 }
@@ -82,19 +81,12 @@ void InitSensorDriver() {
 }
 
 void InitInterrupts() {
-
     System_printf("IN InitTasks\n");
     System_flush();
 
     Swi_Params_init(&swiParams);
     swiParams.priority = 1;
     swiParams.trigger = 0;
-    Swi_construct(&swi0Struct, (Swi_FuncPtr)ADC0_FilterFxn, &swiParams, NULL);
-    swiHandle_ADC0DataProc = Swi_handle(&swi0Struct);
-    if (swiHandle_ADC0DataProc == NULL) {
-     System_abort("SWI 0 ADC0 filter create failed");
-    }
-
     Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
     swiHandle_ADC1DataProc = Swi_handle(&swi1Struct);
     if (swiHandle_ADC1DataProc == NULL) {
@@ -115,11 +107,6 @@ void InitInterrupts() {
 
     Hwi_Params_init(&hwiParams);
     hwiParams.priority = 0;
-    hwi_ADC0 = Hwi_create(ADC0_SEQ1_VEC_NUM, (Hwi_FuncPtr)ADC0_Read, &hwiParams, NULL);
-    if (hwi_ADC0 == NULL) {
-     System_abort("ADC0 Hwi create failed");
-    }
-
     hwi_ADC1 = Hwi_create(ADC1_SEQ1_VEC_NUM, (Hwi_FuncPtr)ADC1_Read, &hwiParams, NULL);
     if (hwi_ADC1 == NULL) {
      System_abort("ADC1 Hwi create failed");
@@ -191,8 +178,7 @@ void GetAccelData() {
     Swi_post(swiHandle_accelDataProc);
 }
 
-//***************************CURRENT SENSING**************************************
-void InitADC0_CurrentSense() {
+void InitADC1_CurrentSense() {
     ADC0Window.index = 0;
     ADC0Window.sum = 0;
     ADC0Window.avg = 0;
@@ -201,24 +187,6 @@ void InitADC0_CurrentSense() {
     ADC0Window.power = 0;
     ADC0Window.startFilter = false;
 
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
-
-    //Makes GPIO an INPUT and sets them to be ANALOG
-    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
-    //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Trigger, uint32_t
-    ADCSequenceConfigure(ADC0_BASE, ADC_SEQ , ADC_TRIGGER_PROCESSOR, 0);
-
-    //uint32_t ui32Base, uint32_t ui32SequenceNum, uint32_t ui32Step, uint32_t ui32Config
-    ADCSequenceStepConfigure(ADC0_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH0 | ADC_CTL_END);
-
-    //Enable everything
-    ADCSequenceEnable(ADC0_BASE, ADC_SEQ);
-    ADCIntEnable(ADC0_BASE, ADC_SEQ);
-    ADCIntClear( ADC0_BASE, ADC_SEQ);
-    IntEnable(INT_ADC0SS1);
-}
-
-void InitADC1_CurrentSense() {
     ADC1Window.index = 0;
     ADC1Window.sum = 0;
     ADC1Window.avg = 0;
@@ -230,10 +198,12 @@ void InitADC1_CurrentSense() {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
 
     GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_7);
+    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
 
     ADCSequenceConfigure(ADC1_BASE, ADC_SEQ , ADC_TRIGGER_PROCESSOR, 0);
 
-    ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ , ADC_STEP , ADC_CTL_IE | ADC_CTL_CH4 | ADC_CTL_END);
+    ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ, 0, ADC_CTL_CH0);
+    ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ, 1, ADC_CTL_IE | ADC_CTL_CH4 | ADC_CTL_END);
 
     ADCSequenceEnable(ADC1_BASE, ADC_SEQ);
     ADCIntEnable(ADC1_BASE, ADC_SEQ);
@@ -241,52 +211,43 @@ void InitADC1_CurrentSense() {
     IntEnable(INT_ADC1SS1);
 }
 
-void ADC0_Read() {
-    uint32_t pui32ADC0Value[1];
-
-    ADCIntClear(ADC0_BASE, ADC_SEQ);
-    ADC0Window.sum = ADC0Window.sum - ADC0Window.data[ADC0Window.index];
-    ADCSequenceDataGet(ADC0_BASE, ADC_SEQ, pui32ADC0Value);
-    ADC0Window.data[ADC0Window.index] = pui32ADC0Value[0];
-    Swi_post(swiHandle_ADC0DataProc);
-}
-
-void ADC0_FilterFxn() {
-    ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
-    ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
-
-    if(ADC0Window.startFilter) {
-        ADC0Window.avg = (float)ADC0Window.sum / WINDOW_SIZE;
-        ADC0Window.voltage = ADC1Window.avg / ADC_RESOLUTION;
-        ADC0Window.current = ADC0Window.voltage / SHUNT_R_VALUE;
-        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
-        Event_post(sensors_eventHandle, Event_Id_03);
-    }
-
-    if((ADC0Window.index + 1) == WINDOW_SIZE && ADC0Window.startFilter == false) {
-        ADC0Window.startFilter = true;
-    }
-}
-
 void ADC1_Read() {
-    uint32_t pui32ADC1Value[1];
+    uint32_t pui32ADC1Value[2];
 
     ADCIntClear(ADC1_BASE, ADC_SEQ);
+
     ADC1Window.sum = ADC1Window.sum - ADC1Window.data[ADC1Window.index];
+    ADC0Window.sum = ADC0Window.sum - ADC0Window.data[ADC0Window.index];
+
     ADCSequenceDataGet(ADC1_BASE, ADC_SEQ , pui32ADC1Value);
+
     ADC1Window.data[ADC1Window.index] = pui32ADC1Value[0];
+    ADC0Window.data[ADC0Window.index] = pui32ADC1Value[1];
+
     Swi_post(swiHandle_ADC1DataProc);
+    //Swi_post(swiHandle_ADC0DataProc);
 }
 
 void ADC1_FilterFxn() {
     ADC1Window.sum = ADC1Window.sum + ADC1Window.data[ADC1Window.index];
+    ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
+
     ADC1Window.index = (ADC1Window.index + 1) % WINDOW_SIZE;
+    ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
 
     if(ADC1Window.startFilter) {
         ADC1Window.avg = (float)ADC1Window.sum / WINDOW_SIZE;
-        ADC1Window.voltage = ADC1Window.avg / ADC_RESOLUTION;
+        ADC0Window.avg = (float)ADC0Window.sum / WINDOW_SIZE;
+
+        ADC1Window.voltage = ADC1Window.avg * ADC_RESOLUTION;
+        ADC0Window.voltage = ADC0Window.avg * ADC_RESOLUTION;
+
         ADC1Window.current = ADC1Window.voltage / SHUNT_R_VALUE;
+        ADC0Window.current = ADC0Window.voltage / SHUNT_R_VALUE;
+
         ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
+        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
+
         Event_post(sensors_eventHandle, Event_Id_04);
     }
 
@@ -294,6 +255,23 @@ void ADC1_FilterFxn() {
         ADC1Window.startFilter = true;
     }
 }
+
+//void ADC0_FilterFxn() {
+//    ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
+//    ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
+//
+//    if(ADC0Window.startFilter) {
+//        ADC0Window.avg = (float)ADC0Window.sum / WINDOW_SIZE;
+//        ADC0Window.voltage = ADC1Window.avg / ADC_RESOLUTION;
+//        ADC0Window.current = ADC0Window.voltage / SHUNT_R_VALUE;
+//        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
+//        Event_post(sensors_eventHandle, Event_Id_03);
+//    }
+//
+//    if((ADC0Window.index + 1) == WINDOW_SIZE && ADC0Window.startFilter == false) {
+//        ADC0Window.startFilter = true;
+//    }
+//}
 
 //****************************HELPER FUNCTIONS********************************************
 bool ReadHalfWordI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t* data) {

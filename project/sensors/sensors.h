@@ -142,8 +142,6 @@ extern void InitSensorDriver();
 
 extern void InitInterrupts();
 
-extern void InitADC0_CurrentSense();
-
 extern void InitADC1_CurrentSense();
 
 extern void ProcessSensorEvents();
