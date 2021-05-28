@@ -53,7 +53,7 @@
 #define TASKSTACKSIZE   1024
 #define SPEED_LIMIT 100 // This is a percent for display.
 #define CURRENT_LIMIT 2000 // in milliamps
-#define ACCEL_LIMIT 10  // in m/s^2
+#define ACCEL_LIMIT 500  // RPM
 
 extern void StartStopBttnPress(tWidget *psWidget);
 extern void onSpeedChange(tWidget *psWidget);

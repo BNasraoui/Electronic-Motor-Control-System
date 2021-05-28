@@ -91,7 +91,7 @@ uint8_t eStop = 0;
 uint8_t tabNo = 1;
 uint16_t SPEED_USER_LIMIT = 5;
 uint16_t CURRENT_USER_LIMIT = 100;
-uint8_t ACCEL_USER_LIMIT = 2;
+uint16_t ACCEL_USER_LIMIT = 50;
 uint32_t clockTicks = 0;
 
 
@@ -104,7 +104,7 @@ struct tm * timeinfo;
 #define TASKSTACKSIZE   1024
 #define SPEED_LIMIT 100
 #define CURRENT_LIMIT 2000
-#define ACCEL_LIMIT 10
+#define ACCEL_LIMIT 500
 
 Task_Struct task0Struct, task1Struct;
 Char task0Stack[TASKSTACKSIZE], task1Stack[TASKSTACKSIZE];;
@@ -241,7 +241,7 @@ RectangularButton(g_sCurrentAddBttn, 0, 0, 0,
                    g_psFontCmss16b, "+", 0, 0, 0, 0, onCurrentChange);
 
 // Acceleration
-static char Acceleration[10] = "2 m/s2";
+static char Acceleration[10] = "50RPM";
 Canvas(g_sAccelCanvas, 0, 0, 0,
        &g_sKentec320x240x16_SSD2119, 50, 150, 75, 40,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Acceleration, 0, 0);
@@ -337,19 +337,19 @@ void onCurrentChange(tWidget *psWidget){
 }
 
 void onAccelChange(tWidget *psWidget){
-    /* Lower acceleration 1m/s^2 */
+    /* Lower acceleration RPM */
     if(psWidget == ((tWidget *)&g_sAccelSubBttn) && (ACCEL_USER_LIMIT != 0)){
-        ACCEL_USER_LIMIT--;
-        usprintf(Acceleration, "%3d m/s2", ACCEL_USER_LIMIT);
+        ACCEL_USER_LIMIT-=50;
+        usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
         CanvasTextSet(&g_sAccelCanvas, Acceleration);
         GPIO_write(Board_LED0, Board_LED_OFF); // Turn on user LED
         WidgetPaint((tWidget *)&g_sAccelCanvas);
         //Event_post(evtHandle, Event_Id_03); // Acceleration Limit change event
     }
-    /* Increase acceleration 1m/s^2 */
+    /* Increase acceleration Accel */
     if(psWidget == ((tWidget *)&g_sAccelAddBttn) && (ACCEL_USER_LIMIT != ACCEL_LIMIT)){
-        ACCEL_USER_LIMIT++;
-        usprintf(Acceleration, "%3d m/s2", ACCEL_USER_LIMIT);
+        ACCEL_USER_LIMIT+=50;
+        usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
         CanvasTextSet(&g_sAccelCanvas, Acceleration);
         GPIO_write(Board_LED0, Board_LED_OFF); // Turn on user LED
         WidgetPaint((tWidget *)&g_sAccelCanvas);
@@ -362,7 +362,7 @@ void eStopFxn(UArg arg0, UArg arg1){
     eStop = !eStop;
        UInt posted;
        for(;;){
-           //posted = Event_pend(evtHandle,Event_Id_00, Event_Id_04, BIOS_WAIT_FOREVER);
+           //posted = Event_pend(evtHandle, Event_ID_04, Event_Id_NONE,BIOS_WAIT_FOREVER);
            if(eStop & posted){
                CanvasFillColorSet(&g_sEstopLight, ClrRed);
                StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
