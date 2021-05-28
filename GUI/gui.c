@@ -263,7 +263,7 @@ void eStopFxn(UArg arg0, UArg arg1){
     eStop = !eStop;
        UInt posted;
        for(;;){
-           //posted = Event_pend(evtHandle,Event_Id_00, Event_Id_04, BIOS_WAIT_FOREVER);
+           posted = Event_pend(evtHandle, Event_ID_04, Event_Id_NONE,BIOS_WAIT_FOREVER);
            if(eStop & posted){
                CanvasFillColorSet(&g_sEstopLight, ClrRed);
                StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
