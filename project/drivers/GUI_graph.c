@@ -74,6 +74,13 @@ void drawSinglePlot(struct XYGraphFrame* frame, struct XYGraphData* graph, float
     //}
 }
 
+void drawDataValue(struct XYGraphFrame* frame, char* name, float data, uint16_t x, uint16_t y) {
+    char str[16];
+
+    sprintf(str, "%s: %.02f", name, data);
+    GrStringDraw(&sGraphContext, str, 16, x, y, 1);
+}
+
 void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, struct XYGraphData* graph2, struct XYGraphData* graph3, float data1, float data2, float data3) {
 
     addDataToGraph(frame, graph1, data1);
@@ -82,6 +89,18 @@ void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, stru
     updateFrameScale(frame);
 
     clearGraphFrame(frame);
+
+    drawLogValue(frame, graph1, false, frame->pos_y + frame->height + 38);
+    drawLogValue(frame, graph2, false, frame->pos_y + frame->height + 40 + 1);
+    drawLogValue(frame, graph3, false, frame->pos_y + frame->height + 42 + 2);
+
+    if (DRAW_DATA_TEXT) {
+        GrContextForegroundSet(&sGraphContext, BACKGROUND_COLOUR);
+        drawDataValue(frame, "x", graph1->prevDataY, 16, frame->bottom + 32);
+        drawDataValue(frame, "y", graph2->prevDataY, 96, frame->bottom + 32);
+        drawDataValue(frame, "z", graph3->prevDataY, 196, frame->bottom + 32);
+    }
+
     clearGraphData(frame, graph1);
     clearGraphData(frame, graph2);
     clearGraphData(frame, graph3);
@@ -95,6 +114,22 @@ void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, stru
     drawGraphData(frame, graph1, PLOT_A_COLOUR);
     drawGraphData(frame, graph2, PLOT_B_COLOUR);
     drawGraphData(frame, graph3, PLOT_C_COLOUR);
+
+    if (DRAW_DATA_TEXT) {
+        GrContextForegroundSet(&sGraphContext, PLOT_A_COLOUR);
+        drawDataValue(frame, "x", data1, 16, frame->bottom + 32);
+        GrContextForegroundSet(&sGraphContext, PLOT_B_COLOUR);
+        drawDataValue(frame, "y", data2, 96, frame->bottom + 32);
+        GrContextForegroundSet(&sGraphContext, PLOT_C_COLOUR);
+        drawDataValue(frame, "z", data3, 196, frame->bottom + 32);
+    }
+
+    GrContextForegroundSet(&sGraphContext, PLOT_A_COLOUR);
+    drawLogValue(frame, graph1, true, frame->pos_y + frame->height + 38);
+    GrContextForegroundSet(&sGraphContext, PLOT_B_COLOUR);
+    drawLogValue(frame, graph2, true, frame->pos_y + frame->height + 40 + 1);
+    GrContextForegroundSet(&sGraphContext, PLOT_C_COLOUR);
+    drawLogValue(frame, graph3, true, frame->pos_y + frame->height + 42 + 2);
 
     resetFrameBounds(frame);
     frame->updateFlag = false;
@@ -111,7 +146,6 @@ void GUI_Graphing(void)
 
     /* Draw frame */
     FrameDraw(&sGraphContext, "GUI Graphing");
-
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
         SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");

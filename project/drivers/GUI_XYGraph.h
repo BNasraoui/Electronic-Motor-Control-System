@@ -74,5 +74,9 @@ extern void resetFrameBounds(struct XYGraphFrame *frame);
 
 extern bool accumulateGraphData(struct XYGraphData *graph, float newData, uint16_t density);
 
+extern void drawLogBar(struct XYGraphFrame *frame, uint16_t y);
+
+extern void drawLogValue(struct XYGraphFrame *frame, struct XYGraphData *graph, bool draw, uint16_t y);
+
 
 #endif /* DRIVERS_GUI_XYGRAPH_H_ */

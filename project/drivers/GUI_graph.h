@@ -69,6 +69,8 @@
 #define BACKGROUND_COLOUR ClrBlack
 #define LAG_COLOUR ClrMagenta
 
+#define DRAW_DATA_TEXT false
+
 tContext sGraphContext;
 
 uint32_t graphTypeActive;
