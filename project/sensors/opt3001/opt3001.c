@@ -29,10 +29,10 @@ void InitI2C_OPT3001() {
 }
 
 bool GetLuxValue_OPT3001(uint16_t *rawData) {
-    bool success;
+    bool success = true;
     uint16_t val;
 
-    success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
+    //success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
 
     if (success) {
         success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
@@ -44,6 +44,23 @@ bool GetLuxValue_OPT3001(uint16_t *rawData) {
     }
 
     return (success);
+}
+
+bool GetHighLowEventStatus() {
+    uint16_t val;
+    uint16_t rawData;
+    bool success;
+
+    success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
+    if (success) {
+        // Swap bytes
+        rawData = (val << 8) | (val>>8 & 0xFF);
+        if(rawData & CONFIG_LOWLIGHT_BIT) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void ProcessLuxDataFxn() {

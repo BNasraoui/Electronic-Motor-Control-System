@@ -157,6 +157,11 @@ void ProcessSensorEvents() {
         /* Send 1 if high light and 0 if low light */
         //onDayNightChange(bool event Type);
 
+        bool lowLightEventOccured = GetHighLowEventStatus();
+        if(lowLightEventOccured) {
+            //Fire event
+        }
+
     }
 
     if(events & NEW_ADC0_DATA) {

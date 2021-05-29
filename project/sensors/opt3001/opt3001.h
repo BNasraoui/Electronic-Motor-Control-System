@@ -22,10 +22,13 @@
 #define CONFIG_TEST                     0xCC10
 #define CONFIG_ENABLE                   0x10C4 // 100 ms, continuous
 #define CONFIG_DISABLE                  0x10C0 // 0xC010   - 100 ms, shutdown
-
 #define CONFIG_VAL                      0x10C4 // latched window-style comparison and INT pin reports active low
+#define CONFIG_HIGHLIGHT_BIT            0x0040 //bit set of config reg if high light event occured
+#define CONFIG_LOWLIGHT_BIT             0x0020 //bit set of config reg if low light event occured
+
 #define LOW_LIMIT                       0xFF0F // Full-scale range (Lux) = 40.95
 #define HIGH_LIMIT                      0xFF6F // Full scale range (Lux) = 2620.80
+
 
 /* Bit values */
 #define DATA_RDY_BIT                    0x0080  // Data ready
@@ -48,6 +51,8 @@ extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
 extern void SetLowLimit_OPT3001(float val);
 
 extern void SetHighLimit_OPT3001(float val);
+
+extern bool GetHighLowEventStatus();
 
 extern uint16_t CalculateLimitReg(float luxValue);
 
