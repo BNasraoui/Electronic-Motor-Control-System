@@ -2,6 +2,7 @@
 #include "bmi160/bmi160.h"
 #include "opt3001/opt3001.h"
 #include "GUI/graphing/GUI_graph.h"
+#include "GUI/gui.h"
 
 //*************************** SWI/HWIS **************************************
 void OPT3001_ClockHandlerFxn() {
@@ -152,6 +153,9 @@ void ProcessSensorEvents() {
     if(events & LOW_HIGH_LIGHT_EVENT) {
         //TURN ON/OFF HEADLIGHTS
         //System_printf("LOW/HIGH light even\n");
+
+        /* Send 1 if high light and 0 if low light */
+        //onDayNightChange(bool event Type);
 
     }
 

@@ -28,7 +28,7 @@
 #include "inc/hw_memmap.h"
 
 /* TI-RTOS Header files */
-//#include <ti/drivers/GPIO.h>
+#include <ti/drivers/GPIO.h>
 
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
@@ -63,6 +63,7 @@
 
 // Graphics
 bool eStop;
+bool lights;
 tContext sContext;
 uint8_t motorStartStop;
 uint8_t tabNo;
@@ -78,7 +79,7 @@ uint32_t clockTicks;
 extern void DrawHomeScreen();
 //extern void RemoveHomeScreen();
 extern void eStopFxn(UArg arg0, UArg arg1);
-//extern void onDayNightChange();
+extern void onDayNightChange(bool eventType);
 //extern void onTabSwap();
 
 extern void initTime();

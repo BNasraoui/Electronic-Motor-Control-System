@@ -228,7 +228,6 @@ void onAccelChange(tWidget *psWidget){
         ACCEL_USER_LIMIT-=50;
         usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
         CanvasTextSet(&g_sAccelCanvas, Acceleration);
-        //GPIO_write(Board_LED0, Board_LED_OFF); // Turn on user LED
         WidgetPaint((tWidget *)&g_sAccelCanvas);
         Event_post(gui_event_handle, ACCEL_EVENT); // Acceleration Limit change event
     }
@@ -237,7 +236,6 @@ void onAccelChange(tWidget *psWidget){
         ACCEL_USER_LIMIT+=50;
         usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
         CanvasTextSet(&g_sAccelCanvas, Acceleration);
-        //GPIO_write(Board_LED0, Board_LED_OFF); // Turn on user LED
         WidgetPaint((tWidget *)&g_sAccelCanvas);
         Event_post(gui_event_handle, ACCEL_EVENT); // Acceleration Limit change event
     }
@@ -247,6 +245,7 @@ void onAccelChange(tWidget *psWidget){
 void eStopFxn(UArg arg0, UArg arg1){
     eStop = false;
     tabNo = false;
+    lights = false;
     motorStartStop = 1;
     clockTicks = 0;
     SPEED_USER_LIMIT = 5;
@@ -272,18 +271,23 @@ void eStopFxn(UArg arg0, UArg arg1){
     }
 }
 
-void onDayNightChange(){
-    if(dayNight == "Day"){
-        usprintf(dayNight, "Night");
-        //GPIO_toggle(Board_LED0);
-    }
-    else{
-        usprintf(dayNight, "Day");
-        //GPIO_toggle(Board_LED0);
+/* Turns on the night light and updates the display on change */
+void onDayNightChange(eventType){
+    if(lights == eventType){        // e.g if low light and lights are off
+        lights = eventType;         // update light state
+        /* Update LED and Screen */
+        if(lights){    // Lights are off and Low Lux
+            usprintf(dayNight, "Night");
+            GPIO_write(Board_LED0, Board_LED_ON); // Turn on light
+        }
+        else{
+            usprintf(dayNight, "Day");
+            GPIO_write(Board_LED0, Board_LED_OFF); // Turn off light
 
+        }
+        CanvasTextSet(&g_sDayAlert, dayNight);
+        WidgetPaint((tWidget *)&g_sDayAlert);
     }
-    CanvasTextSet(&g_sDayAlert, dayNight);
-    WidgetPaint((tWidget *)&g_sDayAlert);
 }
 
 void onTabSwap(){
@@ -421,7 +425,6 @@ void DrawHomeScreen(){
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sDate);
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
 
-    //GPIO_write(Board_LED0, Board_LED_ON);
     /* Draw frame */
     FrameDraw(&sContext, "Settings Screen");
     System_printf("Starting the example\nSystem provider is set to SysMin. "
