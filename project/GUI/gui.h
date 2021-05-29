@@ -12,6 +12,7 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
+#include "utils/ustdlib.h"
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
@@ -54,6 +55,12 @@
 #define ACCEL_LIMIT     500
 #define TASKSTACKSIZE   1024
 
+#define ESTOP_EVENT     Event_Id_05
+#define SPEED_EVENT     Event_Id_06
+#define ACCEL_EVENT     Event_Id_07
+#define CURRENT_EVENT   Event_Id_08
+#define MOTOR_EVENT     Event_Id_09
+
 // Graphics
 bool eStop;
 tContext sContext;
@@ -68,13 +75,14 @@ uint32_t clockTicks;
 //extern void onSpeedChange(tWidget *psWidget);
 //extern void onCurrentChange(tWidget *psWidget);
 //extern void onAccelChange(tWidget *psWidget);
-//extern void DrawHomeScreen();
+extern void DrawHomeScreen();
 //extern void RemoveHomeScreen();
 extern void eStopFxn(UArg arg0, UArg arg1);
 //extern void onDayNightChange();
 //extern void onTabSwap();
-//extern void initTime();
-//extern void getCurrentTime();
+
+extern void initTime();
+extern void getCurrentTime();
 
 /* Time Values */
 struct tm * timeinfo;
@@ -83,6 +91,6 @@ Task_Struct task1Struct;
 Char task1Stack[TASKSTACKSIZE];
 
 Event_Struct evtStruct;
-Event_Handle evtHandle;
+Event_Handle gui_event_handle;
 
 #endif // _GUI_H_

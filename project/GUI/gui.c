@@ -23,7 +23,7 @@ void StartStopBttnPress(tWidget *psWidget);
 void onSpeedChange(tWidget *psWidget);
 void onCurrentChange(tWidget *psWidget);
 void onAccelChange(tWidget *psWidget);
-void DrawHomeScreen();
+//void DrawHomeScreen();
 void RemoveHomeScreen();
 
 void onDayNightChange();
@@ -109,7 +109,7 @@ RectangularButton(g_sSpeedAddBttn, 0, 0, 0,
                    g_psFontCmss16b, "+", 0, 0, 0, 0, onSpeedChange);
 
 // Current
-static char Current[10] = "100 mA";
+static char Current[10] = "100mA";
 Canvas(g_sCurrentCanvas, 0, 0, 0,
        &g_sKentec320x240x16_SSD2119, 50, 100, 75, 40,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Current, 0, 0);
@@ -177,7 +177,7 @@ void StartStopBttnPress(tWidget *psWidget)
 
         WidgetPaint((tWidget *)&g_sStartStopBttn);
     }
-    //Event_post(evtHandle, Event_Id_00); // Motor Stop Start Event
+    Event_post(gui_event_handle, MOTOR_EVENT); // Motor Stop Start Event
 }
 
 /* Handles User Speed Change */
@@ -185,20 +185,20 @@ void onSpeedChange(tWidget *psWidget){
     // Lower Speed 5%
     if(psWidget == ((tWidget *)&g_sSpeedSubBttn) && (SPEED_USER_LIMIT != 0)){
         SPEED_USER_LIMIT-= 5;
-        //usprintf(Speed, "%3d%%", SPEED_USER_LIMIT);
+        usprintf(Speed, "%3d%%", SPEED_USER_LIMIT);
         CanvasTextSet(&g_sSpeedCanvas, Speed);
         WidgetPaint((tWidget *)&g_sSpeedCanvas);
 
-        //Event_post(evtHandle, Event_Id_01); // Speed Change Event
+        Event_post(gui_event_handle, SPEED_EVENT); // Speed Change Event
      }
     // Increase Speed 5%
     if((psWidget == (tWidget *)&g_sSpeedAddBttn) && (SPEED_USER_LIMIT < SPEED_LIMIT)){
         SPEED_USER_LIMIT += 5;
-        //usprintf(Speed, "%3d%%", SPEED_USER_LIMIT);
+        usprintf(Speed, "%3d%%", SPEED_USER_LIMIT);
         CanvasTextSet(&g_sSpeedCanvas, Speed);
         WidgetPaint((tWidget *)&g_sSpeedCanvas);
 
-        //Event_post(evtHandle, Event_Id_01); // Speed Change Event
+        Event_post(gui_event_handle, SPEED_EVENT); // Speed Change Event
      }
 }
 /* Handles Current Limit Change */
@@ -206,19 +206,19 @@ void onCurrentChange(tWidget *psWidget){
     /* Lower speed 100mA */
     if(psWidget == ((tWidget *)&g_sCurrentSubBttn) && (CURRENT_USER_LIMIT != 0)){
         CURRENT_USER_LIMIT-= 100;
-        //usprintf(Current, "%5d mA", CURRENT_USER_LIMIT);
+        usprintf(Current, "%5dmA", CURRENT_USER_LIMIT);
         CanvasTextSet(&g_sCurrentCanvas, Current);
         WidgetPaint((tWidget *)&g_sCurrentCanvas);
 
-        //Event_post(evtHandle, Event_Id_02); // Current limit change event
+        Event_post(gui_event_handle, CURRENT_EVENT); // Current limit change event
     }
     /* Increase speed 100mA */
     if(psWidget ==((tWidget *)&g_sCurrentAddBttn) && (CURRENT_USER_LIMIT != CURRENT_LIMIT)){
         CURRENT_USER_LIMIT += 100;
-        //usprintf(Current, "%5d mA", CURRENT_USER_LIMIT);
+        usprintf(Current, "%5dmA", CURRENT_USER_LIMIT);
         CanvasTextSet(&g_sCurrentCanvas, Current);
         WidgetPaint((tWidget *)&g_sCurrentCanvas);
-        //Event_post(evtHandle, Event_Id_02); // Current limit change event
+        Event_post(gui_event_handle, CURRENT_EVENT); // Current limit change event
     }
 }
 
@@ -226,55 +226,60 @@ void onAccelChange(tWidget *psWidget){
     /* Lower acceleration RPM */
     if(psWidget == ((tWidget *)&g_sAccelSubBttn) && (ACCEL_USER_LIMIT != 0)){
         ACCEL_USER_LIMIT-=50;
-        //usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
+        usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
         CanvasTextSet(&g_sAccelCanvas, Acceleration);
-        GPIO_write(Board_LED0, Board_LED_OFF); // Turn on user LED
+        //GPIO_write(Board_LED0, Board_LED_OFF); // Turn on user LED
         WidgetPaint((tWidget *)&g_sAccelCanvas);
-        //Event_post(evtHandle, Event_Id_03); // Acceleration Limit change event
+        Event_post(gui_event_handle, ACCEL_EVENT); // Acceleration Limit change event
     }
     /* Increase acceleration Accel */
     if(psWidget == ((tWidget *)&g_sAccelAddBttn) && (ACCEL_USER_LIMIT != ACCEL_LIMIT)){
         ACCEL_USER_LIMIT+=50;
-        //usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
+        usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
         CanvasTextSet(&g_sAccelCanvas, Acceleration);
-        GPIO_write(Board_LED0, Board_LED_OFF); // Turn on user LED
+        //GPIO_write(Board_LED0, Board_LED_OFF); // Turn on user LED
         WidgetPaint((tWidget *)&g_sAccelCanvas);
-        //Event_post(evtHandle, Event_Id_03); // Acceleration Limit change event
+        Event_post(gui_event_handle, ACCEL_EVENT); // Acceleration Limit change event
     }
 }
 
 // Estop flagged
 void eStopFxn(UArg arg0, UArg arg1){
     eStop = false;
+    tabNo = false;
     motorStartStop = 1;
     clockTicks = 0;
     SPEED_USER_LIMIT = 5;
     CURRENT_USER_LIMIT = 100;
     ACCEL_USER_LIMIT = 50;
-    CanvasFillColorSet(&g_sEstopLight, ClrRed);
-    StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
+    //CanvasFillColorSet(&g_sEstopLight, ClrRed);
+    //StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
+
+    UInt posted;
 
     for(;;){
-       if(eStop) {
-           CanvasFillColorSet(&g_sEstopLight, ClrRed);
-           StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
+       posted = Event_pend(gui_event_handle, Event_Id_NONE, Event_Id_05, BIOS_WAIT_FOREVER);
+       if(posted & ESTOP_EVENT){
+           if(eStop) {
+               CanvasFillColorSet(&g_sEstopLight, ClrRed);
+               StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
+                  }
+          else {
+              CanvasFillColorSet(&g_sEstopLight, ClrGreen);
+          }
+           WidgetPaint((tWidget *)&g_sEstopLight);
        }
-       else {
-           CanvasFillColorSet(&g_sEstopLight, ClrGreen);
-       }
-
-       WidgetPaint((tWidget *)&g_sEstopLight);
     }
 }
 
 void onDayNightChange(){
     if(dayNight == "Day"){
-        //usprintf(dayNight, "Night");
-        GPIO_toggle(Board_LED0);
+        usprintf(dayNight, "Night");
+        //GPIO_toggle(Board_LED0);
     }
     else{
-        //usprintf(dayNight, "Day");
-        GPIO_toggle(Board_LED0);
+        usprintf(dayNight, "Day");
+        //GPIO_toggle(Board_LED0);
 
     }
     CanvasTextSet(&g_sDayAlert, dayNight);
@@ -290,6 +295,7 @@ void onTabSwap(){
     }
     else{
         PushButtonTextSet(&g_sSwitcher, "Home");
+        void RemoveHomeScreen();
         // Render Graph Page
     }
 }
@@ -311,6 +317,7 @@ Void heartBeatFxn(UArg arg0, UArg arg1)
     }
 }
 
+
 /* Initialise Time at the start of the program */
 void initTime(){
 
@@ -319,6 +326,9 @@ void initTime(){
     timeinfo->tm_year = 2021;
     timeinfo->tm_mon = 5;
     timeinfo->tm_mday = 28;
+    clockTicks = 0;
+
+    usprintf(currentTime, "%02d/%02d/%4d %02d:%02d:%02d", timeinfo->tm_mday, timeinfo->tm_mon, timeinfo->tm_year, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 }
 
 // Gets the current time and updates display
@@ -352,7 +362,7 @@ void getCurrentTime(){
             }
         }
     }
-    //usprintf(currentTime, "%02d/%02d/%4d %02d:%02d:%02d", timeinfo->tm_mday, timeinfo->tm_mon, timeinfo->tm_year, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+    usprintf(currentTime, "%02d/%02d/%4d %02d:%02d:%02d", timeinfo->tm_mday, timeinfo->tm_mon, timeinfo->tm_year, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 
     CanvasTextSet(&g_sDate, currentTime);
     WidgetPaint((tWidget *)&g_sDate);
@@ -382,7 +392,7 @@ void RemoveHomeScreen(){
         WidgetRemove((tWidget *)&g_sEstopLight);
         WidgetRemove((tWidget *)&g_sDayAlert);
         WidgetRemove((tWidget *)&g_sDate);
-        WidgetRemove((tWidget *)&g_sSwitcher);
+        //WidgetRemove((tWidget *)&g_sSwitcher);
 }
 
 void DrawHomeScreen(){
@@ -413,7 +423,7 @@ void DrawHomeScreen(){
 
     //GPIO_write(Board_LED0, Board_LED_ON);
     /* Draw frame */
-    FrameDraw(&sContext, "GUI Graphing");
+    FrameDraw(&sContext, "Settings Screen");
     System_printf("Starting the example\nSystem provider is set to SysMin. "
                   "Halt the target to view any SysMin contents in ROV.\n");
     /* SysMin will only print to the console when you call flush or exit */

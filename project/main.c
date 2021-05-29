@@ -133,6 +133,9 @@ void InitEvents(void) {
     GU_eventHandle = Event_create(&taskEventParams, NULL);
     if (GU_eventHandle == NULL) System_abort("GUI event create failed");
 
+    gui_event_handle = Event_create(&taskEventParams, NULL);
+    if(gui_event_handle == NULL) System_abort("GUI event create failed");
+
     sensors_eventHandle = Event_create(&taskEventParams, NULL);
     if(sensors_eventHandle == NULL)  System_abort("Sensors event create failed");
 }

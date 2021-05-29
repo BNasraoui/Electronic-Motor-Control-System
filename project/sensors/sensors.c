@@ -152,6 +152,7 @@ void ProcessSensorEvents() {
     if(events & LOW_HIGH_LIGHT_EVENT) {
         //TURN ON/OFF HEADLIGHTS
         //System_printf("LOW/HIGH light even\n");
+
     }
 
     if(events & NEW_ADC0_DATA) {

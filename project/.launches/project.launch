@@ -4,7 +4,7 @@
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROGRAM.projectTargetConfig.ccxml.Stellaris In-Circuit Debug Interface_0/CORTEX_M4_0" value="${build_artifact:project}"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROJECT.projectTargetConfig.ccxml.Stellaris In-Circuit Debug Interface_0/CORTEX_M4_0" value="project"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_TARGET_CONFIG" value="${target_config_active_default:project}"/>
-<stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.projectTargetConfig.ccxml.Stellaris In-Circuit Debug Interface_0/CORTEX_M4_0" value="C:\Users\jesse\Dropbox\Sem1_2021\Embedded\CCS_Workspace\EGH456_GROUP6\project\Debug\project.out"/>
+<stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.projectTargetConfig.ccxml.Stellaris In-Circuit Debug Interface_0/CORTEX_M4_0" value="C:\Users\Ben\Documents\UniStuff\EGH456\Merge-GUI\project\Debug\project.out"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/project"/>
 </listAttribute>
