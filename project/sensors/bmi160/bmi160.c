@@ -93,21 +93,26 @@ bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ) {
     I2C_transfer(i2cHandle, &i2cTransaction);
 
     // shift bytes read from bmi160 to form raw accel data
-    *accelX = (((int16_t)rxBuffer[1])  << 8) | rxBuffer[0];
-    *accelY = (((int16_t)rxBuffer[3])  << 8) | rxBuffer[2];
-    *accelZ = (((int16_t)rxBuffer[5])  << 8) | rxBuffer[4];
+    rawAccel.x = (((int16_t)rxBuffer[1])  << 8) | rxBuffer[0];
+    rawAccel.y = (((int16_t)rxBuffer[3])  << 8) | rxBuffer[2];
+    rawAccel.z = (((int16_t)rxBuffer[5])  << 8) | rxBuffer[4];
 
     return true;
 }
 
+float CalcAbsoluteAccel() {
+    return sqrt(accelXFilt.G*accelXFilt.G) + (accelYFilt.G*accelYFilt.G) + (accelZFilt.G*accelZFilt.G);
+}
+
 void ProcessAccelDataFxn() {
+    ConvertRawAccelToGs();
     accelXFilt.sum = accelXFilt.sum - accelXFilt.data[accelXFilt.index];
     accelYFilt.sum = accelYFilt.sum - accelYFilt.data[accelYFilt.index];
     accelZFilt.sum = accelZFilt.sum - accelZFilt.data[accelZFilt.index];
 
-    accelXFilt.data[accelXFilt.index] = accelX;
-    accelYFilt.data[accelYFilt.index] = accelY;
-    accelZFilt.data[accelZFilt.index] = accelZ;
+    accelXFilt.data[accelXFilt.index] = rawAccel.x;
+    accelYFilt.data[accelYFilt.index] = rawAccel.y;
+    accelZFilt.data[accelZFilt.index] = rawAccel.z;
 
     accelXFilt.sum = accelXFilt.sum + accelXFilt.data[accelXFilt.index];
     accelYFilt.sum = accelYFilt.sum + accelYFilt.data[accelYFilt.index];
@@ -133,11 +138,10 @@ void ProcessAccelDataFxn() {
 }
 
 void ConvertRawAccelToGs() {
-    //convert to Gs
     float scale_2g = 4000.0/BMI160_2G_RANGE;
-    float accelX_mG = accelXFilt.avg * scale_2g;
-    float accelY_mG = accelYFilt.avg * scale_2g;
-    float accelZ_mG = accelZFilt.avg * scale_2g;
+    float accelX_mG = (float)rawAccel.x * scale_2g;
+    float accelY_mG = (float)rawAccel.y * scale_2g;
+    float accelZ_mG = (float)rawAccel.z * scale_2g;
     accelXFilt.G = accelX_mG/1000;
     accelYFilt.G = accelY_mG/1000;
     accelZFilt.G = accelZ_mG/1000;

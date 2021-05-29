@@ -705,9 +705,21 @@ typedef enum {
     BMI160_ZERO_MOTION_DURATION_430_08S,        /**< 430.08 seconds */
 } BMI160ZeroMotionDuration;
 
+int16_t accelX, accelY, accelZ;
+
+typedef struct RawAccelData {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+} RawAccel;
+
+RawAccel rawAccel;
+
 extern void InitI2C_BMI160();
 
 extern bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ);
+
+extern float CalcAbsoluteAccel();
 
 extern void ProcessAccelDataFxn();
 

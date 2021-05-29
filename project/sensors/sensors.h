@@ -70,7 +70,7 @@
 #define NEW_ADC0_DATA                   Event_Id_03
 #define NEW_ADC1_DATA                   Event_Id_04
 
-typedef struct Sliding_Window32{
+typedef struct Sliding_Window32 {
     uint8_t index;
     bool startFilter;
     uint32_t sum;
@@ -81,7 +81,7 @@ typedef struct Sliding_Window32{
     uint32_t data[WINDOW_SIZE];
 } SlidingWindow_32;
 
-typedef struct Sliding_Window_16{
+typedef struct Sliding_Window_16 {
     uint8_t index;
     bool startFilter;
     int32_t sum;
@@ -90,7 +90,7 @@ typedef struct Sliding_Window_16{
     int16_t data[WINDOW_SIZE];
 } SlidingWindow_16;
 
-typedef struct Sliding_Window_u16{
+typedef struct Sliding_Window_u16 {
     uint8_t index;
     bool startFilter;
     uint32_t sum;
@@ -132,7 +132,6 @@ SlidingWindow_32 ADC1Window;
 SlidingWindow_16 accelXFilt;
 SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
-int16_t accelX, accelY, accelZ;
 
 extern void WatchDogBite();
 

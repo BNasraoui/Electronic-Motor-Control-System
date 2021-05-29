@@ -138,6 +138,13 @@ void ProcessSensorEvents() {
 
     if(events & NEW_ACCEL_DATA) {
         GetAccelData();
+        float absoluteAccel = CalcAbsoluteAccel();
+
+        float accelLimit = 100; //for testing only
+        if(absoluteAccel > accelLimit) {
+            //Fire e-stop event
+        }
+
         //System_printf("X: %f\t Y: %f\t Z: %f\n", accelXFilt.G, accelYFilt.G, accelZFilt.G);
 
         if (graphTypeActive == GRAPH_TYPE_ACCEL) {
