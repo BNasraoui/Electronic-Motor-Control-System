@@ -22,28 +22,20 @@ void InitI2C_OPT3001() {
     WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
 
     //Configure the default high/low limits
-    SetLowLimit_OPT3001(40.95);
-    SetHighLimit_OPT3001(2620.8);
+    SetLowLimit(40.95);
+    SetHighLimit(2620.8);
 
     IntEnable(INT_GPIOP2);
 }
 
-bool GetLuxValue_OPT3001(uint16_t *rawData) {
-    bool success = true;
+bool GetLuxValue(uint16_t *rawData) {
     uint16_t val;
+    bool readSuccess = false;
 
-    //success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
+    readSuccess = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
+    if (readSuccess) *rawData = (val << 8) | (val>>8 & 0xFF);
 
-    if (success) {
-        success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
-    }
-
-    if (success) {
-        // Swap bytes
-        *rawData = (val << 8) | (val>>8 & 0xFF);
-    }
-
-    return (success);
+    return (readSuccess);
 }
 
 bool GetHighLowEventStatus() {
@@ -67,7 +59,7 @@ void ProcessLuxDataFxn() {
     float lux;
     static bool led_state = false;
 
-    SensorOpt3001Convert(rawData, &lux);
+    ConvertRawDataToLux(rawData, &lux);
     luxValueFilt.sum = luxValueFilt.sum - luxValueFilt.data[luxValueFilt.index];
     luxValueFilt.data[luxValueFilt.index] = (uint16_t)lux;
     luxValueFilt.sum = luxValueFilt.sum + luxValueFilt.data[luxValueFilt.index];
@@ -87,7 +79,7 @@ void ProcessLuxDataFxn() {
     //Event_post(sensors_eventHandle, Event_Id_01);
 }
 
-void SensorOpt3001Convert(uint16_t rawData, float *convertedLux) {
+void ConvertRawDataToLux(uint16_t rawData, float *convertedLux) {
     uint16_t e, m;
 
     m = rawData & 0x0FFF;
@@ -96,12 +88,12 @@ void SensorOpt3001Convert(uint16_t rawData, float *convertedLux) {
     *convertedLux = m * (0.01 * exp2(e));
 }
 
-void SetLowLimit_OPT3001(float val) {
+void SetLowLimit(float val) {
     uint16_t reg = CalculateLimitReg(val);
     WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_LOW_LIMIT, (uint8_t*)&reg);
 }
 
-void SetHighLimit_OPT3001(float val) {
+void SetHighLimit(float val) {
     uint16_t reg = CalculateLimitReg(val);
     WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_HIGH_LIMIT, (uint8_t*)&reg);
 }

@@ -44,13 +44,13 @@ extern void OPT3001_ClockHandlerFxn();
 
 extern void ProcessLuxDataFxn();
 
-extern bool GetLuxValue_OPT3001(uint16_t *rawData);
+extern bool GetLuxValue(uint16_t *rawData);
 
-extern void SensorOpt3001Convert(uint16_t rawData, float *convertedLux);
+extern void ConvertRawDataToLux(uint16_t rawData, float *convertedLux);
 
-extern void SetLowLimit_OPT3001(float val);
+extern void SetLowLimit(float val);
 
-extern void SetHighLimit_OPT3001(float val);
+extern void SetHighLimit(float val);
 
 extern bool GetHighLowEventStatus();
 

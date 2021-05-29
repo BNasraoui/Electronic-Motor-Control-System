@@ -190,7 +190,7 @@ void ProcessSensorEvents() {
 }
 
 void GetLightLevel() {
-    GetLuxValue_OPT3001(&rawData);
+    GetLuxValue(&rawData);
     Swi_post(swiHandle_LuxDataProc);
 }
 
