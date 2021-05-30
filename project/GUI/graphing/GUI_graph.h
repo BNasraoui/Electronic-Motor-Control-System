@@ -74,13 +74,15 @@
 #define DRAW_DATA_TEXT false
 
 tContext sGraphContext;
-
+bool graphingMode;
 uint32_t graphTypeActive;
 
 /* Clock */
 Uint32 graphLagStart, graphLagEnd, graphLagTotal;
 
 extern void initGUIGraphs(void);
+
+extern void initGraphDrawing(void);
 
 extern void GUI_Graphing(void);
 

@@ -72,21 +72,6 @@ uint16_t CURRENT_USER_LIMIT;
 uint16_t ACCEL_USER_LIMIT;
 uint32_t clockTicks;
 
-//extern void StartStopBttnPress(tWidget *psWidget);
-//extern void onSpeedChange(tWidget *psWidget);
-//extern void onCurrentChange(tWidget *psWidget);
-//extern void onAccelChange(tWidget *psWidget);
-extern void DrawHomeScreen();
-extern void DrawGraphScreen();
-extern void RemoveHomeScreen();
-extern void RemoveGraphScreen();
-extern void eStopFxn(UArg arg0, UArg arg1);
-extern void onDayNightChange(bool eventType);
-//extern void onTabSwap();
-
-extern void initTime();
-extern void getCurrentTime();
-
 /* Time Values */
 struct tm * timeinfo;
 
@@ -95,5 +80,33 @@ Char task1Stack[TASKSTACKSIZE];
 
 Event_Struct evtStruct;
 Event_Handle gui_event_handle;
+
+//extern void StartStopBttnPress(tWidget *psWidget);
+//extern void onSpeedChange(tWidget *psWidget);
+//extern void onCurrentChange(tWidget *psWidget);
+//extern void onAccelChange(tWidget *psWidget);
+extern void DrawHomeScreen();
+extern void DrawGraphScreen();
+extern void RemoveHomeScreen();
+extern void RemoveGraphScreen();
+extern void onDayNightChange(bool eventType);
+
+void StartStopBttnPress(tWidget *psWidget);
+void onSpeedChange(tWidget *psWidget);
+void onCurrentChange(tWidget *psWidget);
+void onAccelChange(tWidget *psWidget);
+void DrawHomeScreen();
+void DrawGraphScreen();
+void RemoveHomeScreen();
+void RemoveGraphScreen();
+void onDayNightChange(bool eventType);
+void onTabSwap();
+void initTime();
+void getCurrentTime();
+void eStopFxn(void);
+//extern void onTabSwap();
+
+extern void initTime();
+extern void getCurrentTime();
 
 #endif // _GUI_H_

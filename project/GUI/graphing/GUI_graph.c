@@ -17,6 +17,11 @@
 
 void initGUIGraphs(void) {
 
+    Kentec320x240x16_SSD2119Init(SYS_CLK_SPEED);
+    GrContextInit(&sGraphContext, &g_sKentec320x240x16_SSD2119);
+    TouchScreenInit(SYS_CLK_SPEED);
+    TouchScreenCallbackSet(WidgetPointerMessage);
+
     GraphFrame_init(&GraphBorder, 32, 32, 272, 112, false);
 
     GraphData_init(&Graph_LUX, 600);
@@ -26,6 +31,10 @@ void initGUIGraphs(void) {
     GraphData_init(&Graph_ACCZ, 9000);
 
     GraphData_init(&Graph_CURR, 9000);
+
+    /* Default Graph */
+    graphTypeActive = GRAPH_TYPE_LIGHT;
+    graphingMode = false;
 }
 
 void graphLag(struct XYGraphFrame* frame) {
@@ -136,11 +145,7 @@ void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, stru
     graphLag(frame);
 }
 
-void GUI_Graphing(void)
-{
-    UInt events;
-
-    /* Draw frame */
+void initGraphDrawing(void) {
     FrameDraw(&sGraphContext, "GUI Graphing");
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
@@ -157,22 +162,49 @@ void GUI_Graphing(void)
         SinglePlotGraph_init_display(&GraphBorder, "A [1:1]", "amps");
         GraphBorder.descaleEnabled = true;
     }
+}
+
+void GUI_Graphing(void)
+{
+    UInt events;
+
+    eStop = false;
+    tabNo = false;
+    lights = false;
+    motorStartStop = 1;
+    clockTicks = 0;
+    SPEED_USER_LIMIT = 5;
+    CURRENT_USER_LIMIT = 100;
+    ACCEL_USER_LIMIT = 50;
+
+    //StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
+
+    /* Draw frame */
+
 
     /* forever wait for data */
-    for(;;) {
+    while (true) {
 
-        events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_WAIT_FOREVER);
+        if (graphingMode) {
 
-        if (events & EVENT_GRAPH_LIGHT) {
-            drawSinglePlot(&GraphBorder, &Graph_LUX, luxValueFilt.avg);
+            events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR), BIOS_NO_WAIT);
+
+            if (events & EVENT_GRAPH_LIGHT) {
+                drawSinglePlot(&GraphBorder, &Graph_LUX, luxValueFilt.avg);
+            }
+
+            if (events & EVENT_GRAPH_ACCEL) {
+                drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
+            }
+
+            if (events & EVENT_GRAPH_CURR) {
+                drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.avg);
+            }
+
         }
-
-        if (events & EVENT_GRAPH_ACCEL) {
-            drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
-        }
-
-        if (events & EVENT_GRAPH_CURR) {
-            drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.avg);
+        else
+        {
+            eStopFxn();
         }
     }
 }

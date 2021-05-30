@@ -32,7 +32,7 @@
 #include "sensors/bmi160/bmi160.h"
 #include "sensors/opt3001/opt3001.h"
 #include "GUI/graphing/GUI_graph.h"
-#include <GUI/gui.h>
+#include "GUI/gui.h"
 
 /* Created libraries for sub-systems */
 #include "general.h"
@@ -110,7 +110,7 @@ void InitTasks(void) {
     taskParams.stackSize = SENSOR_TASKSTACKSIZE;
     taskParams.stack = &task0Stack;
     taskParams.instance->name = "sensorTask";
-    taskParams.priority = 3;
+    taskParams.priority = 2;
     Task_construct(&task0Struct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
 
     /* Graph Task */
@@ -118,10 +118,6 @@ void InitTasks(void) {
     taskParams.stack = &graphTaskStack;
     taskParams.priority = 1;
     Task_construct(&graphTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
-
-    taskParams.stack = &task1Stack;
-    taskParams.priority = 2;
-    Task_construct(&task1Struct, (Task_FuncPtr)eStopFxn, &taskParams, NULL);
 }
 
 void InitEvents(void) {
@@ -140,6 +136,18 @@ void InitEvents(void) {
     if(sensors_eventHandle == NULL)  System_abort("Sensors event create failed");
 }
 
+void initDisplay(void) {
+
+}
+
+void initGUI(void) {
+    initGUIGraphs();
+
+    /* Move all drawing operations to tasks!!! This is for initializing variables!!! */
+    initTime();
+    DrawHomeScreen();
+}
+
 int main(void) {
     /* Call board init functions */
     Board_initGeneral();
@@ -147,26 +155,15 @@ int main(void) {
     Board_initI2C();
     Board_initWatchdog();
 
-
     InitTasks();
     InitEvents();
 
     InitSensorDriver();
 
-    Kentec320x240x16_SSD2119Init(120000000);
-    GrContextInit(&sContext, &g_sKentec320x240x16_SSD2119);
-    TouchScreenInit(120000000);
-    TouchScreenCallbackSet(WidgetPointerMessage);
-
     /* GUI init */
-    initGUIGraphs();
-    graphTypeActive = GRAPH_TYPE_CURR;
+    initDisplay();
+    initGUI();
 
-    //tContext sContext;
-
-    initTime();
-    DrawHomeScreen();
-    //System_flush();
     watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
 
     BIOS_start();

@@ -249,33 +249,22 @@ void onAccelChange(tWidget *psWidget){
 }
 
 // Estop flagged
-void eStopFxn(UArg arg0, UArg arg1){
-    eStop = false;
-    tabNo = false;
-    lights = false;
-    motorStartStop = 1;
-    clockTicks = 0;
-    SPEED_USER_LIMIT = 5;
-    CURRENT_USER_LIMIT = 100;
-    ACCEL_USER_LIMIT = 50;
-    //CanvasFillColorSet(&g_sEstopLight, ClrRed);
-    //StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
+void eStopFxn(void){
 
     UInt posted;
 
-    for(;;){
-       posted = Event_pend(gui_event_handle, Event_Id_NONE, Event_Id_05, BIOS_WAIT_FOREVER);
-       if(posted & ESTOP_EVENT){
-           if(eStop) {
-               CanvasFillColorSet(&g_sEstopLight, ClrRed);
-               StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
-                  }
-          else {
-              CanvasFillColorSet(&g_sEstopLight, ClrGreen);
-          }
-           WidgetPaint((tWidget *)&g_sEstopLight);
-       }
-    }
+   posted = Event_pend(gui_event_handle, Event_Id_NONE, Event_Id_05, BIOS_NO_WAIT);
+
+   if(posted & ESTOP_EVENT){
+       if(eStop) {
+           CanvasFillColorSet(&g_sEstopLight, ClrRed);
+           StartStopBttnPress(&g_sStartStopBttn); // Show Motor is Switched off
+              }
+      else {
+          CanvasFillColorSet(&g_sEstopLight, ClrGreen);
+      }
+       WidgetPaint((tWidget *)&g_sEstopLight);
+   }
 }
 
 /* Turns on the night light and updates the display on change */
@@ -394,36 +383,37 @@ void RemoveGraphScreen(){
     WidgetRemove((tWidget *)&g_sSwitcher);
 
     // Mitchell, Your Switches and Stuff for the graph Go here..
+    graphingMode = false;
 
     WidgetPaint(WIDGET_ROOT);
 }
 
 /* Undraw the Home Screen Widgets */
-void RemoveHomeScreen(){
+void RemoveHomeScreen() {
     //Black Background Canvas
-        WidgetRemove((tWidget *)&g_sBackground);
+    WidgetRemove((tWidget *)&g_sBackground);
 
-        // Limiter Widgets
-        WidgetRemove((tWidget *)&g_sLimitTitle);
-        WidgetRemove((tWidget *)&g_sSpeedTitle);
-        WidgetRemove((tWidget *)&g_sCurrentTitle);
-        WidgetRemove((tWidget *)&g_sAccelTitle);
-        WidgetRemove((tWidget *)&g_sSpeedSubBttn);
-        WidgetRemove((tWidget *)&g_sSpeedAddBttn);
-        WidgetRemove((tWidget *)&g_sSpeedCanvas);
-        WidgetRemove((tWidget *)&g_sCurrentSubBttn);
-        WidgetRemove((tWidget *)&g_sCurrentAddBttn);
-        WidgetRemove((tWidget *)&g_sCurrentCanvas);
-        WidgetRemove((tWidget *)&g_sAccelSubBttn);
-        WidgetRemove((tWidget *)&g_sAccelAddBttn);
-        WidgetRemove((tWidget *)&g_sAccelCanvas);
+    // Limiter Widgets
+    WidgetRemove((tWidget *)&g_sLimitTitle);
+    WidgetRemove((tWidget *)&g_sSpeedTitle);
+    WidgetRemove((tWidget *)&g_sCurrentTitle);
+    WidgetRemove((tWidget *)&g_sAccelTitle);
+    WidgetRemove((tWidget *)&g_sSpeedSubBttn);
+    WidgetRemove((tWidget *)&g_sSpeedAddBttn);
+    WidgetRemove((tWidget *)&g_sSpeedCanvas);
+    WidgetRemove((tWidget *)&g_sCurrentSubBttn);
+    WidgetRemove((tWidget *)&g_sCurrentAddBttn);
+    WidgetRemove((tWidget *)&g_sCurrentCanvas);
+    WidgetRemove((tWidget *)&g_sAccelSubBttn);
+    WidgetRemove((tWidget *)&g_sAccelAddBttn);
+    WidgetRemove((tWidget *)&g_sAccelCanvas);
 
-        // Alerts and Date
-        WidgetRemove((tWidget *)&g_sEstopText);
-        WidgetRemove((tWidget *)&g_sEstopLight);
-        WidgetRemove((tWidget *)&g_sDayAlert);
-        WidgetRemove((tWidget *)&g_sDate);
-        WidgetRemove((tWidget *)&g_sSwitcher);
+    // Alerts and Date
+    WidgetRemove((tWidget *)&g_sEstopText);
+    WidgetRemove((tWidget *)&g_sEstopLight);
+    WidgetRemove((tWidget *)&g_sDayAlert);
+    WidgetRemove((tWidget *)&g_sDate);
+    WidgetRemove((tWidget *)&g_sSwitcher);
 }
 
 /* Draw Graph Screen Widgets */
@@ -431,9 +421,11 @@ void DrawGraphScreen() {
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sGraphBackground);
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
 
-    FrameDraw(&sContext, "Graph Screen");
+    WidgetPaint((tWidget *) &g_sGraphBackground);
 
     // Mitchell, Your Switches and Stuff for the graph Go here..
+    graphingMode = true;
+    initGraphDrawing();
 }
 
 /* Draw all Home Screen Widgets */
@@ -464,7 +456,7 @@ void DrawHomeScreen(){
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
 
     /* Draw frame */
-    FrameDraw(&sContext, "Settings Screen");
+    FrameDraw(&sGraphContext, "Settings Screen");
 
     WidgetPaint(WIDGET_ROOT);
 }

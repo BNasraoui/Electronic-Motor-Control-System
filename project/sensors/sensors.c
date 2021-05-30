@@ -87,8 +87,6 @@ void InitSensorDriver() {
 }
 
 void InitInterrupts() {
-    System_printf("IN InitTasks\n");
-    System_flush();
 
     Swi_Params_init(&swiParams);
     swiParams.priority = 1;
