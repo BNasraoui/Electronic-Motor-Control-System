@@ -159,8 +159,8 @@ int main(void) {
     TouchScreenCallbackSet(WidgetPointerMessage);
 
     /* GUI init */
-    //initGUIGraphs();
-    graphTypeActive = GRAPH_TYPE_ACCEL;
+    initGUIGraphs();
+    graphTypeActive = GRAPH_TYPE_CURR;
 
     //tContext sContext;
 

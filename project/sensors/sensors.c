@@ -169,6 +169,11 @@ void ProcessSensorEvents() {
     if(events & NEW_ADC1_DATA) {
         //Check if limit exceeded, respon accordingly
 
+        if (graphTypeActive == GRAPH_TYPE_CURR) {
+            if (graphLagStart == 0) graphLagStart = Clock_getTicks();
+            Event_post(GU_eventHandle, EVENT_GRAPH_CURR);
+        }
+
         //Update display
         //System_printf("ADC1: %f\n", ADC1Window.avg);
     }

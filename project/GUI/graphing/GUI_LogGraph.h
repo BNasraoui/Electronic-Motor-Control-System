@@ -16,6 +16,8 @@ struct LogGraphData {
     uint32_t height;
 } Graph_LogLUX;
 
-// void drawLogLine(struct XYGraphData *graph, bool draw, float value);
+extern void drawLogBar(struct XYGraphFrame *frame, uint16_t y);
+
+extern void drawLogValue(struct XYGraphFrame *frame, struct XYGraphData *graph, bool draw, uint16_t y);
 
 #endif /* DRIVERS_GUI_LOGGRAPH_H_ */
