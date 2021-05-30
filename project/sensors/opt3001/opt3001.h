@@ -51,8 +51,12 @@ extern void SetLowLimit(float val);
 
 extern void SetHighLimit(float val);
 
+extern bool CheckLowLightEventOccuredBlocking();
+
 extern bool CheckLowLightEventOccured();
 
 extern uint16_t CalculateLimitReg(float luxValue);
+
+extern uint16_t SwapBytes(uint8_t *rxBuffer_OPT);
 
 #endif // __SENSORS_H__

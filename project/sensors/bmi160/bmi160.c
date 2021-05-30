@@ -134,7 +134,7 @@ void ProcessAccelDataFxn() {
         accelXFilt.startFilter = true;
     }
 
-    //Event_post(sensors_eventHandle, Event_Id_02);
+    Event_post(sensors_eventHandle, NEW_ACCEL_DATA);
 }
 
 void ConvertRawAccelToGs() {
