@@ -4,7 +4,7 @@
 #include "GUI/graphing/GUI_graph.h"
 #include "GUI/gui.h"
 
-//*************************** SWI/HWIS **************************************
+//*************************** SWI/HWIS ******************************************
 void OPT3001_ClockHandlerFxn() {
     Event_post(sensors_eventHandle, NEW_OPT3001_DATA);
     //BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION);
@@ -121,14 +121,19 @@ void InitInterrupts() {
 
 void ProcessSensorEvents() {
     static float delay = 0;
-
     UInt events;
     UInt gateKey;
+
     events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
 
     if(events & NEW_OPT3001_DATA) {
-        GetLightLevel();
-        //System_printf("LUX: %f\n", luxValueFilt.avg);
+
+        float lightLevel = GetLightLevel();
+
+        if(headLightState == ON && lightLevel > NIGHTTIME_LUX_VAL) {
+            onDayNightChange(TURN_HEADLIGHTS_OFF);
+            headLightState = OFF;
+        }
 
         if (graphTypeActive == GRAPH_TYPE_LIGHT) {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
@@ -145,8 +150,6 @@ void ProcessSensorEvents() {
             //Fire e-stop event
         }
 
-        //System_printf("X: %f\t Y: %f\t Z: %f\n", accelXFilt.G, accelYFilt.G, accelZFilt.G);
-
         if (graphTypeActive == GRAPH_TYPE_ACCEL) {
             ++delay;
             if (delay >= 8) {
@@ -158,17 +161,15 @@ void ProcessSensorEvents() {
     }
 
     if(events & LOW_HIGH_LIGHT_EVENT) {
-        //TURN ON/OFF HEADLIGHTS
-        //System_printf("LOW/HIGH light even\n");
-
-        /* Send 1 if high light and 0 if low light */
-        //onDayNightChange(bool event Type);
-
-        bool lowLightEventOccured = GetHighLowEventStatus();
-        if(lowLightEventOccured) {
-            //Fire event
+        bool lowLightEventOccured = CheckLowLightEventOccured();
+        if(lowLightEventOccured && headLightState == OFF) {
+            //only turn on the headlights if our filtered data
+            //tells us it's nightime
+            if(luxValueFilt.avg < NIGHTTIME_LUX_VAL) {
+                onDayNightChange(TURN_HEADLIGHTS_ON);
+                headLightState = ON;
+            }
         }
-
     }
 
     if(events & NEW_ADC0_DATA) {
@@ -196,9 +197,10 @@ void ProcessSensorEvents() {
     }
 }
 
-void GetLightLevel() {
+float GetLightLevel() {
     GetLuxValue(&rawData);
     Swi_post(swiHandle_LuxDataProc);
+    return luxValueFilt.avg;
 }
 
 void GetAccelData() {

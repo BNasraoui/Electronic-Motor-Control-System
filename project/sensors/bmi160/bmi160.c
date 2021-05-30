@@ -101,7 +101,7 @@ bool GetAccelData_BMI160(int16_t *accelX, int16_t *accelY, int16_t *accelZ) {
 }
 
 float CalcAbsoluteAccel() {
-    return sqrt(accelXFilt.G*accelXFilt.G) + (accelYFilt.G*accelYFilt.G) + (accelZFilt.G*accelZFilt.G);
+    return sqrt(accelXFilt.G * accelXFilt.G) + (accelYFilt.G * accelYFilt.G) + (accelZFilt.G * accelZFilt.G);
 }
 
 void ProcessAccelDataFxn() {

@@ -29,7 +29,6 @@
 #define LOW_LIMIT                       0xFF0F // Full-scale range (Lux) = 40.95
 #define HIGH_LIMIT                      0xFF6F // Full scale range (Lux) = 2620.80
 
-
 /* Bit values */
 #define DATA_RDY_BIT                    0x0080  // Data ready
 
@@ -52,7 +51,7 @@ extern void SetLowLimit(float val);
 
 extern void SetHighLimit(float val);
 
-extern bool GetHighLowEventStatus();
+extern bool CheckLowLightEventOccured();
 
 extern uint16_t CalculateLimitReg(float luxValue);
 

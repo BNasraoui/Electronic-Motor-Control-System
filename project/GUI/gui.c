@@ -374,29 +374,29 @@ void getCurrentTime(){
 
 void RemoveHomeScreen(){
     //Black Background Canvas
-        WidgetRemove((tWidget *)&g_sBackground);
+    WidgetRemove((tWidget *)&g_sBackground);
 
-        // Limiter Widgets
-        WidgetRemove((tWidget *)&g_sLimitTitle);
-        WidgetRemove((tWidget *)&g_sSpeedTitle);
-        WidgetRemove((tWidget *)&g_sCurrentTitle);
-        WidgetRemove((tWidget *)&g_sAccelTitle);
-        WidgetRemove((tWidget *)&g_sSpeedSubBttn);
-        WidgetRemove((tWidget *)&g_sSpeedAddBttn);
-        WidgetRemove((tWidget *)&g_sSpeedCanvas);
-        WidgetRemove((tWidget *)&g_sCurrentSubBttn);
-        WidgetRemove((tWidget *)&g_sCurrentAddBttn);
-        WidgetRemove((tWidget *)&g_sCurrentCanvas);
-        WidgetRemove((tWidget *)&g_sAccelSubBttn);
-        WidgetRemove((tWidget *)&g_sAccelAddBttn);
-        WidgetRemove((tWidget *)&g_sAccelCanvas);
+    // Limiter Widgets
+    WidgetRemove((tWidget *)&g_sLimitTitle);
+    WidgetRemove((tWidget *)&g_sSpeedTitle);
+    WidgetRemove((tWidget *)&g_sCurrentTitle);
+    WidgetRemove((tWidget *)&g_sAccelTitle);
+    WidgetRemove((tWidget *)&g_sSpeedSubBttn);
+    WidgetRemove((tWidget *)&g_sSpeedAddBttn);
+    WidgetRemove((tWidget *)&g_sSpeedCanvas);
+    WidgetRemove((tWidget *)&g_sCurrentSubBttn);
+    WidgetRemove((tWidget *)&g_sCurrentAddBttn);
+    WidgetRemove((tWidget *)&g_sCurrentCanvas);
+    WidgetRemove((tWidget *)&g_sAccelSubBttn);
+    WidgetRemove((tWidget *)&g_sAccelAddBttn);
+    WidgetRemove((tWidget *)&g_sAccelCanvas);
 
-        // Alerts and Date
-        WidgetRemove((tWidget *)&g_sEstopText);
-        WidgetRemove((tWidget *)&g_sEstopLight);
-        WidgetRemove((tWidget *)&g_sDayAlert);
-        WidgetRemove((tWidget *)&g_sDate);
-        //WidgetRemove((tWidget *)&g_sSwitcher);
+    // Alerts and Date
+    WidgetRemove((tWidget *)&g_sEstopText);
+    WidgetRemove((tWidget *)&g_sEstopLight);
+    WidgetRemove((tWidget *)&g_sDayAlert);
+    WidgetRemove((tWidget *)&g_sDate);
+    //WidgetRemove((tWidget *)&g_sSwitcher);
 }
 
 void DrawHomeScreen(){

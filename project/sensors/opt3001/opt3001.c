@@ -25,20 +25,14 @@ void InitI2C_OPT3001() {
     SetLowLimit(40.95);
     SetHighLimit(2620.8);
 
+    //Make sure high/low event bit is cleared
+    CheckLowLightEventOccured();
+
     IntEnable(INT_GPIOP2);
 }
 
-bool GetLuxValue(uint16_t *rawData) {
-    uint16_t val;
-    bool readSuccess = false;
 
-    readSuccess = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
-    if (readSuccess) *rawData = (val << 8) | (val>>8 & 0xFF);
-
-    return (readSuccess);
-}
-
-bool GetHighLowEventStatus() {
+bool CheckLowLightEventOccured() {
     uint16_t val;
     uint16_t rawData;
     bool success;
@@ -55,11 +49,22 @@ bool GetHighLowEventStatus() {
     return false;
 }
 
+bool GetLuxValue(uint16_t *rawData) {
+    uint16_t val;
+    bool readSuccess = false;
+
+    readSuccess = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_RESULT, (uint8_t*)&val);
+    if (readSuccess) *rawData = (val << 8) | (val>>8 & 0xFF);
+
+    return (readSuccess);
+}
+
 void ProcessLuxDataFxn() {
     float lux;
     static bool led_state = false;
 
     ConvertRawDataToLux(rawData, &lux);
+
     luxValueFilt.sum = luxValueFilt.sum - luxValueFilt.data[luxValueFilt.index];
     luxValueFilt.data[luxValueFilt.index] = (uint16_t)lux;
     luxValueFilt.sum = luxValueFilt.sum + luxValueFilt.data[luxValueFilt.index];

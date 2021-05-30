@@ -80,6 +80,8 @@ void ReadSensorsFxn() {
     Clock_start(watchDog_ClockHandler);
     Clock_start(widgetQueue_ClockHandler);
 
+    headLightState = OFF;
+
     for(;;) {
         ProcessSensorEvents();
     }

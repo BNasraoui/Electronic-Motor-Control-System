@@ -70,6 +70,12 @@
 #define NEW_ADC0_DATA                   Event_Id_03
 #define NEW_ADC1_DATA                   Event_Id_04
 
+#define TURN_HEADLIGHTS_ON              1
+#define TURN_HEADLIGHTS_OFF             0
+#define NIGHTTIME_LUX_VAL               5
+#define ON                              1
+#define OFF                             0
+
 typedef struct Sliding_Window32 {
     uint8_t index;
     bool startFilter;
@@ -133,6 +139,8 @@ SlidingWindow_16 accelXFilt;
 SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
 
+bool headLightState;
+
 extern void WatchDogBite();
 
 extern void ADC_ClockHandlerFxn();
@@ -165,7 +173,9 @@ extern void ADC0_Read();
 
 extern void ADC1_Read();
 
-extern void GetLightLevel();
+extern float GetLightLevel();
+
+//extern void GetLightLevel();
 
 extern void GetAccelData();
 
