@@ -13,20 +13,17 @@
 #include "sensors/opt3001/opt3001.h"
 #include "GUI/graphing/GUI_graph.h"
 #include "GUI/graphing/GUI_XYGraph.h"
+#include "GUI/gui.h"
 
 void initGUIGraphs(void) {
-    Kentec320x240x16_SSD2119Init(SYS_CLK_SPEED);
-    GrContextInit(&sGraphContext, &g_sKentec320x240x16_SSD2119);
-    TouchScreenInit(SYS_CLK_SPEED);
-    TouchScreenCallbackSet(WidgetPointerMessage);
 
-//    GraphFrame_init(&GraphBorder, 32, 32, 272, 112);
+    GraphFrame_init(&GraphBorder, 32, 32, 272, 112);
 //
-//    GraphData_init(&Graph_LUX, 600);
-//
-//    GraphData_init(&Graph_ACCX, 5000);
-//    GraphData_init(&Graph_ACCY, 8000);
-//    GraphData_init(&Graph_ACCZ, 9000);
+    GraphData_init(&Graph_LUX, 600);
+
+    //GraphData_init(&Graph_ACCX, 5000);
+    //GraphData_init(&Graph_ACCY, 8000);
+    //GraphData_init(&Graph_ACCZ, 9000);
 }
 
 void graphLag(struct XYGraphFrame* frame) {
@@ -49,7 +46,7 @@ void graphLag(struct XYGraphFrame* frame) {
 }
 
 void drawSinglePlot(struct XYGraphFrame* frame, struct XYGraphData* graph, float data) {
-    //if (accumulateGraphData(graph, data, SINGLE_PLOT_DENSITY)) {
+    if (accumulateGraphData(graph, data, SINGLE_PLOT_DENSITY)) {
 
         addDataToGraph(frame, graph, data);
         updateFrameScale(frame);
@@ -68,7 +65,7 @@ void drawSinglePlot(struct XYGraphFrame* frame, struct XYGraphData* graph, float
         graph->updateFlag = false;
 
         graphLag(frame);
-    //}
+    }
 }
 
 void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, struct XYGraphData* graph2, struct XYGraphData* graph3, float data1, float data2, float data3) {
@@ -106,11 +103,11 @@ void GUI_Graphing(void)
 {
     UInt events;
 
-    if (graphTypeActive == GRAPH_TYPE_LIGHT) {
-        SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");
+    if ((graphTypeActive == GRAPH_TYPE_LIGHT) && tabNo) {
+       SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");
     }
 
-    if (graphTypeActive == GRAPH_TYPE_ACCEL) {
+    if ((graphTypeActive == GRAPH_TYPE_ACCEL) && tabNo) {
         TriplePlotGraph_init_display(&GraphBorder, "G [8:1]", "x", "y", "z");
     }
 

@@ -14,7 +14,7 @@
 #define SYS_CLK_SPEED                   120000000
 
 #define SENSOR_TASKSTACKSIZE            512
-#define GUI_TASKSTACKSIZE               2048
+#define GUI_TASKSTACKSIZE               512
 
 #define EVENT_GRAPH_LIGHT               Event_Id_10
 #define EVENT_GRAPH_RPM                 Event_Id_11

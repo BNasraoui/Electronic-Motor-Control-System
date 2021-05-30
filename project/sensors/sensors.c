@@ -126,7 +126,7 @@ void ProcessSensorEvents() {
     UInt gateKey;
     events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
 
-    if(events & NEW_OPT3001_DATA) {
+    if((events & NEW_OPT3001_DATA) && tabNo) {
         GetLightLevel();
         //System_printf("LUX: %f\n", luxValueFilt.avg);
 
@@ -136,7 +136,7 @@ void ProcessSensorEvents() {
         }
     }
 
-    if(events & NEW_ACCEL_DATA) {
+    if((events & NEW_ACCEL_DATA) && tabNo) {
         GetAccelData();
         //System_printf("X: %f\t Y: %f\t Z: %f\n", accelXFilt.G, accelYFilt.G, accelZFilt.G);
 

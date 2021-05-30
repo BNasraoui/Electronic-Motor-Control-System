@@ -1,7 +1,9 @@
 #include <GUI/gui.h>
+#include "GUI/graphing/GUI_graph.h"
 
 tPushButtonWidget g_sStartStopBttn;
 tCanvasWidget     g_sBackground;
+tCanvasWidget     g_sGraphBackground;
 tCanvasWidget     g_sEstopText;
 tCanvasWidget     g_sEstopLight;
 tCanvasWidget     g_sDayAlert;
@@ -23,10 +25,11 @@ void StartStopBttnPress(tWidget *psWidget);
 void onSpeedChange(tWidget *psWidget);
 void onCurrentChange(tWidget *psWidget);
 void onAccelChange(tWidget *psWidget);
-//void DrawHomeScreen();
+void DrawHomeScreen();
+void DrawGraphScreen();
 void RemoveHomeScreen();
-
-void onDayNightChange();
+void RemoveGraphScreen();
+void onDayNightChange(bool eventType);
 void onTabSwap();
 void initTime();
 void getCurrentTime();
@@ -36,11 +39,15 @@ Canvas(g_sBackground, 0, &g_sStartStopBttn, 0,
        &g_sKentec320x240x16_SSD2119, 10, 25, 300, (240 - 25 -10),
        CANVAS_STYLE_FILL, ClrBlack, 0, 0, 0, 0, 0, 0);
 
+Canvas(g_sGraphBackground, 0, 0, 0,
+       &g_sKentec320x240x16_SSD2119, 10, 25, 300, (240 - 25 -10),
+       CANVAS_STYLE_FILL, ClrBlack, 0, 0, 0, 0, 0, 0);
+
 CircularButton(g_sStartStopBttn, &g_sBackground, 0, 0,
                   &g_sKentec320x240x16_SSD2119, 275, 50, 25,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
-                   ClrGreen, ClrRed, ClrWhite, ClrWhite,
+                   ClrRed, ClrRed, ClrWhite, ClrWhite,
                    g_psFontCmss16b, "Start", 0, 0, 0, 0, StartStopBttnPress);
 
 // E-Stop Indicator
@@ -70,7 +77,7 @@ RectangularButton(g_sSwitcher, 0, 0, 0,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
-                   g_psFontCmss16b, "Graph", 0, 0, 0, 0, 0); // ADD ONTABSWAP FUNCTION WHEN CONNECTING. NOT CONNECTED YET BECAUSE WILL BORK SYSTEM
+                   g_psFontCmss16b, "Graph", 0, 0, 0, 0, onTabSwap); // ADD ONTABSWAP FUNCTION WHEN CONNECTING. NOT CONNECTED YET BECAUSE WILL BORK SYSTEM
 
 // Limit Titles
 Canvas(g_sLimitTitle, 0, 0, 0,
@@ -272,7 +279,7 @@ void eStopFxn(UArg arg0, UArg arg1){
 }
 
 /* Turns on the night light and updates the display on change */
-void onDayNightChange(eventType){
+void onDayNightChange(bool eventType){
     if(lights == eventType){        // e.g if low light and lights are off
         lights = eventType;         // update light state
         /* Update LED and Screen */
@@ -290,17 +297,25 @@ void onDayNightChange(eventType){
     }
 }
 
+/* Swap between settings and graph tab */
 void onTabSwap(){
-    tabNo = false;
 
     if(tabNo){
-        PushButtonTextSet(&g_sSwitcher, "Graph");
+        RemoveGraphScreen();
         DrawHomeScreen();
+        PushButtonTextSet(&g_sSwitcher, "Graph");
+        WidgetPaint((tWidget *) &g_sSwitcher);
+        tabNo = false;
     }
-    else{
+    else if(!tabNo){
+        RemoveHomeScreen();
+        DrawGraphScreen();
         PushButtonTextSet(&g_sSwitcher, "Home");
-        void RemoveHomeScreen();
+        WidgetPaint((tWidget *) &g_sSwitcher);
+        tabNo = true;
+
         // Render Graph Page
+        //initGUIGraphs();
     }
 }
 
@@ -372,6 +387,18 @@ void getCurrentTime(){
     WidgetPaint((tWidget *)&g_sDate);
 }
 
+
+/* Undraw the Graph Widgets */
+void RemoveGraphScreen(){
+    WidgetRemove((tWidget *) &g_sGraphBackground);
+    WidgetRemove((tWidget *)&g_sSwitcher);
+
+    // Mitchell, Your Switches and Stuff for the graph Go here..
+
+    WidgetPaint(WIDGET_ROOT);
+}
+
+/* Undraw the Home Screen Widgets */
 void RemoveHomeScreen(){
     //Black Background Canvas
         WidgetRemove((tWidget *)&g_sBackground);
@@ -396,9 +423,20 @@ void RemoveHomeScreen(){
         WidgetRemove((tWidget *)&g_sEstopLight);
         WidgetRemove((tWidget *)&g_sDayAlert);
         WidgetRemove((tWidget *)&g_sDate);
-        //WidgetRemove((tWidget *)&g_sSwitcher);
+        WidgetRemove((tWidget *)&g_sSwitcher);
 }
 
+/* Draw Graph Screen Widgets */
+void DrawGraphScreen() {
+    WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sGraphBackground);
+    WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
+
+    FrameDraw(&sContext, "Graph Screen");
+
+    // Mitchell, Your Switches and Stuff for the graph Go here..
+}
+
+/* Draw all Home Screen Widgets */
 void DrawHomeScreen(){
     //Black Background Canvas
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sBackground);
@@ -427,9 +465,6 @@ void DrawHomeScreen(){
 
     /* Draw frame */
     FrameDraw(&sContext, "Settings Screen");
-    System_printf("Starting the example\nSystem provider is set to SysMin. "
-                  "Halt the target to view any SysMin contents in ROV.\n");
-    /* SysMin will only print to the console when you call flush or exit */
-    System_flush();
+
     WidgetPaint(WIDGET_ROOT);
 }

@@ -64,9 +64,9 @@
 // Graphics
 bool eStop;
 bool lights;
+bool tabNo;
 tContext sContext;
 uint8_t motorStartStop;
-uint8_t tabNo;
 uint16_t SPEED_USER_LIMIT;
 uint16_t CURRENT_USER_LIMIT;
 uint16_t ACCEL_USER_LIMIT;
@@ -77,7 +77,9 @@ uint32_t clockTicks;
 //extern void onCurrentChange(tWidget *psWidget);
 //extern void onAccelChange(tWidget *psWidget);
 extern void DrawHomeScreen();
-//extern void RemoveHomeScreen();
+extern void DrawGraphScreen();
+extern void RemoveHomeScreen();
+extern void RemoveGraphScreen();
 extern void eStopFxn(UArg arg0, UArg arg1);
 extern void onDayNightChange(bool eventType);
 //extern void onTabSwap();
