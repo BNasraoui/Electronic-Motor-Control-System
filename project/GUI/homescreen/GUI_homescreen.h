@@ -50,7 +50,7 @@
 /* Board Header file */
 #include "Board.h"
 
-#define SPEED_LIMIT     100
+#define SPEED_LIMIT     5820
 #define CURRENT_LIMIT   2000
 #define ACCEL_LIMIT     500
 #define TASKSTACKSIZE   1024
@@ -66,10 +66,6 @@ bool eStop;
 bool lights;
 bool graphingTab;
 tContext sContext;
-uint8_t motorStartStop;
-uint16_t SPEED_USER_LIMIT;
-uint16_t CURRENT_USER_LIMIT;
-uint16_t ACCEL_USER_LIMIT;
 uint32_t clockTicks;
 
 /* Time Values */

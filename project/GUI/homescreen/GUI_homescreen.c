@@ -92,18 +92,17 @@ Canvas(g_sLimitTitle, 0, 0, 0,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b,"Limits", 0, 0);
 
 Canvas(g_sSpeedTitle, 0, 0, 0,
-       &g_sKentec320x240x16_SSD2119, 150, 45, 50, 40,
-       CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, "Speed", 0, 0);
+       &g_sKentec320x240x16_SSD2119, 155, 45, 100, 40,
+       CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, "Speed (RPM)", 0, 0);
 Canvas(g_sCurrentTitle, 0, 0, 0,
-       &g_sKentec320x240x16_SSD2119, 150, 95, 50, 40,
-       CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, "Curr", 0, 0);
+       &g_sKentec320x240x16_SSD2119, 155, 95, 70, 40,
+       CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, "Curr (A)", 0, 0);
 Canvas(g_sAccelTitle, 0, 0, 0,
-       &g_sKentec320x240x16_SSD2119, 150, 145, 50, 40,
-       CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, "Accel", 0, 0);
-
+       &g_sKentec320x240x16_SSD2119, 155, 145, 70, 40,
+       CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, "Accel (G)", 0, 0);
 
 // Speed
-static char Speed[10] = "5%";
+static char Speed[10] = "0";
 Canvas(g_sSpeedCanvas, 0, 0, 0,
        &g_sKentec320x240x16_SSD2119, 60, 50, 50, 40,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Speed, 0, 0);
@@ -123,7 +122,7 @@ RectangularButton(g_sSpeedAddBttn, 0, 0, 0,
                    g_psFontCmss16b, "+", 0, 0, 0, 0, onSpeedChange);
 
 // Current
-static char Current[10] = "100mA";
+static char Current[10] = "500";
 Canvas(g_sCurrentCanvas, 0, 0, 0,
        &g_sKentec320x240x16_SSD2119, 50, 100, 75, 40,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Current, 0, 0);
@@ -143,7 +142,7 @@ RectangularButton(g_sCurrentAddBttn, 0, 0, 0,
                    g_psFontCmss16b, "+", 0, 0, 0, 0, onCurrentChange);
 
 // Acceleration
-static char Acceleration[10] = "50RPM";
+static char Acceleration[10] = "2";
 Canvas(g_sAccelCanvas, 0, 0, 0,
        &g_sKentec320x240x16_SSD2119, 50, 150, 75, 40,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Acceleration, 0, 0);
@@ -164,9 +163,7 @@ RectangularButton(g_sAccelAddBttn, 0, 0, 0,
 
 void StartStopBttnPress(tWidget *psWidget)
 {
-    motorStartStop = !motorStartStop;
-
-    if(motorStartStop)
+    if(motorRunning)
     {
         /* Change the button text to indicate the new function. */
         PushButtonTextSet(&g_sStartStopBttn, "Stop");
@@ -176,6 +173,7 @@ void StartStopBttnPress(tWidget *psWidget)
          * the welcome message). */
         WidgetPaint((tWidget *)&g_sStartStopBttn);
 
+       // Event_post(motor_evtHandle, STOP_MOTOR); // Motor Stop Start Event
     }
     else
     {
@@ -184,68 +182,62 @@ void StartStopBttnPress(tWidget *psWidget)
         PushButtonFillColorSet(&g_sStartStopBttn, ClrGreen);
 
         WidgetPaint((tWidget *)&g_sStartStopBttn);
+
+      //  Event_post(motor_evtHandle, START_MOTOR); // Motor Stop Start Event
     }
-    Event_post(gui_event_handle, MOTOR_EVENT); // Motor Stop Start Event
+
 }
 
 /* Handles User Speed Change */
 void onSpeedChange(tWidget *psWidget){
-    // Lower Speed 5%
-    if(psWidget == ((tWidget *)&g_sSpeedSubBttn) && (SPEED_USER_LIMIT != 0)){
-        SPEED_USER_LIMIT-= 5;
-        usprintf(Speed, "%3d%%", SPEED_USER_LIMIT);
+    // Lower Speed 50RPM
+    if(psWidget == ((tWidget *)&g_sSpeedSubBttn) && (SPEED_USER_LIMIT > 0)){
+        SPEED_USER_LIMIT -= 50;
+        usprintf(Speed, "%d", SPEED_USER_LIMIT);
         CanvasTextSet(&g_sSpeedCanvas, Speed);
         WidgetPaint((tWidget *)&g_sSpeedCanvas);
-
-        Event_post(gui_event_handle, SPEED_EVENT); // Speed Change Event
      }
-    // Increase Speed 5%
+    // Increase Speed 50RPM
     if((psWidget == (tWidget *)&g_sSpeedAddBttn) && (SPEED_USER_LIMIT < SPEED_LIMIT)){
-        SPEED_USER_LIMIT += 5;
-        usprintf(Speed, "%3d%%", SPEED_USER_LIMIT);
+        SPEED_USER_LIMIT += 50;
+        usprintf(Speed, "%d", SPEED_USER_LIMIT);
         CanvasTextSet(&g_sSpeedCanvas, Speed);
         WidgetPaint((tWidget *)&g_sSpeedCanvas);
-
-        Event_post(gui_event_handle, SPEED_EVENT); // Speed Change Event
      }
 }
+
 /* Handles Current Limit Change */
 void onCurrentChange(tWidget *psWidget){
     /* Lower speed 100mA */
-    if(psWidget == ((tWidget *)&g_sCurrentSubBttn) && (CURRENT_USER_LIMIT != 0)){
+    if(psWidget == ((tWidget *)&g_sCurrentSubBttn) && (CURRENT_USER_LIMIT > 0)){
         CURRENT_USER_LIMIT-= 100;
-        usprintf(Current, "%5dmA", CURRENT_USER_LIMIT);
+        usprintf(Current, "%d", CURRENT_USER_LIMIT);
         CanvasTextSet(&g_sCurrentCanvas, Current);
         WidgetPaint((tWidget *)&g_sCurrentCanvas);
-
-        Event_post(gui_event_handle, CURRENT_EVENT); // Current limit change event
     }
     /* Increase speed 100mA */
-    if(psWidget ==((tWidget *)&g_sCurrentAddBttn) && (CURRENT_USER_LIMIT != CURRENT_LIMIT)){
+    if(psWidget ==((tWidget *)&g_sCurrentAddBttn) && (CURRENT_USER_LIMIT < CURRENT_LIMIT)){
         CURRENT_USER_LIMIT += 100;
-        usprintf(Current, "%5dmA", CURRENT_USER_LIMIT);
+        usprintf(Current, "%d", CURRENT_USER_LIMIT);
         CanvasTextSet(&g_sCurrentCanvas, Current);
         WidgetPaint((tWidget *)&g_sCurrentCanvas);
-        Event_post(gui_event_handle, CURRENT_EVENT); // Current limit change event
     }
 }
 
 void onAccelChange(tWidget *psWidget){
     /* Lower acceleration RPM */
-    if(psWidget == ((tWidget *)&g_sAccelSubBttn) && (ACCEL_USER_LIMIT != 0)){
-        ACCEL_USER_LIMIT-=50;
-        usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
+    if(psWidget == ((tWidget *)&g_sAccelSubBttn) && (ACCEL_USER_LIMIT > 0)){
+        ACCEL_USER_LIMIT -= 1;
+        usprintf(Acceleration, "%d", ACCEL_USER_LIMIT);
         CanvasTextSet(&g_sAccelCanvas, Acceleration);
         WidgetPaint((tWidget *)&g_sAccelCanvas);
-        Event_post(gui_event_handle, ACCEL_EVENT); // Acceleration Limit change event
     }
     /* Increase acceleration Accel */
-    if(psWidget == ((tWidget *)&g_sAccelAddBttn) && (ACCEL_USER_LIMIT != ACCEL_LIMIT)){
-        ACCEL_USER_LIMIT+=50;
-        usprintf(Acceleration, "%3dRPM", ACCEL_USER_LIMIT);
+    if(psWidget == ((tWidget *)&g_sAccelAddBttn)  && (ACCEL_USER_LIMIT < ACCEL_LIMIT)){
+        ACCEL_USER_LIMIT += 1;
+        usprintf(Acceleration, "%d", ACCEL_USER_LIMIT);
         CanvasTextSet(&g_sAccelCanvas, Acceleration);
         WidgetPaint((tWidget *)&g_sAccelCanvas);
-        Event_post(gui_event_handle, ACCEL_EVENT); // Acceleration Limit change event
     }
 }
 
@@ -261,7 +253,6 @@ void onDayNightChange(bool eventType){
         else{
             usprintf(dayNight, "Day");
             GPIO_write(Board_LED0, Board_LED_OFF); // Turn off light
-
         }
         CanvasTextSet(&g_sDayAlert, dayNight);
         WidgetPaint((tWidget *)&g_sDayAlert);
@@ -274,8 +265,7 @@ void onTabSwap() {
     if(graphingTab == true) {
         Event_post(GU_eventHandle, EVENT_GUI_SWITCH);
     }
-    else if (graphingTab == false)
-    {
+    else if (graphingTab == false) {
         Event_post(gui_event_handle, EVENT_GUI_SWITCH);
     }
 }
@@ -447,11 +437,11 @@ void initGUIHomescreen(void) {
     eStop = false;
     graphingTab = false;
     lights = false;
-    motorStartStop = 1;
+    motorRunning = 1;
     clockTicks = 0;
-    SPEED_USER_LIMIT = 5;
-    CURRENT_USER_LIMIT = 100;
-    ACCEL_USER_LIMIT = 50;
+    SPEED_USER_LIMIT = 0;
+    CURRENT_USER_LIMIT = 500;
+    ACCEL_USER_LIMIT = 1;
 
     initTime();
     DrawHomeScreen();

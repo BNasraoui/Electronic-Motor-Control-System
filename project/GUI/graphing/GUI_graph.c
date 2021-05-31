@@ -30,7 +30,7 @@ void initGUIGraphs(void) {
     GraphData_init(&Graph_ACCABS, 5000);
 
     /* Default Graph */
-    graphTypeActive = GRAPH_TYPE_LIGHT;
+    graphTypeActive = GRAPH_TYPE_ACCEL;
     graphingMode = false;
 }
 

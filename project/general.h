@@ -36,6 +36,11 @@
 #define ALLTASKS_CHECKEDIN              0x07
 char watchDogCheck;
 
+uint8_t motorRunning;
+uint16_t SPEED_USER_LIMIT;
+uint16_t CURRENT_USER_LIMIT;
+uint16_t ACCEL_USER_LIMIT;
+
 /* Tasks */
 Task_Struct sensorTaskStruct;
 Char sensorTaskStack[SENSOR_TASKSTACKSIZE];
@@ -45,5 +50,6 @@ Char guiTaskStack[GUI_TASKSTACKSIZE];
 
 /* Events */
 Event_Handle GU_eventHandle;
+Event_Handle sensors_eventHandle;
 
 #endif /* GENERAL_H_ */

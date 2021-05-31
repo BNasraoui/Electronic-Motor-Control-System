@@ -7,19 +7,14 @@
 //*************************** SWI/HWIS ******************************************
 void OPT3001_ClockHandlerFxn() {
     Event_post(sensors_eventHandle, NEW_OPT3001_DATA);
-    //BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION);
-    //BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_RESULT);
-    Clock_start(opt3001_ClockHandler);
 }
 
 void ADC_ClockHandlerFxn() {
     ADCProcessorTrigger(ADC1_BASE, ADC_SEQ);
-    Clock_start(adc_ClockHandler);
 }
 
 void BMI160Fxn() {
     Event_post(sensors_eventHandle, NEW_ACCEL_DATA);
-    //BufferReadI2C_BMI160(BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L);
 }
 
 void OPT3001Fxn() {
@@ -87,7 +82,6 @@ void InitSensorDriver() {
 }
 
 void InitInterrupts() {
-
     Swi_Params_init(&swiParams);
     swiParams.priority = 1;
     swiParams.trigger = 0;
@@ -122,11 +116,10 @@ void ProcessSensorEvents() {
     UInt events;
     UInt gateKey;
 
-    events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
+    events = Event_pend(sensors_eventHandle, Event_Id_NONE, (LOW_HIGH_LIGHT_EVENT + NEW_OPT3001_DATA + NEW_ACCEL_DATA + NEW_ADC1_DATA + KICK_DOG), BIOS_WAIT_FOREVER);
 
     if(events & NEW_OPT3001_DATA) {
         GetLightLevel();
-        //System_printf("LUX: %f\n", luxValueFilt.avg);
 
         if (graphTypeActive == GRAPH_TYPE_LIGHT) {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
@@ -136,11 +129,11 @@ void ProcessSensorEvents() {
 
     if(events & NEW_ACCEL_DATA) {
         GetAccelData();
-        float absoluteAccel = CalcAbsoluteAccel();
+        absoluteAccel = CalcAbsoluteAccel();
 
-        float accelLimit = 100; //for testing only
-        if(absoluteAccel > accelLimit) {
+        if(absoluteAccel > ACCEL_USER_LIMIT) {
             //Fire e-stop event
+
         }
 
         if (graphTypeActive == GRAPH_TYPE_ACCEL) {
@@ -155,6 +148,7 @@ void ProcessSensorEvents() {
 
     if(events & LOW_HIGH_LIGHT_EVENT) {
         bool lowLightEventOccured = CheckLowLightEventOccured();
+
         if(lowLightEventOccured && headLightState == OFF) {
             //only turn on the headlights if our filtered data
             //tells us it's nightime
@@ -165,21 +159,16 @@ void ProcessSensorEvents() {
         }
     }
 
-    if(events & NEW_ADC0_DATA) {
-        //Check if limit exceeded, respond accordingly
-
-        //Update display
-        //System_printf("ADC0: %f\n", ADC0Window.avg);
-    }
-
     if(events & NEW_ADC1_DATA) {
-        //Check if limit exceeded, respon accordingly
+        //If current limit exceeded, send E-stop event
+        if(ADC1Window.current > CURRENT_USER_LIMIT || ADC0Window.current > CURRENT_USER_LIMIT) {
+
+        }
 
         if (graphTypeActive == GRAPH_TYPE_CURR) {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
             Event_post(GU_eventHandle, EVENT_GRAPH_CURR);
         }
-
         //Update display
         //System_printf("ADC1: %f\n", ADC1Window.avg);
     }

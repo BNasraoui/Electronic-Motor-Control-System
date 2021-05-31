@@ -102,6 +102,8 @@ typedef struct Sliding_Window_u16 {
     uint16_t data[WINDOW_SIZE];
 } SlidingWindow_u16;
 
+float absoluteAccel;
+
 Hwi_Handle hwi_ADC0;
 Hwi_Handle hwi_ADC1;
 Hwi_Params hwiParams;
@@ -112,7 +114,6 @@ Swi_Params swiParams;
 Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
 Swi_Handle swiHandle_ADC0DataProc, swiHandle_ADC1DataProc, swiHandle_accelDataProc, swiHandle_LuxDataProc;
 
-Event_Handle sensors_eventHandle;
 Error_Block eb;
 
 I2C_Handle i2cHandle;
