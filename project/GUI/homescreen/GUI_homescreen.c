@@ -398,7 +398,6 @@ void DrawHomeScreen(){
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sDate);
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
 
-
     /* Draw frame */
     FrameDraw(&sGUIContext, "Configurations");
 

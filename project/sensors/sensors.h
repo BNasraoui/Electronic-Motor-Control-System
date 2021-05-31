@@ -18,6 +18,7 @@
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/hal/Hwi.h>
 #include <ti/sysbios/gates/GateHwi.h>
+#include <ti/sysbios/gates/GateMutex.h>
 #include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Swi.h>
 #include <ti/sysbios/hal/Timer.h>
@@ -105,8 +106,8 @@ typedef struct Sliding_Window_u16 {
 Hwi_Handle hwi_ADC0;
 Hwi_Handle hwi_ADC1;
 Hwi_Params hwiParams;
-GateHwi_Handle gateHwi;
-GateHwi_Params gHwiprms;
+GateMutex_Handle gateHwi;
+UInt gateKey;
 
 Swi_Params swiParams;
 Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
@@ -117,8 +118,10 @@ Error_Block eb;
 
 I2C_Handle i2cHandle;
 I2C_Params i2cParams;
-I2C_Transaction i2cTransactionCallback;
+I2C_Transaction i2cTransaction;
 uint8_t rxBuffer_BMI[6];
+uint8_t rxBuffer_OPT[2];
+uint8_t txBuffer_OPT[1];
 
 Clock_Params clockParams;
 Clock_Handle adc_ClockHandler;

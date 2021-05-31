@@ -70,6 +70,17 @@ void ReadSensorsFxn() {
     InitI2C_BMI160();
     InitADC1_CurrentSense();
 
+    // re-init i2c in callback mode for periodic sensor reading
+    I2C_close(i2cHandle);
+    i2cParams.transferMode = I2C_MODE_CALLBACK;
+    i2cParams.transferCallbackFxn = I2C_Callback;
+    i2cHandle = I2C_open(0, &i2cParams);
+    if (i2cHandle == NULL) {
+        System_abort("Error Initializing I2C Handle in callback mode\n");
+    }
+
+    //Task_sleep(500);
+
     // enable GPIO Hwis for BMI160 and OPT3001
     GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
     GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);

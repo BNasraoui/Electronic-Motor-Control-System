@@ -6,9 +6,9 @@
 
 //*************************** SWI/HWIS ******************************************
 void OPT3001_ClockHandlerFxn() {
-    Event_post(sensors_eventHandle, NEW_OPT3001_DATA);
-    //BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION);
-    //BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_RESULT);
+    //Event_post(sensors_eventHandle, NEW_OPT3001_DATA);
+    gateKey = GateMutex_enter(gateHwi);
+    BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_RESULT);
     Clock_start(opt3001_ClockHandler);
 }
 
@@ -17,13 +17,76 @@ void ADC_ClockHandlerFxn() {
     Clock_start(adc_ClockHandler);
 }
 
+// fired when GPIO pin goes low due to new bmi160 data ready
 void BMI160Fxn() {
-    Event_post(sensors_eventHandle, NEW_ACCEL_DATA);
-    //BufferReadI2C_BMI160(BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L);
+    //Event_post(sensors_eventHandle, NEW_ACCEL_DATA);
+    gateKey = GateMutex_enter(gateHwi);
+    BufferReadI2C_BMI160(BMI160_SLAVE_ADDRESS, BMI160_RA_ACCEL_X_L);
 }
 
+// fired when low/high light event interrupt detected on GPIO pin
 void OPT3001Fxn() {
-    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
+    gateKey = GateMutex_enter(gateHwi);
+    BufferReadI2C_OPT3001(OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION);
+    //Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
+}
+
+void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg)
+{
+    //Use global reg as we use it to check what reg we are reading
+    txBuffer_OPT[0] = ui8Reg;
+
+    i2cTransaction.slaveAddress = slaveAddress;
+    i2cTransaction.writeBuf = txBuffer_OPT;
+    i2cTransaction.writeCount = 1;
+    i2cTransaction.readBuf = rxBuffer_OPT;
+    i2cTransaction.readCount = 2;
+    I2C_transfer(i2cHandle, &i2cTransaction);
+}
+
+void BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg)
+{
+    uint8_t txBuffer_BMI[1];
+    txBuffer_BMI[0] = ui8Reg;
+
+    i2cTransaction.slaveAddress = slaveAddress;
+    i2cTransaction.writeBuf = txBuffer_BMI;
+    i2cTransaction.writeCount = 1;
+    i2cTransaction.readBuf = rxBuffer_BMI;
+    i2cTransaction.readCount = 6;
+    I2C_transfer(i2cHandle, &i2cTransaction);
+}
+
+void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
+    //We must protect the integrity of the I2C transaction
+    //If it's used whilst we are processing then issues can arise
+    if(result) {
+        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
+            //shift data from buffers to form raw accel
+            rawAccel.x = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
+            rawAccel.y = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
+            rawAccel.z = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
+            GateMutex_leave(gateHwi, gateKey);
+            Swi_post(swiHandle_accelDataProc);
+            return;
+        }
+        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
+            if(txBuffer_OPT[0] == REG_RESULT) {
+                rawData = SwapBytes(rxBuffer_OPT);
+                GateMutex_leave(gateHwi, gateKey);
+                Swi_post(swiHandle_LuxDataProc);
+                return;
+            }
+            else if(txBuffer_OPT[0] == REG_CONFIGURATION) {
+                bool lowLightEventOccured = CheckLowLightEventOccured(rxBuffer_OPT);
+                GateMutex_leave(gateHwi, gateKey);
+                if(lowLightEventOccured && headLightState == OFF) {
+                    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
+                }
+                return;
+            }
+        }
+    }
 }
 
 //*************************** INITIALISATION **************************************
@@ -70,8 +133,9 @@ void InitSensorDriver() {
     }
 
     //Create Hwi Gate Mutex
-    GateHwi_Params_init(&gHwiprms);
-    gateHwi = GateHwi_create(&gHwiprms, NULL);
+    GateMutex_Params gHwiprms;
+    GateMutex_Params_init(&gHwiprms);
+    gateHwi = GateMutex_create(&gHwiprms, NULL);
     if (gateHwi == NULL) {
         System_abort("Gate Hwi create failed");
     }
@@ -125,8 +189,13 @@ void ProcessSensorEvents() {
     events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
 
     if(events & NEW_OPT3001_DATA) {
-        GetLightLevel();
-        //System_printf("LUX: %f\n", luxValueFilt.avg);
+
+        //float lightLevel = GetLightLevel();
+
+        if(headLightState == ON && luxValueFilt.avg > NIGHTTIME_LUX_VAL) {
+            onDayNightChange(TURN_HEADLIGHTS_OFF);
+            headLightState = OFF;
+        }
 
         if (graphTypeActive == GRAPH_TYPE_LIGHT) {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
@@ -135,7 +204,7 @@ void ProcessSensorEvents() {
     }
 
     if(events & NEW_ACCEL_DATA) {
-        GetAccelData();
+        //GetAccelData();
         float absoluteAccel = CalcAbsoluteAccel();
 
         float accelLimit = 100; //for testing only
@@ -154,14 +223,11 @@ void ProcessSensorEvents() {
     }
 
     if(events & LOW_HIGH_LIGHT_EVENT) {
-        bool lowLightEventOccured = CheckLowLightEventOccured();
-        if(lowLightEventOccured && headLightState == OFF) {
-            //only turn on the headlights if our filtered data
-            //tells us it's nightime
-            if(luxValueFilt.avg < NIGHTTIME_LUX_VAL) {
-                onDayNightChange(TURN_HEADLIGHTS_ON);
-                headLightState = ON;
-            }
+        //only turn on the headlights if our filtered data
+        //tells us it's nightime
+        if(luxValueFilt.avg < NIGHTTIME_LUX_VAL) {
+            onDayNightChange(TURN_HEADLIGHTS_ON);
+            headLightState = ON;
         }
     }
 
@@ -399,74 +465,3 @@ bool WriteByteI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, ui
 }
 
 //********************** CODE GRAVEYARD ****************************************
-//void BufferReadI2C_OPT3001(uint8_t slaveAddress, uint8_t ui8Reg)
-//{
-//    UInt gateKey;
-//    txBuffer_OPT[0] = ui8Reg;
-//
-//    gateKey = GateHwi_enter(gateHwi);
-//
-//    i2cTransactionCallback.slaveAddress = slaveAddress;
-//    i2cTransactionCallback.writeBuf = txBuffer_OPT;
-//    i2cTransactionCallback.writeCount = 1;
-//    i2cTransactionCallback.readBuf = rxBuffer_OPT;
-//    i2cTransactionCallback.readCount = 2;
-//    I2C_transfer(i2cHandle, &i2cTransactionCallback);
-//
-//    GateHwi_leave(gateHwi, gateKey);
-//}
-//
-//void BufferReadI2C_BMI160(uint8_t slaveAddress, uint8_t ui8Reg)
-//{
-//    UInt gateKey;
-//    uint8_t txBuffer_BMI[1];
-//    txBuffer_BMI[0] = ui8Reg;
-//
-//    gateKey = GateHwi_enter(gateHwi);
-//
-//    i2cTransactionCallback.slaveAddress = slaveAddress;
-//    i2cTransactionCallback.writeBuf = txBuffer_BMI;
-//    i2cTransactionCallback.writeCount = 1;
-//    i2cTransactionCallback.readBuf = rxBuffer_BMI;
-//    i2cTransactionCallback.readCount = 6;
-//    I2C_transfer(i2cHandle, &i2cTransactionCallback);
-//
-//    GateHwi_leave(gateHwi, gateKey);
-//}
-//
-//void I2C_Callback(I2C_Handle handle, I2C_Transaction *i2cTransaction, bool result) {
-//    UInt gateKey;
-//
-//    //We must protect the integrity of the I2C transaction
-//    //If it's used whilst we are processing then issues can arise
-//    gateKey = GateHwi_enter(gateHwi);
-//    if(result) {
-//        if(i2cTransaction->slaveAddress == BMI160_SLAVE_ADDRESS){
-//            //shift data from buffers to form raw accel
-//            accelX = (((int16_t)rxBuffer_BMI[1])  << 8) | rxBuffer_BMI[0];
-//            accelY = (((int16_t)rxBuffer_BMI[3])  << 8) | rxBuffer_BMI[2];
-//            accelZ = (((int16_t)rxBuffer_BMI[5])  << 8) | rxBuffer_BMI[4];
-//            Swi_post(swiHandle_accelDataProc);
-//        }
-//        else if(i2cTransaction->slaveAddress == OPT3001_SLAVE_ADDRESS) {
-//            //Only call Swi if we've requested result reg
-//            if(txBuffer_OPT2[1] == REG_RESULT) {
-//                Swi_post(swiHandle_LuxDataProc);
-//            }
-//        }
-//    }
-//    else {
-//        System_printf("Bad i2c transaction");
-//    }
-//    GateHwi_leave(gateHwi, gateKey);
-//    System_flush();
-//}
-
-//    // re-init i2c in callback mode for periodic sensor reading
-//    I2C_close(i2cHandle);
-//    i2cParams.transferMode = I2C_MODE_CALLBACK;
-//    i2cParams.transferCallbackFxn = I2C_Callback;
-//    i2cHandle = I2C_open(0, &i2cParams);
-//    if (i2cHandle == NULL) {
-//        System_abort("Error Initializing I2C Handle\n");
-//    }

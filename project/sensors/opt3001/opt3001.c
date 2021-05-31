@@ -26,13 +26,13 @@ void InitI2C_OPT3001() {
     SetHighLimit(2620.8);
 
     //Make sure high/low event bit is cleared
-    CheckLowLightEventOccured();
+    CheckLowLightEventOccuredBlocking();
 
     IntEnable(INT_GPIOP2);
 }
 
 
-bool CheckLowLightEventOccured() {
+bool CheckLowLightEventOccuredBlocking() {
     uint16_t val;
     uint16_t rawData;
     bool success;
@@ -49,6 +49,14 @@ bool CheckLowLightEventOccured() {
     return false;
 }
 
+bool CheckLowLightEventOccured(uint8_t rxBuffer[]) {
+    rawData = SwapBytes(rxBuffer);
+    if(rawData & CONFIG_LOWLIGHT_BIT) {
+        return true;
+    }
+    return false;
+}
+
 bool GetLuxValue(uint16_t *rawData) {
     uint16_t val;
     bool readSuccess = false;
@@ -59,6 +67,12 @@ bool GetLuxValue(uint16_t *rawData) {
     return (readSuccess);
 }
 
+uint16_t SwapBytes(uint8_t *rxBuffer_OPT) {
+    //uint16_t rawData = (val << 8) | (val>>8 & 0xFF);
+    return (rxBuffer_OPT[0] << 8) | (rxBuffer_OPT[1] & 0xFF);
+}
+
+// This is the Swi function that is called from i2c callback when new data arrives
 void ProcessLuxDataFxn() {
     float lux;
     static bool led_state = false;
@@ -81,7 +95,7 @@ void ProcessLuxDataFxn() {
     led_state = !led_state;
     GPIO_write(Board_LED0, led_state);
 
-    //Event_post(sensors_eventHandle, Event_Id_01);
+    Event_post(sensors_eventHandle, NEW_OPT3001_DATA);
 }
 
 void ConvertRawDataToLux(uint16_t rawData, float *convertedLux) {
