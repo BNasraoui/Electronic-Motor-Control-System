@@ -32,6 +32,7 @@
 #include "sensors/bmi160/bmi160.h"
 #include "sensors/opt3001/opt3001.h"
 #include "GUI/graphing/GUI_graph.h"
+#include "GUI/homescreen/GUI_homescreen.h"
 #include "GUI/gui.h"
 
 /* Created libraries for sub-systems */
@@ -62,6 +63,7 @@ void UpdateWidgetQueue() {
     WidgetMessageQueueProcess();
     Clock_start(widgetQueue_ClockHandler);
 }
+
 /* Sensor Task Function */
 void ReadSensorsFxn() {
     InitI2C_OPT3001();
@@ -89,19 +91,8 @@ void ReadSensorsFxn() {
 
 /* GUI Task Function */
 void GUITaskFxn(void) {
-    GUI_Graphing();
+    runGUI();
 }
-
-//Void heartBeatFxn(UArg arg0, UArg arg1)
-//{
-//    while (1) {
-//        SysCtlDelay(100);
-//        getCurrentTime();
-//        WidgetMessageQueueProcess();
-//
-////        TouchScreenIntHandler
-//    }
-//}
 
 void InitTasks(void) {
     Task_Params taskParams;
@@ -110,16 +101,16 @@ void InitTasks(void) {
     /* Sensor Task */
     Task_Params_init(&taskParams);
     taskParams.stackSize = SENSOR_TASKSTACKSIZE;
-    taskParams.stack = &task0Stack;
+    taskParams.stack = &sensorTaskStack;
     taskParams.instance->name = "sensorTask";
     taskParams.priority = 2;
-    Task_construct(&task0Struct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
+    Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
 
     /* Graph Task */
     taskParams.stackSize = GUI_TASKSTACKSIZE;
-    taskParams.stack = &graphTaskStack;
+    taskParams.stack = &guiTaskStack;
     taskParams.priority = 1;
-    Task_construct(&graphTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
+    Task_construct(&guiTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
 }
 
 void InitEvents(void) {
@@ -138,18 +129,6 @@ void InitEvents(void) {
     if(sensors_eventHandle == NULL)  System_abort("Sensors event create failed");
 }
 
-void initDisplay(void) {
-
-}
-
-void initGUI(void) {
-    initGUIGraphs();
-
-    /* Move all drawing operations to tasks!!! This is for initializing variables!!! */
-    initTime();
-    DrawHomeScreen();
-}
-
 int main(void) {
     /* Call board init functions */
     Board_initGeneral();
@@ -161,10 +140,6 @@ int main(void) {
     InitEvents();
 
     InitSensorDriver();
-
-    /* GUI init */
-    initDisplay();
-    initGUI();
 
     watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
 

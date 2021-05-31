@@ -60,6 +60,7 @@
 #define GRAPH_TYPE_LIGHT 1
 #define GRAPH_TYPE_ACCEL 2
 #define GRAPH_TYPE_CURR 3
+#define GRAPH_TYPE_ACCELABS 4
 
 #define SINGLE_PLOT_DENSITY 1
 #define TRIPLE_PLOT_DENSITY 8
@@ -73,7 +74,6 @@
 
 #define DRAW_DATA_TEXT false
 
-tContext sGraphContext;
 bool graphingMode;
 uint32_t graphTypeActive;
 
@@ -84,6 +84,6 @@ extern void initGUIGraphs(void);
 
 extern void initGraphDrawing(void);
 
-extern void GUI_Graphing(void);
+extern void runGUIGraphing(UInt *events);
 
 #endif /* GUI_GRAPH_H_ */

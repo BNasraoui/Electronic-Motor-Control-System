@@ -1,8 +1,8 @@
+#include <GUI/homescreen/GUI_homescreen.h>
 #include "sensors.h"
 #include "bmi160/bmi160.h"
 #include "opt3001/opt3001.h"
 #include "GUI/graphing/GUI_graph.h"
-#include "GUI/gui.h"
 
 //*************************** SWI/HWIS ******************************************
 void OPT3001_ClockHandlerFxn() {
@@ -124,7 +124,7 @@ void ProcessSensorEvents() {
 
     events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
 
-    if((events & NEW_OPT3001_DATA) && tabNo) {
+    if(events & NEW_OPT3001_DATA) {
         GetLightLevel();
         //System_printf("LUX: %f\n", luxValueFilt.avg);
 
@@ -134,7 +134,7 @@ void ProcessSensorEvents() {
         }
     }
 
-    if((events & NEW_ACCEL_DATA) && tabNo) {
+    if(events & NEW_ACCEL_DATA) {
         GetAccelData();
         float absoluteAccel = CalcAbsoluteAccel();
 
