@@ -28,7 +28,7 @@ void runGUI(void)
     /* GUI */
     while (true) {
 
-        if (graphingMode) {
+        if (graphingTab) {
             runGUIGraphing(&graphingEvents);
         }
         else

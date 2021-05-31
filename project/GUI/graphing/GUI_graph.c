@@ -141,14 +141,13 @@ void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, stru
 }
 
 void initGraphDrawing(void) {
-    FrameDraw(&sGUIContext, "GUI Graphing");
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
         SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");
         GraphBorder.descaleEnabled = true;
     }
 
-    if ((graphTypeActive == GRAPH_TYPE_ACCEL) && tabNo) {
+    if (graphTypeActive == GRAPH_TYPE_ACCEL) {
         TriplePlotGraph_init_display(&GraphBorder, "G [8:1]", "x", "y", "z");
         GraphBorder.descaleEnabled = false;
     }
@@ -172,5 +171,11 @@ void runGUIGraphing(UInt *events) {
 
     if (*events & EVENT_GRAPH_CURR) {
         drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.avg);
+    }
+
+    if (*events & EVENT_GUI_SWITCH) {
+        RemoveGraphScreen();
+
+        graphingTab = false;
     }
 }

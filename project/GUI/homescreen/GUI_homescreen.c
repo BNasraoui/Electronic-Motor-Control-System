@@ -271,23 +271,12 @@ void onDayNightChange(bool eventType){
 /* Swap between settings and graph tab */
 void onTabSwap() {
 
-    if(tabNo) {
-        RemoveGraphScreen();
-        DrawHomeScreen();
-        PushButtonTextSet(&g_sSwitcher, "Graph");
-        WidgetPaint((tWidget *) &g_sSwitcher);
-        tabNo = false;
+    if(graphingTab == true) {
+        Event_post(GU_eventHandle, EVENT_GUI_SWITCH);
     }
-    else if(!tabNo)
+    else if (graphingTab == false)
     {
-        RemoveHomeScreen();
-        DrawGraphScreen();
-        PushButtonTextSet(&g_sSwitcher, "Home");
-        WidgetPaint((tWidget *) &g_sSwitcher);
-        tabNo = true;
-
-        // Render Graph Page
-        //initGUIGraphs();
+        Event_post(gui_event_handle, EVENT_GUI_SWITCH);
     }
 }
 
@@ -358,26 +347,21 @@ void DrawGraphScreen() {
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sGraphBackground);
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
 
-    WidgetPaint((tWidget *) &g_sGraphBackground);
 
     /* Notify that GUI is switching and to stop waiting and event pends */
-    Event_post(gui_event_handle, EVENT_GUI_SWITCH);
+    // initGraphDrawing();
+    FrameDraw(&sGUIContext, "Graphing");
+    WidgetPaint(WIDGET_ROOT);
 
-    graphingMode = true;
-    initGraphDrawing();
 }
 
 /* Undraw the Graph Widgets */
 void RemoveGraphScreen() {
-    WidgetPaint((tWidget *) &g_sGraphBackground);
-
     WidgetRemove((tWidget *) &g_sGraphBackground);
     WidgetRemove((tWidget *) &g_sSwitcher);
 
-    Event_post(gui_event_handle, EVENT_GUI_SWITCH);
-    graphingMode = false;
-
-    WidgetPaint(WIDGET_ROOT);
+    PushButtonTextSet(&g_sSwitcher, "Graph");
+    DrawHomeScreen();
 }
 
 /*
@@ -392,6 +376,8 @@ void DrawHomeScreen(){
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sBackground);
 
     // Limiter Widgets
+    WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sStartStopBttn);
+
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sLimitTitle);
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSpeedTitle);
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sCurrentTitle);
@@ -413,6 +399,7 @@ void DrawHomeScreen(){
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sDate);
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
 
+
     /* Draw frame */
     FrameDraw(&sGUIContext, "Configurations");
 
@@ -425,6 +412,8 @@ void RemoveHomeScreen() {
     WidgetRemove((tWidget *)&g_sBackground);
 
     // Limiter Widgets
+    WidgetRemove((tWidget *)&g_sStartStopBttn);
+
     WidgetRemove((tWidget *)&g_sLimitTitle);
     WidgetRemove((tWidget *)&g_sSpeedTitle);
     WidgetRemove((tWidget *)&g_sCurrentTitle);
@@ -445,6 +434,8 @@ void RemoveHomeScreen() {
     WidgetRemove((tWidget *)&g_sDayAlert);
     WidgetRemove((tWidget *)&g_sDate);
     WidgetRemove((tWidget *)&g_sSwitcher);
+
+    // Event_post(gui_event_handle, EVENT_GUI_SWITCH);
 }
 
 /*
@@ -455,7 +446,7 @@ void RemoveHomeScreen() {
 
 void initGUIHomescreen(void) {
     eStop = false;
-    tabNo = false;
+    graphingTab = false;
     lights = false;
     motorStartStop = 1;
     clockTicks = 0;
@@ -472,7 +463,7 @@ void runGUIHomescreen(UInt *events) {
     *events = Event_pend(gui_event_handle, Event_Id_NONE, Event_Id_05 + EVENT_GUI_SWITCH, BIOS_WAIT_FOREVER);
 
     // Estop flagged
-    if(*events & ESTOP_EVENT){
+    if(*events & ESTOP_EVENT) {
         if(eStop) {
             CanvasFillColorSet(&g_sEstopLight, ClrRed);
             /* Show Motor is Switched off */
@@ -483,5 +474,14 @@ void runGUIHomescreen(UInt *events) {
             CanvasFillColorSet(&g_sEstopLight, ClrGreen);
         }
         WidgetPaint((tWidget *) &g_sEstopLight);
+    }
+
+    if (*events & EVENT_GUI_SWITCH) {
+        RemoveHomeScreen();
+        PushButtonTextSet(&g_sSwitcher, "Home");
+        DrawGraphScreen();
+        initGraphDrawing();
+
+        graphingTab = true;
     }
 }

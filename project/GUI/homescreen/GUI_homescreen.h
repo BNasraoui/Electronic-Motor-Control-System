@@ -64,7 +64,7 @@
 // Graphics
 bool eStop;
 bool lights;
-bool tabNo;
+bool graphingTab;
 tContext sContext;
 uint8_t motorStartStop;
 uint16_t SPEED_USER_LIMIT;
