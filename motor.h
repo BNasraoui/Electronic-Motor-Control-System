@@ -29,18 +29,16 @@
 #include "inc/hw_ints.h"
 #include <math.h>
 
-#define TASKSTACKSIZE       512
+#define TASKSTACKSIZE       1024
 
-#define CLOCK_PERIOD_10Hz   100 // 100ms = 10Hz -> Speed Calculation
-#define CLOCK_PERIOD_100Hz  10  // 10ms = 100Hz -> Speed filtering
-#define CLOCK_PERIOD_50Hz   1  // 20ms = 50Hz -> PID loop was 20
+#define CLOCK_PERIOD_200Hz  5 // 5ms = 200Hz -> Speed Calculation
+#define CLOCK_PERIOD_1000Hz 1  // 1ms = 1000Hz -> PID loop
 #define CLOCK_PERIOD_500Hz  2   // 2ms = 500Hz -> acceleration limit
 #define CLOCK_TIMEOUT_MS    10  // 10ms
 
-#define WINDOW_SIZE         5   // filter window size
+#define WINDOW_SIZE         20   // filter window size
 
-#define PID_TAU             0.1 // filter constant
-#define PID_PERIOD          0.001 // 20ms or 50Hz
+#define PID_PERIOD          0.001 // 1ms or 1000Hz
 
 #define PID_MIN_SPEED       0
 #define PID_MAX_SPEED       5820 // no load speed at max duty cycle (measured)
@@ -56,9 +54,6 @@ typedef struct {
     double Ki;
     double Kd;
 
-    // Derivative low pass-filter time constant
-    double tau;
-
     // output limits
     double maxSpeed;
     double minSpeed;
@@ -68,13 +63,11 @@ typedef struct {
     float limMaxInt;
 
     // sample time in secs
-    double T;
+    double dT;
 
     // controller memory
     double integrator;
-    double previousError;
-    double differentiator;
-    double previousSpeed;
+    double prevError;
 
     // controller output
     double outputSpeed;
@@ -82,16 +75,17 @@ typedef struct {
 } PIDcontroller;
 
 
-typedef struct Sliding_Window5{
+typedef struct {
     uint8_t index;
     double sum;
     double avg;
     double data[WINDOW_SIZE];
-} SlidingWindow5;
+
+} SlidingWindow20;
 
 
-PIDcontroller pid;
-SlidingWindow5 filteredSpeedData; // filtered speed data struct instance
+PIDcontroller pid; // PID controller struct instance
+SlidingWindow20 filteredSpeedData; // filter struct instance
 
 
 Task_Struct motorTaskStruct;
@@ -101,9 +95,9 @@ Char motorTaskStack[TASKSTACKSIZE];
 // clocks
 Clock_Params clockParams;
 Clock_Handle speedCalc_ClockHandler;
-Clock_Handle speedFilter_ClockHandler;
-Clock_Handle speedControl_ClockHandler;
 Clock_Handle accelLimit_ClockHandler;
+Clock_Handle speedControl_ClockHandler;
+Clock_Handle hasMotorStopped_ClockHandler;
 
 
 // error block
@@ -117,36 +111,39 @@ Event_Handle motor_evtHandle;
 //UART HWI handle - for testing
 Hwi_Handle UartHwiHandle_p;
 
+// project globals
+extern double desiredSpeed; // value between 0 and 5820 RPM (0 - 100% duty cycle)
+extern bool estopFlag;
+
 
 extern void hallSensorFxn();
+
+extern void PIDControllerInit();
 
 extern void speedCalc_ClockHandlerFxn();
 
 extern void speedFilter_ClockHandlerFxn();
 
-extern void PIDControllerInit();
-
 extern void speedControl_ClockHandlerFxn();
 
 extern void accelLimit_ClockHandlerFxn();
+
+extern void hasMotorStopped_ClockHandlerFxn();
 
 extern void toggleMotorClocks();
 
 extern void startMotorRoutine();
 
-extern void stopMotorRoutine(bool estop);
+extern void changeSpeedRoutine(double newSpeed, bool estop);
 
 extern void motorTestFxn(); // testing
+extern void motorTestFxnOne(); // etsting
 
 extern void motorOperation();
 
 extern void initMotorTasks();
 
 extern void initMotorDriver();
-
-extern void UARTFxn(); // testing
-
-extern void initUART(); // testing
 
 
 #endif
