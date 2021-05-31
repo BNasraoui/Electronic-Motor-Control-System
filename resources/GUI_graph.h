@@ -1,5 +1,3 @@
-#ifndef __GUI_GRAPH_H__
-#define __GUI_GRAPH_H__
 /*
  * GUI_graph.h
  *
@@ -18,42 +16,43 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <math.h>
-#include <string.h>
-#include <time.h>
 
 #include "inc/hw_memmap.h"
-#include "inc/hw_memmap.h"
 
+/* TI-RTOS Header files */
+#include <ti/drivers/GPIO.h>
+#include <driverlib/gpio.h>
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Event.h>
 #include <ti/sysbios/knl/Queue.h>
-#include <ti/sysbios/hal/Seconds.h>
-#include <ti/drivers/GPIO.h>
-
 #include <xdc/runtime/Error.h>
 #include <xdc/runtime/System.h>
-
 #include <driverlib/sysctl.h>
 #include <driverlib/pin_map.h>
+
 #include "driverlib/rom.h"
 #include "driverlib/rom_map.h"
-#include <driverlib/sysctl.h>
-#include <driverlib/gpio.h>
-
 #include "grlib/grlib.h"
-#include "grlib/widget.h"
-#include "grlib/canvas.h"
-#include "grlib/pushbutton.h"
-
 #include "drivers/frame.h"
 #include "drivers/kentec320x240x16_ssd2119_spi.h"
 #include "drivers/pinout.h"
+#include "grlib/widget.h"
+#include "grlib/canvas.h"
+#include "grlib/pushbutton.h"
 #include "drivers/touch.h"
-
+#include <driverlib/sysctl.h>
 #include "utils/ustdlib.h"
+#include <math.h>
+#include <string.h>
+#include "inc/hw_memmap.h"
+#include <driverlib/gpio.h>
+#include <ti/sysbios/hal/Seconds.h>
+#include <time.h>
 
 #include "general.h"
+
+#ifndef GUI_GRAPH_H_
+#define GUI_GRAPH_H_
 
 #define DATA_BUFFER_SIZE 32
 
@@ -71,10 +70,8 @@
 #define BACKGROUND_COLOUR ClrBlack
 #define LAG_COLOUR ClrMagenta
 
-#define DRAW_DATA_TEXT false
-
 tContext sGraphContext;
-bool graphingMode;
+
 uint32_t graphTypeActive;
 
 /* Clock */
@@ -82,8 +79,10 @@ Uint32 graphLagStart, graphLagEnd, graphLagTotal;
 
 extern void initGUIGraphs(void);
 
-extern void initGraphDrawing(void);
-
 extern void GUI_Graphing(void);
+
+extern void GUITaskFxn(void);
+
+extern void initGUIGraphs(void);
 
 #endif /* GUI_GRAPH_H_ */

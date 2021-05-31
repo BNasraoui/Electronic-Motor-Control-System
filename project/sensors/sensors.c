@@ -87,8 +87,6 @@ void InitSensorDriver() {
 }
 
 void InitInterrupts() {
-    System_printf("IN InitTasks\n");
-    System_flush();
 
     Swi_Params_init(&swiParams);
     swiParams.priority = 1;
@@ -126,14 +124,9 @@ void ProcessSensorEvents() {
 
     events = Event_pend(sensors_eventHandle, Event_Id_NONE, (Event_Id_00 + Event_Id_01 + Event_Id_02 + Event_Id_03 + Event_Id_04 + Event_Id_14), BIOS_WAIT_FOREVER);
 
-    if(events & NEW_OPT3001_DATA) {
-
-        float lightLevel = GetLightLevel();
-
-        if(headLightState == ON && lightLevel > NIGHTTIME_LUX_VAL) {
-            onDayNightChange(TURN_HEADLIGHTS_OFF);
-            headLightState = OFF;
-        }
+    if((events & NEW_OPT3001_DATA) && tabNo) {
+        GetLightLevel();
+        //System_printf("LUX: %f\n", luxValueFilt.avg);
 
         if (graphTypeActive == GRAPH_TYPE_LIGHT) {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
@@ -141,7 +134,7 @@ void ProcessSensorEvents() {
         }
     }
 
-    if(events & NEW_ACCEL_DATA) {
+    if((events & NEW_ACCEL_DATA) && tabNo) {
         GetAccelData();
         float absoluteAccel = CalcAbsoluteAccel();
 
@@ -181,6 +174,11 @@ void ProcessSensorEvents() {
 
     if(events & NEW_ADC1_DATA) {
         //Check if limit exceeded, respon accordingly
+
+        if (graphTypeActive == GRAPH_TYPE_CURR) {
+            if (graphLagStart == 0) graphLagStart = Clock_getTicks();
+            Event_post(GU_eventHandle, EVENT_GRAPH_CURR);
+        }
 
         //Update display
         //System_printf("ADC1: %f\n", ADC1Window.avg);
