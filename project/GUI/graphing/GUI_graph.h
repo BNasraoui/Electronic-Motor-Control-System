@@ -73,7 +73,6 @@
 
 #define DRAW_DATA_TEXT false
 
-tContext sGraphContext;
 bool graphingMode;
 uint32_t graphTypeActive;
 
@@ -84,6 +83,6 @@ extern void initGUIGraphs(void);
 
 extern void initGraphDrawing(void);
 
-extern void GUI_Graphing(void);
+extern void runGUIGraphing(UInt *events);
 
 #endif /* GUI_GRAPH_H_ */
