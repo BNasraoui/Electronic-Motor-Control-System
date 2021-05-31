@@ -350,7 +350,6 @@ void DrawGraphScreen() {
 
     /* Notify that GUI is switching and to stop waiting and event pends */
     // initGraphDrawing();
-    FrameDraw(&sGUIContext, "Graphing");
     WidgetPaint(WIDGET_ROOT);
 
 }

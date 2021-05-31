@@ -27,6 +27,8 @@ void initGUIGraphs(void) {
 
     GraphData_init(&Graph_CURR, 9000);
 
+    GraphData_init(&Graph_ACCABS, 5000);
+
     /* Default Graph */
     graphTypeActive = GRAPH_TYPE_LIGHT;
     graphingMode = false;
@@ -143,16 +145,19 @@ void drawTriplePlot(struct XYGraphFrame* frame, struct XYGraphData* graph1, stru
 void initGraphDrawing(void) {
 
     if (graphTypeActive == GRAPH_TYPE_LIGHT) {
+        FrameDraw(&sGUIContext, "Light Tracking");
         SinglePlotGraph_init_display(&GraphBorder, "Lux [1:1]", "lux");
         GraphBorder.descaleEnabled = true;
     }
 
     if (graphTypeActive == GRAPH_TYPE_ACCEL) {
+        FrameDraw(&sGUIContext, "Acceleration Tracking");
         TriplePlotGraph_init_display(&GraphBorder, "G [8:1]", "x", "y", "z");
         GraphBorder.descaleEnabled = false;
     }
 
     if (graphTypeActive == GRAPH_TYPE_CURR) {
+        FrameDraw(&sGUIContext, "Current Tracking");
         SinglePlotGraph_init_display(&GraphBorder, "A [1:1]", "amps");
         GraphBorder.descaleEnabled = true;
     }
@@ -167,6 +172,7 @@ void runGUIGraphing(UInt *events) {
 
     if (*events & EVENT_GRAPH_ACCEL) {
         drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
+        // drawSinglePlot(&GraphBorder, &Graph_ACCABS, luxValueFilt.avg);
     }
 
     if (*events & EVENT_GRAPH_CURR) {
