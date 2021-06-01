@@ -48,8 +48,6 @@
 #define GPIO_PIN_2                      0x00000004  // GPIO pin 2
 #define P2_VECTOR_NUM                   94
 
-// #define TASKSTACKSIZE                   512
-
 #define ADC0_SEQ1_VEC_NUM               31
 #define ADC1_SEQ1_VEC_NUM               63
 #define ADC_SEQ                         1
@@ -104,8 +102,7 @@ typedef struct Sliding_Window_u16 {
     uint16_t data[WINDOW_SIZE];
 } SlidingWindow_u16;
 
-Task_Struct task0Struct;
-Char task0Stack[SENSOR_TASKSTACKSIZE];
+float absoluteAccel;
 
 Hwi_Handle hwi_ADC0;
 Hwi_Handle hwi_ADC1;
@@ -117,7 +114,6 @@ Swi_Params swiParams;
 Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
 Swi_Handle swiHandle_ADC0DataProc, swiHandle_ADC1DataProc, swiHandle_accelDataProc, swiHandle_LuxDataProc;
 
-Event_Handle sensors_eventHandle;
 Error_Block eb;
 
 I2C_Handle i2cHandle;

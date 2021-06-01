@@ -12,6 +12,7 @@
 #include "GUI/graphing/GUI_graph.h"
 #include "GUI/graphing/GUI_XYGraph.h"
 #include "GUI/graphing/GUI_LogGraph.h"
+#include "GUI/gui.h"
 
 uint16_t getGraphY(struct XYGraphFrame* frame, float y) {
     return (frame->zero - (y*frame->axis_y_scale));
@@ -27,21 +28,21 @@ void drawScaleReference(struct XYGraphFrame* frame, float scale, bool draw) {
         sprintf(str, "%.0f", scale);
     }
 
-    if (draw) GrContextForegroundSet(&sGraphContext, FRAME_COLOUR2);
+    if (draw) GrContextForegroundSet(&sGUIContext, FRAME_COLOUR2);
     uint16_t s = getGraphY(frame, scale);
     if (s > frame->pos_y && s <frame->bottom) {
-        GrLineDraw(&sGraphContext, frame->pos_x, getGraphY(frame, scale), frame->pos_x + frame->width, getGraphY(frame, scale));
-        GrStringDraw(&sGraphContext, str, 8, frame->pos_x + frame->width - 48, getGraphY(frame, scale)-7, 1);
+        GrLineDraw(&sGUIContext, frame->pos_x, getGraphY(frame, scale), frame->pos_x + frame->width, getGraphY(frame, scale));
+        GrStringDraw(&sGUIContext, str, 8, frame->pos_x + frame->width - 48, getGraphY(frame, scale)-7, 1);
     }
 }
 
 void drawAxisY(struct XYGraphFrame* frame, float scale, bool draw) {
-    if (draw) GrContextForegroundSet(&sGraphContext, FRAME_COLOUR);
+    if (draw) GrContextForegroundSet(&sGUIContext, FRAME_COLOUR);
     uint16_t j, s;
     for (j = 0; j < 10 + 1; j++) {
         s = getGraphY(frame, scale * j);
         if (s > frame->pos_y && s <frame->bottom)
-        GrLineDraw(&sGraphContext, frame->pos_x - 3, getGraphY(frame, scale * j), frame->pos_x - 2, getGraphY(frame, scale * j));
+        GrLineDraw(&sGUIContext, frame->pos_x - 3, getGraphY(frame, scale * j), frame->pos_x - 2, getGraphY(frame, scale * j));
     }
 }
 
@@ -66,20 +67,20 @@ void drawGraphAxisY(struct XYGraphFrame* frame, bool draw) {
 
 void drawGraphAxis(struct XYGraphFrame* frame) {
     // Y axis
-    GrLineDraw(&sGraphContext, frame->pos_x - 1, frame->pos_y, frame->pos_x - 1,frame->bottom);
+    GrLineDraw(&sGUIContext, frame->pos_x - 1, frame->pos_y, frame->pos_x - 1,frame->bottom);
 
     uint16_t i;
     for (i = 0; i < AXIS_X_DATA_POINTS + 1; i++) {
-        GrLineDraw(&sGraphContext, frame->pos_x + (frame->axisXSpacing*i), frame->bottom + 1, frame->pos_x + (frame->axisXSpacing*i), frame->bottom + 2);
+        GrLineDraw(&sGUIContext, frame->pos_x + (frame->axisXSpacing*i), frame->bottom + 1, frame->pos_x + (frame->axisXSpacing*i), frame->bottom + 2);
     }
 }
 
 void GeneralGraph_init_display(struct XYGraphFrame* frame, char* units) {
-    GrContextForegroundSet(&sGraphContext, FRAME_COLOUR2);
-    GrStringDraw(&sGraphContext, units, 16, frame->pos_x + (frame->width/2), frame->bottom + 8, 1);
+    GrContextForegroundSet(&sGUIContext, FRAME_COLOUR2);
+    GrStringDraw(&sGUIContext, units, 16, frame->pos_x + (frame->width/2), frame->bottom + 8, 1);
 
     /* Draw Graph Borders */
-    GrContextForegroundSet(&sGraphContext, FRAME_COLOUR);
+    GrContextForegroundSet(&sGUIContext, FRAME_COLOUR);
     drawLogBar(frame, frame->pos_y + frame->height + 32);
     drawGraphAxis(frame);
     drawGraphAxisY(frame, true);
@@ -88,29 +89,29 @@ void GeneralGraph_init_display(struct XYGraphFrame* frame, char* units) {
 void SinglePlotGraph_init_display(struct XYGraphFrame* frame, char* units, char* key) {
     GeneralGraph_init_display(frame, units);
 
-    GrContextForegroundSet(&sGraphContext, LAG_COLOUR);
-    GrStringDraw(&sGraphContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGraphContext, "ms", 8),frame->bottom + 8, 1);
+    GrContextForegroundSet(&sGUIContext, LAG_COLOUR);
+    GrStringDraw(&sGUIContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGUIContext, "ms", 8),frame->bottom + 8, 1);
 
-    GrContextForegroundSet(&sGraphContext, PLOT_A_COLOUR);
-    GrStringDraw(&sGraphContext, key, 8, frame->pos_x, frame->bottom + 8, 1);
+    GrContextForegroundSet(&sGUIContext, PLOT_A_COLOUR);
+    GrStringDraw(&sGUIContext, key, 8, frame->pos_x, frame->bottom + 8, 1);
 }
 
 void TriplePlotGraph_init_display(struct XYGraphFrame* frame, char* units, char* key1, char* key2, char* key3) {
     GeneralGraph_init_display(frame, units);
 
-    GrContextForegroundSet(&sGraphContext, LAG_COLOUR);
-    GrStringDraw(&sGraphContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGraphContext, "ms", 8),frame->bottom + 8, 1);
-    // GrStringDraw(&sGraphContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGraphContext, "ms", 8),frame->bottom + 24, 1);
+    GrContextForegroundSet(&sGUIContext, LAG_COLOUR);
+    GrStringDraw(&sGUIContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGUIContext, "ms", 8),frame->bottom + 8, 1);
+    // GrStringDraw(&sGUIContext, "ms", 8, frame->pos_x + frame->width - GrStringWidthGet(&sGUIContext, "ms", 8),frame->bottom + 24, 1);
 
-    uint16_t l1 = GrStringWidthGet(&sGraphContext, key1, 8);
-    uint16_t l2 = GrStringWidthGet(&sGraphContext, key2, 8);
+    uint16_t l1 = GrStringWidthGet(&sGUIContext, key1, 8);
+    uint16_t l2 = GrStringWidthGet(&sGUIContext, key2, 8);
 
-    GrContextForegroundSet(&sGraphContext, PLOT_A_COLOUR);
-    GrStringDraw(&sGraphContext, key1, 8, frame->pos_x, frame->bottom + 8, 1);
-    GrContextForegroundSet(&sGraphContext, PLOT_B_COLOUR);
-    GrStringDraw(&sGraphContext, key2, 8, frame->pos_x + l1 + 4, frame->bottom + 8, 1);
-    GrContextForegroundSet(&sGraphContext, PLOT_C_COLOUR);
-    GrStringDraw(&sGraphContext, key3, 8, frame->pos_x + +l1 + l2 + 8, frame->bottom + 8, 1);
+    GrContextForegroundSet(&sGUIContext, PLOT_A_COLOUR);
+    GrStringDraw(&sGUIContext, key1, 8, frame->pos_x, frame->bottom + 8, 1);
+    GrContextForegroundSet(&sGUIContext, PLOT_B_COLOUR);
+    GrStringDraw(&sGUIContext, key2, 8, frame->pos_x + l1 + 4, frame->bottom + 8, 1);
+    GrContextForegroundSet(&sGUIContext, PLOT_C_COLOUR);
+    GrStringDraw(&sGUIContext, key3, 8, frame->pos_x + +l1 + l2 + 8, frame->bottom + 8, 1);
 }
 
 void drawGraphLag(struct XYGraphFrame* frame, UInt32 time) {
@@ -118,11 +119,11 @@ void drawGraphLag(struct XYGraphFrame* frame, UInt32 time) {
     //char stra[8];
 
     sprintf(str, "-%d", time);
-    GrStringDraw(&sGraphContext, str, 8, frame->pos_x + frame->width - 24 - GrStringWidthGet(&sGraphContext, str, 8),frame->bottom + 8, 1);
+    GrStringDraw(&sGUIContext, str, 8, frame->pos_x + frame->width - 24 - GrStringWidthGet(&sGUIContext, str, 8),frame->bottom + 8, 1);
 
     /*if (average > 1) {
         sprintf(stra, "~-%d", time/average);
-        GrStringDraw(&sGraphContext, stra, 8, frame->pos_x + frame->width - 24 - GrStringWidthGet(&sGraphContext, stra, 8),frame->bottom + 24, 1);
+        GrStringDraw(&sGUIContext, stra, 8, frame->pos_x + frame->width - 24 - GrStringWidthGet(&sGUIContext, stra, 8),frame->bottom + 24, 1);
     }*/
 }
 
@@ -146,7 +147,7 @@ void GraphData_init(struct XYGraphData *graph, float estop) {
 }
 
 void drawDataPoint(struct XYGraphFrame* frame, struct XYGraphData* graph, float dx, float dy) {
-    GrLineDraw(&sGraphContext, graph->prevDataX, getGraphY(frame, graph->prevDataY), dx, getGraphY(frame, dy));
+    GrLineDraw(&sGUIContext, graph->prevDataX, getGraphY(frame, graph->prevDataY), dx, getGraphY(frame, dy));
     graph->prevDataX = dx;
     graph->prevDataY = dy;
 }
@@ -172,17 +173,17 @@ float filterData(float data) {
 }
 
 void drawCurrentValue(struct XYGraphFrame* frame, struct XYGraphData* graph, float val) {
-    GrLineDraw(&sGraphContext, frame->pos_x - 10, getGraphY(frame, val), frame->pos_x - 6, getGraphY(frame, val));
+    GrLineDraw(&sGUIContext, frame->pos_x - 10, getGraphY(frame, val), frame->pos_x - 6, getGraphY(frame, val));
 }
 
 void drawZero(struct XYGraphFrame *frame) {
     /* Zero */
-    GrLineDraw(&sGraphContext, frame->pos_x - 8, frame->zero, frame->pos_x + frame->width, frame->zero);
+    GrLineDraw(&sGUIContext, frame->pos_x - 8, frame->zero, frame->pos_x + frame->width, frame->zero);
 }
 
 void clearGraphFrame(struct XYGraphFrame *frame) {
     if (frame->updateFlag) {
-        GrContextForegroundSet(&sGraphContext, BACKGROUND_COLOUR);
+        GrContextForegroundSet(&sGUIContext, BACKGROUND_COLOUR);
         drawGraphAxisY(frame, false);
         drawZero(frame);
     }
@@ -191,12 +192,12 @@ void clearGraphFrame(struct XYGraphFrame *frame) {
 void drawEStopBar(struct XYGraphFrame *frame, struct XYGraphData *graph) {
     uint16_t y = getGraphY(frame, graph->y_estop);
     if (y >= frame->pos_y) {
-        // GrLineDraw(&sGraphContext, frame->pos_x, y, frame->width + frame->pos_x, y);
+        // GrLineDraw(&sGUIContext, frame->pos_x, y, frame->width + frame->pos_x, y);
     }
 }
 
 void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph) {
-    GrContextForegroundSet(&sGraphContext, BACKGROUND_COLOUR);
+    GrContextForegroundSet(&sGUIContext, BACKGROUND_COLOUR);
 
     if (graph->updateFlag || frame->updateFlag) {
         drawEStopBar(frame, graph);
@@ -209,7 +210,7 @@ void clearGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph) {
 }
 
 void drawGraphFrame(struct XYGraphFrame *frame) {
-    GrContextForegroundSet(&sGraphContext, FRAME_COLOUR);
+    GrContextForegroundSet(&sGUIContext, FRAME_COLOUR);
     if (frame->updateFlag) {
         drawGraphAxis(frame);
         drawGraphAxisY(frame, true);
@@ -220,15 +221,15 @@ void drawGraphFrame(struct XYGraphFrame *frame) {
 void drawGraphData(struct XYGraphFrame *frame, struct XYGraphData *graph, uint32_t colour) {
     /* Redraw sometimes static things when frame prompted */
     if (frame->updateFlag || graph->updateFlag) {
-        GrContextForegroundSet(&sGraphContext, ClrRed);
+        GrContextForegroundSet(&sGUIContext, ClrRed);
         drawEStopBar(frame, graph);
-        GrContextForegroundSet(&sGraphContext, colour);
+        GrContextForegroundSet(&sGUIContext, colour);
         drawAllGraphData(frame, graph);
         //drawLogLine(frame, graph, true);
     }
 
     /* Draw next graph data point to the frame */
-    GrContextForegroundSet(&sGraphContext, colour);
+    GrContextForegroundSet(&sGUIContext, colour);
     drawDataPoint(frame, graph, frame->pos_x + (graph->graphHead * frame->axisXSpacing), graph->data[graph->graphHead]);
 
     /* Draw the value of the head of the graph */
