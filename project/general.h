@@ -21,12 +21,19 @@
 #define NEW_ACCEL_DATA                  Event_Id_02
 #define NEW_ADC0_DATA                   Event_Id_03
 #define NEW_ADC1_DATA                   Event_Id_04
+#define ESTOP_EVENT                     Event_Id_05
+#define SPEED_EVENT                     Event_Id_06
+#define ACCEL_EVENT                     Event_Id_07
+#define CURRENT_EVENT                   Event_Id_08
+#define MOTOR_EVENT                     Event_Id_09
 #define EVENT_GRAPH_LIGHT               Event_Id_10
 #define EVENT_GRAPH_RPM                 Event_Id_11
 #define EVENT_GRAPH_ACCEL               Event_Id_12
 #define EVENT_GRAPH_CURR                Event_Id_13
 #define KICK_DOG                        Event_Id_14
-#define EVENT_GUI_SWITCH                Event_Id_15
+#define EVENT_GUI_HOME_CLEAR            Event_Id_15
+#define EVENT_GUI_GRAPH1_CLEAR          Event_Id_16
+#define EVENT_GUI_GRAPH2_CLEAR          Event_Id_17
 
 #define DEBUG_MODE                      0
 #define WATCHDOG_NOTASKS_CHECKEDIN      0x01
@@ -51,5 +58,6 @@ Char guiTaskStack[GUI_TASKSTACKSIZE];
 /* Events */
 Event_Handle GU_eventHandle;
 Event_Handle sensors_eventHandle;
+Event_Handle gui_event_handle;
 
 #endif /* GENERAL_H_ */

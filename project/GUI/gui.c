@@ -7,6 +7,7 @@
 #include "GUI/graphing/GUI_graph.h"
 #include "GUI/graphing/GUI_XYGraph.h"
 #include "GUI/homescreen/GUI_homescreen.h"
+#include "GUI/graphing/GUI_graphscreen.h"
 #include "GUI/gui.h"
 
 void initDisplay(void) {
@@ -21,6 +22,7 @@ void runGUI(void)
     UInt graphingEvents, homeEvents;
 
     initDisplay();
+    guiScreen = SCREEN_HOME;
 
     initGUIGraphs();
     initGUIHomescreen();
@@ -28,10 +30,13 @@ void runGUI(void)
     /* GUI */
     while (true) {
 
-        if (graphingTab) {
+        if (guiScreen == SCREEN_GRAPH_DISPLAY) {
             runGUIGraphing(&graphingEvents);
         }
-        else
+        else if (guiScreen == SCREEN_GRAPH_SELECT) {
+            runGUIGraphSelect(&homeEvents);
+        }
+        else if (guiScreen == SCREEN_HOME)
         {
             runGUIHomescreen(&homeEvents);
         }
