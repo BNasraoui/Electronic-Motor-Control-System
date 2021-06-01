@@ -19,32 +19,9 @@ void initDisplay(void) {
 
 void UpdateWidgetQueue() {
     WidgetMessageQueueProcess();
-   // Clock_start(widgetQueue_ClockHandler);
 }
 
-//void InitGUIDriver() {
-//    UInt graphingEvents, homeEvents;
-//    Clock_Params clockParams;
-//
-//    initDisplay();
-//    initGUIGraphs();
-//    initGUIHomescreen();
-//
-//    WidgetMessageQueueProcess();
-//
-//    Clock_Params_init(&clockParams);
-//    clockParams.period = CLOCK_PERIOD_1HZ;
-//    widgetQueue_ClockHandler = Clock_create(UpdateWidgetQueue, CLOCK_TIMEOUT_MS, &clockParams, NULL);
-//    if (widgetQueue_ClockHandler == NULL) {
-//     System_abort("watchdog clock create failed");
-//    }
-//
-//    Clock_start(widgetQueue_ClockHandler);
-//}
-
-void runGUI(void)
-{
-    UInt graphingEvents, homeEvents;
+void InitGUIDriver() {
     Clock_Params clockParams;
 
     initDisplay();
@@ -61,6 +38,11 @@ void runGUI(void)
     }
 
     Clock_start(widgetQueue_ClockHandler);
+}
+
+void runGUI(void)
+{
+    UInt graphingEvents, homeEvents;
 
     /* GUI */
     while (true) {

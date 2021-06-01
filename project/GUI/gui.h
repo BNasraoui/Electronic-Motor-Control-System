@@ -16,5 +16,6 @@ Clock_Handle widgetQueue_ClockHandler;
 
 extern void runGUI(void);
 extern void UpdateWidgetQueue();
+extern void InitGUIDriver();
 
 #endif /* GUI_GUI_H_ */
