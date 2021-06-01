@@ -31,7 +31,9 @@
 #define EVENT_GRAPH_ACCEL               Event_Id_12
 #define EVENT_GRAPH_CURR                Event_Id_13
 #define KICK_DOG                        Event_Id_14
-#define EVENT_GUI_SWITCH                Event_Id_15
+#define EVENT_GUI_HOME_CLEAR            Event_Id_15
+#define EVENT_GUI_GRAPH1_CLEAR          Event_Id_16
+#define EVENT_GUI_GRAPH2_CLEAR          Event_Id_17
 
 #define DEBUG_MODE                      0
 #define WATCHDOG_NOTASKS_CHECKEDIN      0x01

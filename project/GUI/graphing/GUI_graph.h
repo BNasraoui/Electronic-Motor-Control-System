@@ -86,4 +86,6 @@ extern void initGraphDrawing(void);
 
 extern void runGUIGraphing(UInt *events);
 
+extern void addGraphingWidgets(void);
+
 #endif /* GUI_GRAPH_H_ */

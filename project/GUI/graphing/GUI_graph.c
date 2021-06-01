@@ -31,7 +31,6 @@ void initGUIGraphs(void) {
 
     /* Default Graph */
     graphTypeActive = GRAPH_TYPE_ACCEL;
-    graphingMode = false;
 }
 
 void graphLag(struct XYGraphFrame* frame) {
@@ -163,8 +162,40 @@ void initGraphDrawing(void) {
     }
 }
 
+void onGraphMenuButtonPress(void) {
+    System_printf("Return\n");
+    System_flush();
+
+    Event_post(GU_eventHandle, EVENT_GUI_GRAPH2_CLEAR);
+}
+
+RectangularButton(g_graphmenuButton, 0, 0, 0,
+      &g_sKentec320x240x16_SSD2119, 192, 208, 100, 25,
+      (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
+       PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
+       ClrBlue, ClrBlue, ClrWhite, ClrWhite,
+       g_psFontCmss16b, "Return", 0, 0, 0, 0, onGraphMenuButtonPress);
+
+void addGraphingWidgets(void) {
+    WidgetAdd(WIDGET_ROOT, (tWidget *)&g_graphmenuButton);
+
+    WidgetPaint(WIDGET_ROOT);
+}
+
+void removeGraphingWidgets(void) {
+    WidgetRemove((tWidget *)&g_graphmenuButton);
+}
+
 void runGUIGraphing(UInt *events) {
-    *events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR + EVENT_GUI_SWITCH), BIOS_WAIT_FOREVER);
+    *events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR + EVENT_GUI_GRAPH2_CLEAR), BIOS_WAIT_FOREVER);
+
+    /* Placed first for priority */
+    if (*events & EVENT_GUI_GRAPH2_CLEAR) {
+        removeGraphingWidgets();
+        addGraphscreenWidgets();
+
+        guiScreen = SCREEN_GRAPH_SELECT;
+    }
 
     if (*events & EVENT_GRAPH_LIGHT) {
         drawSinglePlot(&GraphBorder, &Graph_LUX, luxValueFilt.avg);
@@ -179,9 +210,5 @@ void runGUIGraphing(UInt *events) {
         drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.avg);
     }
 
-    if (*events & EVENT_GUI_SWITCH) {
-        RemoveGraphScreen();
 
-        graphingTab = false;
-    }
 }
