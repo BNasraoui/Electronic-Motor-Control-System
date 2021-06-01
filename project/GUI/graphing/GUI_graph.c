@@ -29,8 +29,7 @@ void initGUIGraphs(void) {
 
     GraphData_init(&Graph_ACCABS, 5000);
 
-    /* Default Graph */
-    graphTypeActive = GRAPH_TYPE_ACCEL;
+    graphTypeActive = GRAPH_TYPE_NONE;
 }
 
 void graphLag(struct XYGraphFrame* frame) {
@@ -163,27 +162,65 @@ void initGraphDrawing(void) {
 }
 
 void onGraphMenuButtonPress(void) {
-    System_printf("Return\n");
-    System_flush();
 
+    graphTypeActive = GRAPH_TYPE_NONE;
     Event_post(GU_eventHandle, EVENT_GUI_GRAPH2_CLEAR);
 }
 
+Canvas(g_sGraphDisplayBackground, 0, 0, 0,
+       &g_sKentec320x240x16_SSD2119, 10, 25, 300, (240 - 25 -10),
+       CANVAS_STYLE_FILL, ClrBlack, 0, 0, 0, 0, 0, 0);
+
 RectangularButton(g_graphmenuButton, 0, 0, 0,
-      &g_sKentec320x240x16_SSD2119, 192, 208, 100, 25,
+      &g_sKentec320x240x16_SSD2119, 192, 192, 100, 25,
       (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
        PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
        ClrBlue, ClrBlue, ClrWhite, ClrWhite,
        g_psFontCmss16b, "Return", 0, 0, 0, 0, onGraphMenuButtonPress);
 
 void addGraphingWidgets(void) {
+    WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sGraphDisplayBackground);
     WidgetAdd(WIDGET_ROOT, (tWidget *)&g_graphmenuButton);
 
     WidgetPaint(WIDGET_ROOT);
+
+    initGraphDrawing();
+}
+
+void reset() {
+    GraphFrame_reset(&GraphBorder);
+
+    GraphData_reset(&Graph_LUX);
+
+    GraphData_reset(&Graph_ACCX);
+    GraphData_reset(&Graph_ACCY);
+    GraphData_reset(&Graph_ACCZ);
+
+    GraphData_reset(&Graph_CURR);
+
+    GraphData_reset(&Graph_ACCABS);
+}
+
+void clearScreen(void) {
+    GrContextForegroundSet(&sGUIContext, BACKGROUND_COLOUR);
+
+    tRectangle screen;
+    screen.i16XMin = 0;
+    screen.i16YMax = 320;
+    screen.i16XMin = 0;
+    screen.i16YMax = 240;
+
+    GrRectFill(&sGUIContext, &screen);
 }
 
 void removeGraphingWidgets(void) {
+    WidgetRemove((tWidget *)&g_sGraphDisplayBackground);
     WidgetRemove((tWidget *)&g_graphmenuButton);
+
+    reset();
+    clearScreen();
+    FrameDraw(&sGUIContext, "Data Tracking");
+
 }
 
 void runGUIGraphing(UInt *events) {
@@ -197,16 +234,16 @@ void runGUIGraphing(UInt *events) {
         guiScreen = SCREEN_GRAPH_SELECT;
     }
 
-    if (*events & EVENT_GRAPH_LIGHT) {
+    if ((*events & EVENT_GRAPH_LIGHT) && (graphTypeActive == GRAPH_TYPE_LIGHT)) {
         drawSinglePlot(&GraphBorder, &Graph_LUX, luxValueFilt.avg);
     }
 
-    if (*events & EVENT_GRAPH_ACCEL) {
+    if ((*events & EVENT_GRAPH_ACCEL)  && (graphTypeActive == GRAPH_TYPE_ACCEL)) {
         drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
         // drawSinglePlot(&GraphBorder, &Graph_ACCABS, luxValueFilt.avg);
     }
 
-    if (*events & EVENT_GRAPH_CURR) {
+    if ((*events & EVENT_GRAPH_CURR)  && (graphTypeActive == GRAPH_TYPE_CURR)) {
         drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.avg);
     }
 

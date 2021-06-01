@@ -81,5 +81,9 @@ extern void drawLogBar(struct XYGraphFrame *frame, uint16_t y);
 
 extern void drawLogValue(struct XYGraphFrame *frame, struct XYGraphData *graph, bool draw, uint16_t y);
 
+extern void GraphFrame_reset(struct XYGraphFrame *frame);
+
+extern void GraphData_reset(struct XYGraphData *graph);
+
 
 #endif /* DRIVERS_GUI_XYGRAPH_H_ */

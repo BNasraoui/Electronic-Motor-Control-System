@@ -57,6 +57,7 @@
 
 #define DATA_BUFFER_SIZE 32
 
+#define GRAPH_TYPE_NONE 0
 #define GRAPH_TYPE_LIGHT 1
 #define GRAPH_TYPE_ACCEL 2
 #define GRAPH_TYPE_CURR 3

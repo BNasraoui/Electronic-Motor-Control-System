@@ -14,8 +14,6 @@ bool flagGraph = false;
 bool flagHome = false;
 
 void onLightButtonPress(void) {
-    System_printf("Light\n");
-    System_flush();
 
     flagGraph = true;
     graphTypeActive = GRAPH_TYPE_LIGHT;
@@ -23,8 +21,6 @@ void onLightButtonPress(void) {
 }
 
 void onCurrentButtonPress(void) {
-    System_printf("Current\n");
-    System_flush();
 
     flagGraph = true;
     graphTypeActive = GRAPH_TYPE_CURR;
@@ -32,8 +28,6 @@ void onCurrentButtonPress(void) {
 }
 
 void onAccelButtonPress(void) {
-    System_printf("Accel abs\n");
-    System_flush();
 
     flagGraph = true;
     graphTypeActive = GRAPH_TYPE_ACCELABS;
@@ -41,8 +35,6 @@ void onAccelButtonPress(void) {
 }
 
 void onAccelxyzButtonPress(void) {
-    System_printf("Accel xy\n");
-    System_flush();
 
     flagGraph = true;
     graphTypeActive = GRAPH_TYPE_ACCEL;
@@ -50,8 +42,6 @@ void onAccelxyzButtonPress(void) {
 }
 
 void onHomeButtonPress(void) {
-    System_printf("Home\n");
-    System_flush();
 
     flagHome = true;
 
@@ -111,8 +101,6 @@ void addGraphscreenWidgets(void) {
 }
 
 void removeGraphscreenWidgets(void) {
-    WidgetPaint((tWidget *)&g_sGraphBackground);
-
     /* Local Widgets */
     WidgetRemove((tWidget *)&g_sGraphBackground);
     WidgetRemove((tWidget *)&g_lightButton);
@@ -135,7 +123,6 @@ void runGUIGraphSelect(UInt *events) {
             flagHome = false;
         }
         if (flagGraph) {
-            initGraphDrawing();
             addGraphingWidgets();
             guiScreen = SCREEN_GRAPH_DISPLAY;
             flagGraph = false;
