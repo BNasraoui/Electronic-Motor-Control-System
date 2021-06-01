@@ -17,9 +17,9 @@ void BMI160Fxn() {
     Event_post(sensors_eventHandle, NEW_ACCEL_DATA);
 }
 
-void OPT3001Fxn() {
-    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
-}
+//void OPT3001Fxn() {
+//    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
+//}
 
 //*************************** INITIALISATION **************************************
 void InitSensorDriver() {
@@ -52,11 +52,11 @@ void InitSensorDriver() {
      System_abort("adc clock handle create failed");
     }
 
-    clockParams.period = CLOCK_PERIOD_1HZ;
-    watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
-    if (watchDog_ClockHandler == NULL) {
-     System_abort("watchdog clock create failed");
-    }
+//    clockParams.period = CLOCK_PERIOD_1HZ;
+//    watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+//    if (watchDog_ClockHandler == NULL) {
+//     System_abort("watchdog clock create failed");
+//    }
 
     //Create Hwi Gate Mutex
     GateHwi_Params_init(&gHwiprms);
@@ -99,7 +99,7 @@ void InitInterrupts() {
     }
 
     Hwi_Params_init(&hwiParams);
-    hwiParams.priority = 0;
+    hwiParams.priority = 1;
     hwi_ADC1 = Hwi_create(ADC1_SEQ1_VEC_NUM, (Hwi_FuncPtr)ADC1_Read, &hwiParams, NULL);
     if (hwi_ADC1 == NULL) {
      System_abort("ADC1 Hwi create failed");
@@ -128,7 +128,7 @@ void ProcessSensorEvents() {
 
         if(absoluteAccel > ACCEL_USER_LIMIT) {
             //Fire e-stop event
-
+            Event_post(motor_evtHandle, ESTOP);
         }
 
         if (graphTypeActive == GRAPH_TYPE_ACCEL) {
@@ -157,7 +157,7 @@ void ProcessSensorEvents() {
     if(events & NEW_ADC1_DATA) {
         //If current limit exceeded, send E-stop event
         if(ADC1Window.current > CURRENT_USER_LIMIT || ADC0Window.current > CURRENT_USER_LIMIT) {
-
+            Event_post(motor_evtHandle, ESTOP);
         }
 
         if (graphTypeActive == GRAPH_TYPE_CURR) {
@@ -207,45 +207,49 @@ void InitADC1_CurrentSense() {
 }
 
 void ADC1_Read() {
-    uint32_t pui32ADC1Value[2];
-
     ADCIntClear(ADC1_BASE, ADC_SEQ);
-
-    ADC1Window.sum = ADC1Window.sum - ADC1Window.data[ADC1Window.index];
-    ADC0Window.sum = ADC0Window.sum - ADC0Window.data[ADC0Window.index];
-
     ADCSequenceDataGet(ADC1_BASE, ADC_SEQ , pui32ADC1Value);
-
-    ADC1Window.data[ADC1Window.index] = pui32ADC1Value[0];
-    ADC0Window.data[ADC0Window.index] = pui32ADC1Value[1];
-
     Swi_post(swiHandle_ADC1DataProc);
 }
 
 void ADC1_FilterFxn() {
+    double Vref = 3.3;
+    double Gcsa = 10;
+    double Rsense = 0.007;
+
+    ADC1Window.sum = ADC1Window.sum - ADC1Window.data[ADC1Window.index];
+    ADC0Window.sum = ADC0Window.sum - ADC0Window.data[ADC0Window.index];
+
+    ADC1Window.data[ADC1Window.index] = (int32_t)pui32ADC1Value[0];
+    ADC0Window.data[ADC0Window.index] = (int32_t)pui32ADC1Value[1];
+
     ADC1Window.sum = ADC1Window.sum + ADC1Window.data[ADC1Window.index];
     ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
 
-    ADC1Window.index = (ADC1Window.index + 1) % WINDOW_SIZE;
-    ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
+    if(ADC1Window.sum < 0) {
+        int i = 7;
+    }
+
+    ADC1Window.index = (ADC1Window.index + 1) % CURRENT_WINDOW_SIZE;
+    ADC0Window.index = (ADC0Window.index + 1) % CURRENT_WINDOW_SIZE;
 
     if(ADC1Window.startFilter) {
-        ADC1Window.avg = (float)ADC1Window.sum / WINDOW_SIZE;
-        ADC0Window.avg = (float)ADC0Window.sum / WINDOW_SIZE;
+        ADC1Window.avg = (float)ADC1Window.sum / CURRENT_WINDOW_SIZE;
+        ADC0Window.avg = (float)ADC0Window.sum / CURRENT_WINDOW_SIZE;
 
         ADC1Window.voltage = ADC1Window.avg * ADC_RESOLUTION;
         ADC0Window.voltage = ADC0Window.avg * ADC_RESOLUTION;
 
-        ADC1Window.current = ADC1Window.voltage / SHUNT_R_VALUE;
-        ADC0Window.current = ADC0Window.voltage / SHUNT_R_VALUE;
+        ADC1Window.current = ((Vref/2) - ADC1Window.voltage) / (Gcsa * Rsense);
+        ADC0Window.current = ((Vref/2) - ADC0Window.voltage) / (Gcsa * Rsense);
 
         ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
-        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
+        ADC0Window.power = ADC0Window.voltage * ADC0Window.current;
 
-        Event_post(sensors_eventHandle, Event_Id_04);
+        Event_post(sensors_eventHandle, NEW_ADC1_DATA);
     }
 
-    if((ADC1Window.index + 1) == WINDOW_SIZE && ADC1Window.startFilter == false) {
+    if((ADC1Window.index + 1) == CURRENT_WINDOW_SIZE && ADC1Window.startFilter == false) {
         ADC1Window.startFilter = true;
     }
 }

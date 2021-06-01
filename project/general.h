@@ -27,6 +27,9 @@
 #define EVENT_GRAPH_CURR                Event_Id_13
 #define KICK_DOG                        Event_Id_14
 #define EVENT_GUI_SWITCH                Event_Id_15
+#define START_MOTOR                     Event_Id_16
+#define STOP_MOTOR                      Event_Id_17
+#define ESTOP                           Event_Id_18
 
 #define DEBUG_MODE                      0
 #define WATCHDOG_NOTASKS_CHECKEDIN      0x01
@@ -43,10 +46,15 @@ char watchDogCheck;
 #define CLOCK_PERIOD_100HZ              1
 #define CLOCK_TIMEOUT_MS                10  //ms
 
-uint8_t motorRunning;
-uint16_t SPEED_USER_LIMIT;
 uint16_t CURRENT_USER_LIMIT;
 uint16_t ACCEL_USER_LIMIT;
+
+// motor conditions
+bool motorRunning; // current motor status
+bool estopFlag; // E-Stop condition flag for GUI and acceleration limits
+double desiredSpeed;
+double userSpeed;
+
 
 /* Tasks */
 Task_Struct sensorTaskStruct;
@@ -58,5 +66,6 @@ Char guiTaskStack[GUI_TASKSTACKSIZE];
 /* Events */
 Event_Handle GU_eventHandle;
 Event_Handle sensors_eventHandle;
+Event_Handle motor_evtHandle;
 
 #endif /* GENERAL_H_ */

@@ -301,6 +301,14 @@ GPIO_PinConfig gpioPinConfigs[] = {
     GPIOTiva_PN_1 | GPIO_CFG_OUT_STD | GPIO_CFG_OUT_STR_HIGH | GPIO_CFG_OUT_LOW,
     /* EK_TM4C1294XL_USR_D2 */
     GPIOTiva_PN_0 | GPIO_CFG_OUT_STD | GPIO_CFG_OUT_STR_HIGH | GPIO_CFG_OUT_LOW,
+
+    /* Hall Sensor GPIO */
+    /* HALL A GPIO PORT M PIN 3, PULL DOWN, INTERRUPT ON BOTH EDGES */
+    GPIOTiva_PM_3 | GPIO_CFG_IN_PD | GPIO_CFG_IN_INT_BOTH_EDGES,
+    /* HALL B GPIO PORT H PIN 2, PULL DOWN, INTERRUPT ON BOTH EDGES */
+    GPIOTiva_PH_2 | GPIO_CFG_IN_PD | GPIO_CFG_IN_INT_BOTH_EDGES,
+    /* HALL C GPIO PORT N PIN 2, PULL DOWN, INTERRUPT ON BOTH EDGES */
+    GPIOTiva_PN_2 | GPIO_CFG_IN_PD | GPIO_CFG_IN_INT_BOTH_EDGES,
 };
 
 /*
@@ -452,14 +460,14 @@ const PWMTiva_HWAttrs pwmTivaHWAttrs[EK_TM4C1294XL_PWMCOUNT] = {
     }
 };
 
-const PWM_Config PWM_config[] = {
-    {
-        .fxnTablePtr = &PWMTiva_fxnTable,
-        .object = &pwmTivaObjects[0],
-        .hwAttrs = &pwmTivaHWAttrs[0]
-    },
-    {NULL, NULL, NULL}
-};
+//const PWM_Config PWM_config[] = {
+//    {
+//        .fxnTablePtr = &PWMTiva_fxnTable,
+//        .object = &pwmTivaObjects[0],
+//        .hwAttrs = &pwmTivaHWAttrs[0]
+//    },
+//    {NULL, NULL, NULL}
+//};
 
 /*
  *  ======== EK_TM4C1294XL_initPWM ========

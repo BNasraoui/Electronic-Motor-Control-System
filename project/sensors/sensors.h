@@ -53,8 +53,8 @@
 #define ADC_SEQ                         1
 #define ADC_STEP                        0
 #define WINDOW_SIZE                     5
+#define CURRENT_WINDOW_SIZE             20
 #define ADC_RESOLUTION                  0.0008
-#define SHUNT_R_VALUE                   0.007
 
 #define TURN_HEADLIGHTS_ON              1
 #define TURN_HEADLIGHTS_OFF             0
@@ -63,14 +63,14 @@
 #define OFF                             0
 
 typedef struct Sliding_Window32 {
-    uint8_t index;
+    int index;
     bool startFilter;
     int32_t sum;
     float avg;
     float voltage;
     float current;
     float power;
-    uint32_t data[WINDOW_SIZE];
+    int32_t data[CURRENT_WINDOW_SIZE];
 } SlidingWindow_32;
 
 typedef struct Sliding_Window_16 {
@@ -120,6 +120,8 @@ SlidingWindow_32 ADC1Window;
 SlidingWindow_16 accelXFilt;
 SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
+
+uint32_t pui32ADC1Value[2];
 
 bool headLightState;
 

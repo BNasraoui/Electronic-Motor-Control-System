@@ -34,6 +34,7 @@
 #include "GUI/graphing/GUI_graph.h"
 #include "GUI/homescreen/GUI_homescreen.h"
 #include "GUI/gui.h"
+#include "motor/motor.h"
 
 /* Created libraries for sub-systems */
 #include "general.h"
@@ -56,6 +57,36 @@ void TaskStatusCheck() {
    // Event_post(GU_eventHandle, KICK_DOG);
     //Add event post for motor task
     //Add event post for main GUI if we use it
+}
+
+void motorOperation()
+{
+
+   UInt events;
+
+   for(;;) // spin here
+    {
+        events = Event_pend(motor_evtHandle, Event_Id_NONE, START_MOTOR | STOP_MOTOR | ESTOP, BIOS_WAIT_FOREVER); // events to handle motor operation state machine
+
+        switch(events)
+        {
+          case START_MOTOR:
+              startMotorRoutine(); // start motor routine
+              break;
+
+          case STOP_MOTOR: // make Ben change his stop motor event to a change speed event whereby the new speed = 0
+              desiredSpeed = 0;
+              break;
+
+          case ESTOP:
+              desiredSpeed = 0;
+              estopFlag = true;
+              break;
+
+          default:
+              break;
+        }
+    }
 }
 
 /* Sensor Task Function */
@@ -95,7 +126,7 @@ void InitTasks(void) {
     taskParams.stackSize = SENSOR_TASKSTACKSIZE;
     taskParams.stack = &sensorTaskStack;
     taskParams.instance->name = "sensorTask";
-    taskParams.priority = 1;
+    taskParams.priority = 2;
     Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
 
     /* Graph Task */
@@ -104,6 +135,13 @@ void InitTasks(void) {
     taskParams.stack = &guiTaskStack;
     taskParams.priority = 1;
     Task_construct(&guiTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
+
+    // motor operation Task thread
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stack = &motorTaskStack;
+    taskParams.priority = 3;
+    Task_construct(&motorTaskStruct, (Task_FuncPtr)motorOperation, &taskParams, NULL);
 }
 
 void InitEvents(void) {
@@ -120,6 +158,11 @@ void InitEvents(void) {
 
     sensors_eventHandle = Event_create(&taskEventParams, NULL);
     if(sensors_eventHandle == NULL)  System_abort("Sensors event create failed");
+
+    // Create an Event object - Motor
+    motor_evtHandle = Event_create(&taskEventParams, NULL);
+    if (motor_evtHandle == NULL) System_abort("Event create failed");
+
 }
 
 int main(void) {
@@ -134,6 +177,7 @@ int main(void) {
 
     InitSensorDriver();
     InitGUIDriver();
+    initMotorDriver();
 
     watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
 

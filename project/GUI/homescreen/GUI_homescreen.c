@@ -102,7 +102,7 @@ Canvas(g_sAccelTitle, 0, 0, 0,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, "Accel (G)", 0, 0);
 
 // Speed
-static char Speed[10] = "0";
+static char Speed[10] = "3000";
 Canvas(g_sSpeedCanvas, 0, 0, 0,
        &g_sKentec320x240x16_SSD2119, 60, 50, 50, 40,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Speed, 0, 0);
@@ -173,7 +173,7 @@ void StartStopBttnPress(tWidget *psWidget)
          * the welcome message). */
         WidgetPaint((tWidget *)&g_sStartStopBttn);
 
-       // Event_post(motor_evtHandle, STOP_MOTOR); // Motor Stop Start Event
+        Event_post(motor_evtHandle, STOP_MOTOR); // Motor Stop Start Event
     }
     else
     {
@@ -183,7 +183,7 @@ void StartStopBttnPress(tWidget *psWidget)
 
         WidgetPaint((tWidget *)&g_sStartStopBttn);
 
-      //  Event_post(motor_evtHandle, START_MOTOR); // Motor Stop Start Event
+        Event_post(motor_evtHandle, START_MOTOR); // Motor Stop Start Event
     }
 
 }
@@ -191,16 +191,18 @@ void StartStopBttnPress(tWidget *psWidget)
 /* Handles User Speed Change */
 void onSpeedChange(tWidget *psWidget){
     // Lower Speed 50RPM
-    if(psWidget == ((tWidget *)&g_sSpeedSubBttn) && (SPEED_USER_LIMIT > 0)){
-        SPEED_USER_LIMIT -= 50;
-        usprintf(Speed, "%d", SPEED_USER_LIMIT);
+    if(psWidget == ((tWidget *)&g_sSpeedSubBttn) && (desiredSpeed > 0)){
+        desiredSpeed -= 100;
+        userSpeed = desiredSpeed;
+        usprintf(Speed, "%d", (uint32_t)userSpeed);
         CanvasTextSet(&g_sSpeedCanvas, Speed);
         WidgetPaint((tWidget *)&g_sSpeedCanvas);
      }
     // Increase Speed 50RPM
-    if((psWidget == (tWidget *)&g_sSpeedAddBttn) && (SPEED_USER_LIMIT < SPEED_LIMIT)){
-        SPEED_USER_LIMIT += 50;
-        usprintf(Speed, "%d", SPEED_USER_LIMIT);
+    if((psWidget == (tWidget *)&g_sSpeedAddBttn) && (desiredSpeed < SPEED_LIMIT)){
+        desiredSpeed += 100;
+        userSpeed = desiredSpeed;
+        usprintf(Speed, "%d", (uint32_t)userSpeed);
         CanvasTextSet(&g_sSpeedCanvas, Speed);
         WidgetPaint((tWidget *)&g_sSpeedCanvas);
      }
@@ -434,14 +436,13 @@ void RemoveHomeScreen() {
  */
 
 void initGUIHomescreen(void) {
-    eStop = false;
     graphingTab = false;
     lights = false;
-    motorRunning = 1;
     clockTicks = 0;
-    SPEED_USER_LIMIT = 0;
+    desiredSpeed = 3000;    //RPM
+    userSpeed = desiredSpeed;
     CURRENT_USER_LIMIT = 500;
-    ACCEL_USER_LIMIT = 1;
+    ACCEL_USER_LIMIT = 2;
 
     initTime();
     DrawHomeScreen();

@@ -176,7 +176,7 @@ void runGUIGraphing(UInt *events) {
     }
 
     if (*events & EVENT_GRAPH_CURR) {
-        drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.avg);
+        drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.current);
     }
 
     if (*events & EVENT_GUI_SWITCH) {
