@@ -39,22 +39,21 @@
 #include "general.h"
 
 void WatchDogBite() {
-    UInt gateKey;
+//    UInt gateKey;
+//
+//    if(watchDogCheck == ALLTASKS_CHECKEDIN) {
+//        Watchdog_clear(watchDogHandle);
+//
+//        gateKey = GateHwi_enter(gateHwi);
+//        watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
+//        GateHwi_leave(gateHwi, gateKey);
+//    }
 
-    if(watchDogCheck == ALLTASKS_CHECKEDIN) {
-        Watchdog_clear(watchDogHandle);
-
-        gateKey = GateHwi_enter(gateHwi);
-        watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
-        GateHwi_leave(gateHwi, gateKey);
-    }
-
-    Clock_start(watchDog_ClockHandler);
 }
 
 void TaskStatusCheck() {
-    Event_post(sensors_eventHandle, KICK_DOG);
-    Event_post(GU_eventHandle, KICK_DOG);
+   // Event_post(sensors_eventHandle, KICK_DOG);
+   // Event_post(GU_eventHandle, KICK_DOG);
     //Add event post for motor task
     //Add event post for main GUI if we use it
 }
@@ -65,16 +64,16 @@ void ReadSensorsFxn() {
     InitI2C_BMI160();
     InitADC1_CurrentSense();
 
-    // enable GPIO Hwis for BMI160 and OPT3001
-    //GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
-    //GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
-    //GPIO_enableInt(Board_BMI160);
-    //GPIO_enableInt(Board_OPT3001);
+//    // enable GPIO Hwis for BMI160 and OPT3001
+    GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
+//    GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
+    GPIO_enableInt(Board_BMI160);
+//    GPIO_enableInt(Board_OPT3001);
 
-    //Start the timing clocks used to periodically trigger opt3001 and bmi160 reads
-    Clock_start(opt3001_ClockHandler);
+//    //Start the timing clocks used to periodically trigger opt3001 and bmi160 reads
+     Clock_start(opt3001_ClockHandler);
     Clock_start(adc_ClockHandler);
-    Clock_start(watchDog_ClockHandler);
+//    Clock_start(watchDog_ClockHandler);
 
     headLightState = OFF;
 
@@ -92,15 +91,15 @@ void InitTasks(void) {
     Task_Params taskParams;
     Task_Params_init(&taskParams);
 
-//    /* Sensor Task */
-//    Task_Params_init(&taskParams);
-//    taskParams.stackSize = SENSOR_TASKSTACKSIZE;
-//    taskParams.stack = &sensorTaskStack;
-//    taskParams.instance->name = "sensorTask";
-//    taskParams.priority = 2;
-//    Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
+    /* Sensor Task */
+    taskParams.stackSize = SENSOR_TASKSTACKSIZE;
+    taskParams.stack = &sensorTaskStack;
+    taskParams.instance->name = "sensorTask";
+    taskParams.priority = 1;
+    Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
 
     /* Graph Task */
+    Task_Params_init(&taskParams);
     taskParams.stackSize = GUI_TASKSTACKSIZE;
     taskParams.stack = &guiTaskStack;
     taskParams.priority = 1;
@@ -133,7 +132,7 @@ int main(void) {
     InitTasks();
     InitEvents();
 
-    //InitSensorDriver();
+    InitSensorDriver();
 
     watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
 

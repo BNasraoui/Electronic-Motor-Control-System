@@ -22,11 +22,11 @@ void InitI2C_OPT3001() {
     WriteHalfwordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
 
     //Configure the default high/low limits
-    SetLowLimit(40.95);
-    SetHighLimit(2620.8);
+    //SetLowLimit(40.95);
+    //SetHighLimit(2620.8);
 
     //Make sure high/low event bit is cleared
-    CheckLowLightEventOccured();
+    //CheckLowLightEventOccured();
 
     //IntEnable(INT_GPIOM);
 }

@@ -13,7 +13,7 @@
 
 #define SYS_CLK_SPEED                   120000000
 
-#define SENSOR_TASKSTACKSIZE            512
+#define SENSOR_TASKSTACKSIZE            1024
 #define GUI_TASKSTACKSIZE               2048
 
 #define LOW_HIGH_LIGHT_EVENT            Event_Id_00

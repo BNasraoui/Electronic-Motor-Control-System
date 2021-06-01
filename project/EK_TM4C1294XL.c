@@ -294,7 +294,7 @@ GPIO_PinConfig gpioPinConfigs[] = {
     /* OPT3001 */
     //GPIOTiva_PM_6 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,
     /* BMI160 */
-    //GPIOTiva_PD_4 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,       //JP4 = PD4
+    GPIOTiva_PD_4 | GPIO_CFG_IN_PU | GPIO_CFG_IN_INT_FALLING,       //JP4 = PD4
 
     /* Output pins */
     /* EK_TM4C1294XL_USR_D1 */

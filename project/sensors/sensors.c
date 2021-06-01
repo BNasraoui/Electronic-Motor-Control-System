@@ -25,7 +25,6 @@ void OPT3001Fxn() {
 void InitSensorDriver() {
     Watchdog_Params watchDogParams;
     Clock_Params clockParams;
-    Error_init(&eb);
 
     InitInterrupts();
 
@@ -66,14 +65,14 @@ void InitSensorDriver() {
         System_abort("Gate Hwi create failed");
     }
 
-    Watchdog_Params_init(&watchDogParams);
-    watchDogParams.resetMode = Watchdog_RESET_OFF;
-    watchDogParams.callbackFxn = WatchDogBite;
-    watchDogParams.resetMode = Watchdog_RESET_OFF;
-    watchDogHandle = Watchdog_open(EK_TM4C1294XL_WATCHDOG0, &watchDogParams);
-    if (!watchDogHandle) {
-        System_printf("Watchdog did not open");
-    }
+//    Watchdog_Params_init(&watchDogParams);
+//    watchDogParams.resetMode = Watchdog_RESET_OFF;
+//    watchDogParams.callbackFxn = WatchDogBite;
+//    watchDogParams.resetMode = Watchdog_RESET_OFF;
+//    watchDogHandle = Watchdog_open(EK_TM4C1294XL_WATCHDOG0, &watchDogParams);
+//    if (!watchDogHandle) {
+//        System_printf("Watchdog did not open");
+//    }
 }
 
 void InitInterrupts() {
@@ -168,15 +167,14 @@ void ProcessSensorEvents() {
         //System_printf("ADC1: %f\n", ADC1Window.avg);
     }
 
-    if(events & KICK_DOG) {
-        //System_printf("Setting bit to tell watchdog that this task is ok");
-        gateKey = GateHwi_enter(gateHwi);
-        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_SENSOR;
-        //For testing
-        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_MOTOR;
-        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_GUI;
-        GateHwi_leave(gateHwi, gateKey);
-    }
+//    if(events & KICK_DOG) {
+//        //System_printf("Setting bit to tell watchdog that this task is ok");
+//        gateKey = GateHwi_enter(gateHwi);
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_SENSOR;
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_MOTOR;
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_GUI;
+//        GateHwi_leave(gateHwi, gateKey);
+//    }
 }
 
 float GetLightLevel() {
@@ -218,9 +216,9 @@ void InitADC1_CurrentSense() {
     ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ, 1, ADC_CTL_IE | ADC_CTL_CH4 | ADC_CTL_END);
 
     ADCSequenceEnable(ADC1_BASE, ADC_SEQ);
-    //ADCIntEnable(ADC1_BASE, ADC_SEQ);
-    //ADCIntClear(ADC1_BASE, ADC_SEQ);
-    //IntEnable(INT_ADC1SS1);
+    ADCIntEnable(ADC1_BASE, ADC_SEQ);
+    ADCIntClear(ADC1_BASE, ADC_SEQ);
+    IntEnable(INT_ADC1SS1);
 }
 
 void ADC1_Read() {
@@ -237,7 +235,6 @@ void ADC1_Read() {
     ADC0Window.data[ADC0Window.index] = pui32ADC1Value[1];
 
     Swi_post(swiHandle_ADC1DataProc);
-    //Swi_post(swiHandle_ADC0DataProc);
 }
 
 void ADC1_FilterFxn() {
