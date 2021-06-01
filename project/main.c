@@ -129,15 +129,13 @@ void InitTasks(void) {
     taskParams.priority = 2;
     Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
 
-    /* Graph Task */
-    Task_Params_init(&taskParams);
+    /* GUI Task */
     taskParams.stackSize = GUI_TASKSTACKSIZE;
     taskParams.stack = &guiTaskStack;
     taskParams.priority = 1;
     Task_construct(&guiTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
 
     // motor operation Task thread
-    Task_Params_init(&taskParams);
     taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &motorTaskStack;
     taskParams.priority = 3;
@@ -151,7 +149,7 @@ void InitEvents(void) {
 
     /* Graph-Update Event */
     GU_eventHandle = Event_create(&taskEventParams, NULL);
-    if (GU_eventHandle == NULL) System_abort("GUI event create failed");
+    if (GU_eventHandle == NULL) System_abort("GUI-Graph event create failed");
 
     gui_event_handle = Event_create(&taskEventParams, NULL);
     if(gui_event_handle == NULL) System_abort("GUI event create failed");

@@ -21,6 +21,11 @@
 #define NEW_ACCEL_DATA                  Event_Id_02
 #define NEW_ADC0_DATA                   Event_Id_03
 #define NEW_ADC1_DATA                   Event_Id_04
+#define ESTOP_EVENT                     Event_Id_05
+#define SPEED_EVENT                     Event_Id_06
+#define ACCEL_EVENT                     Event_Id_07
+#define CURRENT_EVENT                   Event_Id_08
+#define MOTOR_EVENT                     Event_Id_09
 #define EVENT_GRAPH_LIGHT               Event_Id_10
 #define EVENT_GRAPH_RPM                 Event_Id_11
 #define EVENT_GRAPH_ACCEL               Event_Id_12
@@ -67,5 +72,6 @@ Char guiTaskStack[GUI_TASKSTACKSIZE];
 Event_Handle GU_eventHandle;
 Event_Handle sensors_eventHandle;
 Event_Handle motor_evtHandle;
+Event_Handle gui_event_handle;
 
 #endif /* GENERAL_H_ */

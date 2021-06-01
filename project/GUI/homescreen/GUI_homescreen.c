@@ -1,6 +1,8 @@
 #include <GUI/homescreen/GUI_homescreen.h>
 #include "GUI/graphing/GUI_graph.h"
+#include "GUI/graphing/GUI_graphscreen.h"
 #include "GUI/gui.h"
+#include "sensors/sensors.h"
 
 /*
  *
@@ -10,12 +12,11 @@
 
 tPushButtonWidget g_sStartStopBttn;
 tCanvasWidget     g_sBackground;
-tCanvasWidget     g_sGraphBackground;
+// tCanvasWidget     g_sGraphBackground;
 tCanvasWidget     g_sEstopText;
 tCanvasWidget     g_sEstopLight;
 tCanvasWidget     g_sDayAlert;
 tCanvasWidget     g_sDate;
-tPushButtonWidget g_sSwitcher;
 
 tCanvasWidget     g_sSpeedCanvas;
 tPushButtonWidget g_sSpeedSubBttn;
@@ -36,19 +37,19 @@ void DrawHomeScreen();
 void DrawGraphScreen();
 void RemoveHomeScreen();
 void RemoveGraphScreen();
-void onDayNightChange(bool eventType);
+
 void onTabSwap();
 void initTime();
-void getCurrentTime();
+//void getCurrentTime();
 
 // The canvas widget acting as the background to the display.
 Canvas(g_sBackground, 0, &g_sStartStopBttn, 0,
        &g_sKentec320x240x16_SSD2119, 10, 25, 300, (240 - 25 -10),
        CANVAS_STYLE_FILL, ClrBlack, 0, 0, 0, 0, 0, 0);
-
+/*
 Canvas(g_sGraphBackground, 0, 0, 0,
        &g_sKentec320x240x16_SSD2119, 10, 25, 300, (240 - 25 -10),
-       CANVAS_STYLE_FILL, ClrBlack, 0, 0, 0, 0, 0, 0);
+       CANVAS_STYLE_FILL, ClrBlack, 0, 0, 0, 0, 0, 0);*/
 
 CircularButton(g_sStartStopBttn, &g_sBackground, 0, 0,
                   &g_sKentec320x240x16_SSD2119, 275, 50, 25,
@@ -245,31 +246,35 @@ void onAccelChange(tWidget *psWidget){
 
 /* Turns on the night light and updates the display on change */
 void onDayNightChange(bool eventType){
-    if(lights == eventType){        // e.g if low light and lights are off
-        lights = eventType;         // update light state
-        /* Update LED and Screen */
-        if(lights){    // Lights are off and Low Lux
-            usprintf(dayNight, "Night");
-            GPIO_write(Board_LED0, Board_LED_ON); // Turn on light
+    if(eventType == true){
+        usprintf(dayNight, "Night");
+        GPIO_write(Board_LED1, Board_LED_ON); // Turn on light
         }
-        else{
-            usprintf(dayNight, "Day");
-            GPIO_write(Board_LED0, Board_LED_OFF); // Turn off light
+
+    else{
+        usprintf(dayNight, "Day");
+        GPIO_write(Board_LED1, Board_LED_OFF); // Turn off light
         }
-        CanvasTextSet(&g_sDayAlert, dayNight);
+
+        CanvasTextSet(&g_sDayAlert, dayNight); // Update Widget
         WidgetPaint((tWidget *)&g_sDayAlert);
-    }
 }
+
+bool flagGraphselect = false;
 
 /* Swap between settings and graph tab */
 void onTabSwap() {
 
-    if(graphingTab == true) {
-        Event_post(GU_eventHandle, EVENT_GUI_SWITCH);
-    }
-    else if (graphingTab == false) {
-        Event_post(gui_event_handle, EVENT_GUI_SWITCH);
-    }
+    RemoveHomeScreen();
+    // DrawGraphScreen();
+    addGraphscreenWidgets();
+    // initGraphDrawing();
+    FrameDraw(&sGUIContext, "Data Tracking");
+
+    flagGraphselect = true;
+
+    /* Notify home screen to switch */
+    Event_post(gui_event_handle, EVENT_GUI_HOME_CLEAR);
 }
 
 /*
@@ -277,6 +282,15 @@ void onTabSwap() {
  *  TIME
  *
  */
+
+
+void initTimeStampInterrupt(){
+    Swi_construct(&swi4Struct, (Swi_FuncPtr)getCurrentTime, &swiParams, NULL);
+    swiHandle_TimeStampProc = Swi_handle(&swi4Struct);
+    if (swiHandle_TimeStampProc == NULL) {
+     System_abort("SWI 4 Timestamp create failed");
+    }
+}
 
 /* Initialise Time at the start of the program */
 void initTime(){
@@ -336,23 +350,25 @@ void getCurrentTime(){
 
 /* Draw Graph Screen Widgets */
 void DrawGraphScreen() {
-    WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sGraphBackground);
-    WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
+
+    addGraphscreenWidgets();
+    //WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sGraphBackground);
+    //WidgetAdd(WIDGET_ROOT, (tWidget *)&g_sSwitcher);
 
 
     /* Notify that GUI is switching and to stop waiting and event pends */
     // initGraphDrawing();
-    WidgetPaint(WIDGET_ROOT);
+    //WidgetPaint(WIDGET_ROOT);
 
 }
 
 /* Undraw the Graph Widgets */
 void RemoveGraphScreen() {
-    WidgetRemove((tWidget *) &g_sGraphBackground);
-    WidgetRemove((tWidget *) &g_sSwitcher);
+    //WidgetRemove((tWidget *) &g_sGraphBackground);
+    //WidgetRemove((tWidget *) &g_sSwitcher);
 
-    PushButtonTextSet(&g_sSwitcher, "Graph");
-    DrawHomeScreen();
+    //PushButtonTextSet(&g_sSwitcher, "Graph");
+    //DrawHomeScreen();
 }
 
 /*
@@ -446,11 +462,12 @@ void initGUIHomescreen(void) {
 
     initTime();
     DrawHomeScreen();
+    initTimeStampInterrupt();
 }
 
 void runGUIHomescreen(UInt *events) {
 
-    *events = Event_pend(gui_event_handle, Event_Id_NONE, Event_Id_05 + EVENT_GUI_SWITCH, BIOS_WAIT_FOREVER);
+    *events = Event_pend(gui_event_handle, Event_Id_NONE, ESTOP_EVENT + EVENT_GUI_HOME_CLEAR, BIOS_WAIT_FOREVER);
 
     // Estop flagged
     if(*events & ESTOP_EVENT) {
@@ -466,12 +483,11 @@ void runGUIHomescreen(UInt *events) {
         WidgetPaint((tWidget *) &g_sEstopLight);
     }
 
-    if (*events & EVENT_GUI_SWITCH) {
-        RemoveHomeScreen();
-        PushButtonTextSet(&g_sSwitcher, "Home");
-        DrawGraphScreen();
-        initGraphDrawing();
-
-        graphingTab = true;
+    if (*events & EVENT_GUI_HOME_CLEAR) {
+        /* Switching to graph selection */
+        if (flagGraphselect) {
+            guiScreen = SCREEN_GRAPH_SELECT;
+            flagGraphselect = false;
+        }
     }
 }

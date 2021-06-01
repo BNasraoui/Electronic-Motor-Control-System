@@ -55,11 +55,7 @@
 #define ACCEL_LIMIT     500
 #define TASKSTACKSIZE   1024
 
-#define ESTOP_EVENT     Event_Id_05
-#define SPEED_EVENT     Event_Id_06
-#define ACCEL_EVENT     Event_Id_07
-#define CURRENT_EVENT   Event_Id_08
-#define MOTOR_EVENT     Event_Id_09
+
 
 // Graphics
 bool eStop;
@@ -95,7 +91,6 @@ void DrawHomeScreen();
 void DrawGraphScreen();
 void RemoveHomeScreen();
 void RemoveGraphScreen();
-void onDayNightChange(bool eventType);
 void onTabSwap();
 void initTime();
 void getCurrentTime();
@@ -104,6 +99,7 @@ void runGUIHomescreen(UInt *events);
 
 extern void initTime();
 extern void getCurrentTime();
+extern void initTimeStampInterrupt();
 
 extern void initGUIHomescreen(void);
 

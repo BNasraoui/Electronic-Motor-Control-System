@@ -13,6 +13,11 @@
 tContext sGUIContext;
 
 Clock_Handle widgetQueue_ClockHandler;
+#define SCREEN_HOME 0
+#define SCREEN_GRAPH_SELECT 1
+#define SCREEN_GRAPH_DISPLAY 2
+
+uint16_t guiScreen;
 
 extern void runGUI(void);
 extern void UpdateWidgetQueue();

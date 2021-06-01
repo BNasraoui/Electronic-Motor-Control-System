@@ -99,8 +99,8 @@ GateHwi_Handle gateHwi;
 GateHwi_Params gHwiprms;
 
 Swi_Params swiParams;
-Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct;
-Swi_Handle swiHandle_ADC0DataProc, swiHandle_ADC1DataProc, swiHandle_accelDataProc, swiHandle_LuxDataProc;
+Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct, swi4Struct;
+Swi_Handle swiHandle_ADC0DataProc, swiHandle_ADC1DataProc, swiHandle_accelDataProc, swiHandle_LuxDataProc, swiHandle_TimeStampProc;
 
 Error_Block eb;
 

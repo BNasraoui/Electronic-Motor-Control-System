@@ -7,6 +7,7 @@
 #include "GUI/graphing/GUI_graph.h"
 #include "GUI/graphing/GUI_XYGraph.h"
 #include "GUI/homescreen/GUI_homescreen.h"
+#include "GUI/graphing/GUI_graphscreen.h"
 #include "GUI/gui.h"
 #include "general.h"
 
@@ -23,6 +24,7 @@ void UpdateWidgetQueue() {
 
 void InitGUIDriver() {
     Clock_Params clockParams;
+    guiScreen = SCREEN_HOME;
 
     initDisplay();
     initGUIGraphs();
@@ -47,13 +49,17 @@ void runGUI(void)
     /* GUI */
     while (true) {
         if (graphingTab) {
-            runGUIGraphing(&graphingEvents);
+            if (guiScreen == SCREEN_GRAPH_DISPLAY) {
+                runGUIGraphing(&graphingEvents);
+            }
+            else if (guiScreen == SCREEN_GRAPH_SELECT) {
+                runGUIGraphSelect(&homeEvents);
+            }
+            else if (guiScreen == SCREEN_HOME)
+            {
+                runGUIHomescreen(&homeEvents);
+            }
         }
-        else
-        {
-            runGUIHomescreen(&homeEvents);
-        }
-    }
 
     /* END of gui task */
 }

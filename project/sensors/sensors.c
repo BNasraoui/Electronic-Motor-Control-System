@@ -115,10 +115,15 @@ void ProcessSensorEvents() {
 
     if(events & NEW_OPT3001_DATA) {
         GetLightLevel();
+        Swi_post(swiHandle_TimeStampProc); // Update Timestamp maybe move somewhere else. kinda ghetto but w/e
 
         if (graphTypeActive == GRAPH_TYPE_LIGHT) {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
             Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
+        }
+        if((headLightState == ON) && (luxValueFilt.avg > NIGHTTIME_LUX_VAL)){
+            onDayNightChange(false);
+            headLightState = OFF;
         }
     }
 
@@ -148,7 +153,7 @@ void ProcessSensorEvents() {
             //only turn on the headlights if our filtered data
             //tells us it's nightime
             if(luxValueFilt.avg < NIGHTTIME_LUX_VAL) {
-                onDayNightChange(TURN_HEADLIGHTS_ON);
+                onDayNightChange(true);
                 headLightState = ON;
             }
         }

@@ -141,6 +141,32 @@ void GraphFrame_init(struct XYGraphFrame *frame, uint16_t x, uint16_t y, uint16_
     frame->descaleEnabled = descale_enabled;
 }
 
+void GraphFrame_reset(struct XYGraphFrame *frame) {
+    frame->y_max = 0;
+    frame->y_min = 0;
+    frame->maxOnDisplay = 0;
+    frame->minOnDisplay = 0;
+    frame->updateFlag = false;
+    frame->zero = 0;
+    frame->axis_y_scale = frame->height;
+}
+
+void GraphData_reset(struct XYGraphData *graph) {
+    graph->y_estop = 0;
+    graph->graphHead = 0;
+
+    graph->prevDataX = 0;
+    graph->prevDataY = 0;
+    graph->updateFlag = false;
+    graph->densityCount = 0;
+    graph->densitySum = 0.0F;
+
+    uint16_t i;
+    for (i = 0; i < AXIS_X_DATA_POINTS; i++) {
+        graph->data[i] = 0.0F;
+    }
+}
+
 void GraphData_init(struct XYGraphData *graph, float estop) {
     graph->y_estop = estop;
     graph->graphHead = 0;
