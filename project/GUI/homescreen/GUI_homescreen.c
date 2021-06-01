@@ -1,6 +1,7 @@
 #include <GUI/homescreen/GUI_homescreen.h>
 #include "GUI/graphing/GUI_graph.h"
 #include "GUI/gui.h"
+#include "sensors/sensors.h"
 
 /*
  *
@@ -36,10 +37,10 @@ void DrawHomeScreen();
 void DrawGraphScreen();
 void RemoveHomeScreen();
 void RemoveGraphScreen();
-void onDayNightChange(bool eventType);
+
 void onTabSwap();
 void initTime();
-void getCurrentTime();
+//void getCurrentTime();
 
 // The canvas widget acting as the background to the display.
 Canvas(g_sBackground, 0, &g_sStartStopBttn, 0,
@@ -243,20 +244,18 @@ void onAccelChange(tWidget *psWidget){
 
 /* Turns on the night light and updates the display on change */
 void onDayNightChange(bool eventType){
-    if(lights == eventType){        // e.g if low light and lights are off
-        lights = eventType;         // update light state
-        /* Update LED and Screen */
-        if(lights){    // Lights are off and Low Lux
-            usprintf(dayNight, "Night");
-            GPIO_write(Board_LED0, Board_LED_ON); // Turn on light
+    if(eventType == true){
+        usprintf(dayNight, "Night");
+        GPIO_write(Board_LED1, Board_LED_ON); // Turn on light
         }
-        else{
-            usprintf(dayNight, "Day");
-            GPIO_write(Board_LED0, Board_LED_OFF); // Turn off light
+
+    else{
+        usprintf(dayNight, "Day");
+        GPIO_write(Board_LED1, Board_LED_OFF); // Turn off light
         }
-        CanvasTextSet(&g_sDayAlert, dayNight);
+
+        CanvasTextSet(&g_sDayAlert, dayNight); // Update Widget
         WidgetPaint((tWidget *)&g_sDayAlert);
-    }
 }
 
 /* Swap between settings and graph tab */
@@ -275,6 +274,15 @@ void onTabSwap() {
  *  TIME
  *
  */
+
+
+void initTimeStampInterrupt(){
+    Swi_construct(&swi4Struct, (Swi_FuncPtr)getCurrentTime, &swiParams, NULL);
+    swiHandle_TimeStampProc = Swi_handle(&swi4Struct);
+    if (swiHandle_TimeStampProc == NULL) {
+     System_abort("SWI 4 Timestamp create failed");
+    }
+}
 
 /* Initialise Time at the start of the program */
 void initTime(){
@@ -445,11 +453,12 @@ void initGUIHomescreen(void) {
 
     initTime();
     DrawHomeScreen();
+    initTimeStampInterrupt();
 }
 
 void runGUIHomescreen(UInt *events) {
 
-    *events = Event_pend(gui_event_handle, Event_Id_NONE, Event_Id_05 + EVENT_GUI_SWITCH, BIOS_WAIT_FOREVER);
+    *events = Event_pend(gui_event_handle, Event_Id_NONE, ESTOP_EVENT + EVENT_GUI_SWITCH, BIOS_WAIT_FOREVER);
 
     // Estop flagged
     if(*events & ESTOP_EVENT) {
