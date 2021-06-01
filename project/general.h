@@ -36,6 +36,13 @@
 #define ALLTASKS_CHECKEDIN              0x07
 char watchDogCheck;
 
+#define CLOCK_PERIOD_150HZ              6    //6ms = ~150Hz
+#define CLOCK_PERIOD_2HZ                500  //500ms = 2Hz
+#define CLOCK_PERIOD_1HZ                1000
+#define CLOCK_PERIOD_10HZ               100
+#define CLOCK_PERIOD_100HZ              1
+#define CLOCK_TIMEOUT_MS                10  //ms
+
 uint8_t motorRunning;
 uint16_t SPEED_USER_LIMIT;
 uint16_t CURRENT_USER_LIMIT;

@@ -28,7 +28,7 @@ void InitI2C_OPT3001() {
     //Make sure high/low event bit is cleared
     CheckLowLightEventOccured();
 
-    IntEnable(INT_GPIOP2);
+    //IntEnable(INT_GPIOM);
 }
 
 

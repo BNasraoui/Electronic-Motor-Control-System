@@ -59,11 +59,6 @@ void TaskStatusCheck() {
     //Add event post for main GUI if we use it
 }
 
-void UpdateWidgetQueue() {
-    WidgetMessageQueueProcess();
-    Clock_start(widgetQueue_ClockHandler);
-}
-
 /* Sensor Task Function */
 void ReadSensorsFxn() {
     InitI2C_OPT3001();
@@ -71,16 +66,15 @@ void ReadSensorsFxn() {
     InitADC1_CurrentSense();
 
     // enable GPIO Hwis for BMI160 and OPT3001
-    GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
-    GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
-    GPIO_enableInt(Board_BMI160);
-    GPIO_enableInt(Board_OPT3001);
+    //GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
+    //GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
+    //GPIO_enableInt(Board_BMI160);
+    //GPIO_enableInt(Board_OPT3001);
 
     //Start the timing clocks used to periodically trigger opt3001 and bmi160 reads
     Clock_start(opt3001_ClockHandler);
     Clock_start(adc_ClockHandler);
     Clock_start(watchDog_ClockHandler);
-    Clock_start(widgetQueue_ClockHandler);
 
     headLightState = OFF;
 
@@ -98,13 +92,13 @@ void InitTasks(void) {
     Task_Params taskParams;
     Task_Params_init(&taskParams);
 
-    /* Sensor Task */
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = SENSOR_TASKSTACKSIZE;
-    taskParams.stack = &sensorTaskStack;
-    taskParams.instance->name = "sensorTask";
-    taskParams.priority = 2;
-    Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
+//    /* Sensor Task */
+//    Task_Params_init(&taskParams);
+//    taskParams.stackSize = SENSOR_TASKSTACKSIZE;
+//    taskParams.stack = &sensorTaskStack;
+//    taskParams.instance->name = "sensorTask";
+//    taskParams.priority = 2;
+//    Task_construct(&sensorTaskStruct, (Task_FuncPtr) ReadSensorsFxn, &taskParams, NULL);
 
     /* Graph Task */
     taskParams.stackSize = GUI_TASKSTACKSIZE;
@@ -139,7 +133,7 @@ int main(void) {
     InitTasks();
     InitEvents();
 
-    InitSensorDriver();
+    //InitSensorDriver();
 
     watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
 

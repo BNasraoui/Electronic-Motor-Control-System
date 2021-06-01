@@ -56,12 +56,6 @@
 #define ADC_RESOLUTION                  0.0008
 #define SHUNT_R_VALUE                   0.007
 
-#define CLOCK_PERIOD_150HZ              6    //6ms = ~150Hz
-#define CLOCK_PERIOD_2HZ                500  //500ms = 2Hz
-#define CLOCK_PERIOD_1HZ                1000
-#define CLOCK_PERIOD_10HZ               100
-#define CLOCK_TIMEOUT_MS                   10  //ms
-
 #define LOW_HIGH_LIGHT_EVENT            Event_Id_00
 #define NEW_OPT3001_DATA                Event_Id_01
 #define NEW_ACCEL_DATA                  Event_Id_02
@@ -121,11 +115,9 @@ I2C_Params i2cParams;
 I2C_Transaction i2cTransactionCallback;
 uint8_t rxBuffer_BMI[6];
 
-Clock_Params clockParams;
 Clock_Handle adc_ClockHandler;
 Clock_Handle opt3001_ClockHandler;
 Clock_Handle watchDog_ClockHandler;
-Clock_Handle widgetQueue_ClockHandler;
 
 Watchdog_Handle watchDogHandle;
 

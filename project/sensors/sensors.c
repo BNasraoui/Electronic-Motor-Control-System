@@ -24,6 +24,7 @@ void OPT3001Fxn() {
 //*************************** INITIALISATION **************************************
 void InitSensorDriver() {
     Watchdog_Params watchDogParams;
+    Clock_Params clockParams;
     Error_init(&eb);
 
     InitInterrupts();
@@ -33,7 +34,7 @@ void InitSensorDriver() {
     I2C_Params_init(&i2cParams);
     i2cParams.bitRate = I2C_100kHz;
     i2cParams.transferMode = I2C_MODE_BLOCKING;
-    i2cHandle = I2C_open(0, &i2cParams);
+    i2cHandle = I2C_open(Board_I2C2, &i2cParams);
     if (i2cHandle == NULL) {
         System_abort("Error Initializing I2C Handle\n");
     }
@@ -55,12 +56,6 @@ void InitSensorDriver() {
     clockParams.period = CLOCK_PERIOD_1HZ;
     watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
     if (watchDog_ClockHandler == NULL) {
-     System_abort("watchdog clock create failed");
-    }
-
-    clockParams.period = CLOCK_PERIOD_1HZ;
-    widgetQueue_ClockHandler = Clock_create(UpdateWidgetQueue, CLOCK_TIMEOUT_MS, &clockParams, &eb);
-    if (widgetQueue_ClockHandler == NULL) {
      System_abort("watchdog clock create failed");
     }
 
@@ -223,9 +218,9 @@ void InitADC1_CurrentSense() {
     ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ, 1, ADC_CTL_IE | ADC_CTL_CH4 | ADC_CTL_END);
 
     ADCSequenceEnable(ADC1_BASE, ADC_SEQ);
-    ADCIntEnable(ADC1_BASE, ADC_SEQ);
-    ADCIntClear(ADC1_BASE, ADC_SEQ);
-    IntEnable(INT_ADC1SS1);
+    //ADCIntEnable(ADC1_BASE, ADC_SEQ);
+    //ADCIntClear(ADC1_BASE, ADC_SEQ);
+    //IntEnable(INT_ADC1SS1);
 }
 
 void ADC1_Read() {

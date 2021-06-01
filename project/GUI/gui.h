@@ -8,8 +8,13 @@
 #ifndef GUI_GUI_H_
 #define GUI_GUI_H_
 
+#include <ti/sysbios/knl/Clock.h>
+
 tContext sGUIContext;
 
+Clock_Handle widgetQueue_ClockHandler;
+
 extern void runGUI(void);
+extern void UpdateWidgetQueue();
 
 #endif /* GUI_GUI_H_ */

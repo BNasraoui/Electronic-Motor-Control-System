@@ -716,8 +716,7 @@ TouchScreenInit(uint32_t ui32SysClock)
     // Configure the ADC sample sequence used to read the touch screen reading.
     //
     ADCSequenceConfigure(ADC0_BASE, 3, ADC_TRIGGER_TIMER, 0);
-    ADCSequenceStepConfigure(ADC0_BASE, 3, 0,
-                             TS_YP_ADC | ADC_CTL_END | ADC_CTL_IE);
+    ADCSequenceStepConfigure(ADC0_BASE, 3, 0, TS_YP_ADC | ADC_CTL_END | ADC_CTL_IE);
     ADCSequenceEnable(ADC0_BASE, 3);
 
     //

@@ -108,14 +108,14 @@ Canvas(g_sSpeedCanvas, 0, 0, 0,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Speed, 0, 0);
 
 RectangularButton(g_sSpeedSubBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 25, 50, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 25, 50, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
                    g_psFontCmss16b, "-", 0, 0, 0, 0, onSpeedChange);
 
 RectangularButton(g_sSpeedAddBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 125, 50, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 115, 50, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
@@ -128,14 +128,14 @@ Canvas(g_sCurrentCanvas, 0, 0, 0,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Current, 0, 0);
 
 RectangularButton(g_sCurrentSubBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 25, 100, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 25, 100, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
                    g_psFontCmss16b, "-", 0, 0, 0, 0, onCurrentChange);
 
 RectangularButton(g_sCurrentAddBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 125, 100, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 115, 100, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
@@ -148,14 +148,14 @@ Canvas(g_sAccelCanvas, 0, 0, 0,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Acceleration, 0, 0);
 
 RectangularButton(g_sAccelSubBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 25, 150, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 25, 150, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
                    g_psFontCmss16b, "-", 0, 0, 0, 0, onAccelChange);
 
 RectangularButton(g_sAccelAddBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 125, 150, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 115, 150, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
