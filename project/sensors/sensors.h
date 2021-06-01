@@ -65,7 +65,7 @@
 typedef struct Sliding_Window32 {
     uint8_t index;
     bool startFilter;
-    uint32_t sum;
+    int32_t sum;
     float avg;
     float voltage;
     float current;
