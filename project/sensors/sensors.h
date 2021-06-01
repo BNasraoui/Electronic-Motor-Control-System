@@ -56,12 +56,6 @@
 #define ADC_RESOLUTION                  0.0008
 #define SHUNT_R_VALUE                   0.007
 
-#define LOW_HIGH_LIGHT_EVENT            Event_Id_00
-#define NEW_OPT3001_DATA                Event_Id_01
-#define NEW_ACCEL_DATA                  Event_Id_02
-#define NEW_ADC0_DATA                   Event_Id_03
-#define NEW_ADC1_DATA                   Event_Id_04
-
 #define TURN_HEADLIGHTS_ON              1
 #define TURN_HEADLIGHTS_OFF             0
 #define NIGHTTIME_LUX_VAL               5

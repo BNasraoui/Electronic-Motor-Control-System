@@ -76,10 +76,11 @@ void InitSensorDriver() {
 }
 
 void InitInterrupts() {
+
     Swi_Params_init(&swiParams);
     swiParams.priority = 1;
     swiParams.trigger = 0;
-    Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
+    Swi_construct(&swi1Struct, (Swi_FuncPtr) ADC1_FilterFxn, &swiParams, NULL);
     swiHandle_ADC1DataProc = Swi_handle(&swi1Struct);
     if (swiHandle_ADC1DataProc == NULL) {
      System_abort("SWI 1 ADC1 filter create failed");
@@ -189,22 +190,6 @@ void GetAccelData() {
 }
 
 void InitADC1_CurrentSense() {
-    ADC0Window.index = 0;
-    ADC0Window.sum = 0;
-    ADC0Window.avg = 0;
-    ADC0Window.voltage = 0;
-    ADC0Window.current = 0;
-    ADC0Window.power = 0;
-    ADC0Window.startFilter = false;
-
-    ADC1Window.index = 0;
-    ADC1Window.sum = 0;
-    ADC1Window.avg = 0;
-    ADC1Window.voltage = 0;
-    ADC1Window.current = 0;
-    ADC1Window.power = 0;
-    ADC1Window.startFilter = false;
-
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
 
     GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_7);

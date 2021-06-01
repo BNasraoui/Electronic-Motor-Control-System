@@ -62,7 +62,7 @@ void TaskStatusCheck() {
 void ReadSensorsFxn() {
     InitI2C_OPT3001();
     InitI2C_BMI160();
-    //InitADC1_CurrentSense();
+    InitADC1_CurrentSense();
 
 //    // enable GPIO Hwis for BMI160 and OPT3001
     GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
@@ -72,7 +72,7 @@ void ReadSensorsFxn() {
 
 //    //Start the timing clocks used to periodically trigger opt3001 and bmi160 reads
     Clock_start(opt3001_ClockHandler);
-    //Clock_start(adc_ClockHandler);
+    Clock_start(adc_ClockHandler);
 //    Clock_start(watchDog_ClockHandler);
 
     headLightState = OFF;
