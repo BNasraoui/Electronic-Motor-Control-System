@@ -92,14 +92,14 @@ RectangularButton(g_powerButton, 0, 0, 0,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
-                   g_psFontCmss16b, "Power", 0, 0, 0, 0, onAccelxyzButtonPress);
+                   g_psFontCmss16b, "Power", 0, 0, 0, 0, onPowerButtonPress);
 
 RectangularButton(g_speedButton, 0, 0, 0,
                   &g_sKentec320x240x16_SSD2119, 25, 175, 200, 25,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
-                   g_psFontCmss16b, "Speed", 0, 0, 0, 0, onAccelxyzButtonPress);
+                   g_psFontCmss16b, "Speed", 0, 0, 0, 0, onSpeedButtonPress);
 
 RectangularButton(g_homeButton, 0, 0, 0,
                   &g_sKentec320x240x16_SSD2119, 190, 205, 100, 25,

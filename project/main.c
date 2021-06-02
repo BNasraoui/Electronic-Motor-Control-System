@@ -136,10 +136,10 @@ void InitTasks(void) {
     Task_construct(&guiTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
 
     // motor operation Task thread
-    taskParams.stackSize = TASKSTACKSIZE;
+    /*taskParams.stackSize = TASKSTACKSIZE;
     taskParams.stack = &motorTaskStack;
     taskParams.priority = 3;
-    Task_construct(&motorTaskStruct, (Task_FuncPtr)motorOperation, &taskParams, NULL);
+    Task_construct(&motorTaskStruct, (Task_FuncPtr)motorOperation, &taskParams, NULL);*/
 }
 
 void InitEvents(void) {
@@ -175,7 +175,7 @@ int main(void) {
 
     InitSensorDriver();
     InitGUIDriver();
-    initMotorDriver();
+    //initMotorDriver();
 
     watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
 

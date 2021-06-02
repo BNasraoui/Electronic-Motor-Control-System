@@ -55,7 +55,7 @@ void ADC1_FilterFxn() {
         ADC1Window.current = ((Vref/2) - ADC1Window.voltage) / (Gcsa * Rsense);
         ADC0Window.current = ((Vref/2) - ADC0Window.voltage) / (Gcsa * Rsense);
 
-        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
+        ADC1Window.power = ((ADC1Window.voltage * ADC1Window.current) + (ADC0Window.voltage * ADC0Window.current))/2;
         ADC0Window.power = ADC0Window.voltage * ADC0Window.current;
 
         Event_post(sensors_eventHandle, NEW_ADC1_DATA);

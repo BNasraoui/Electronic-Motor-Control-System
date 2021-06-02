@@ -94,7 +94,7 @@ void speedCalc_ClockHandlerFxn()
         filteredSpeedData.startFilter = true;
     }
 
-    Event_post(GU_eventHandle, EVENT_GRAPH_SPEED);
+    //Event_post(GU_eventHandle, EVENT_GRAPH_SPEED);
 
 }
 

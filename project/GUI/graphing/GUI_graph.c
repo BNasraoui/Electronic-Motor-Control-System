@@ -16,6 +16,7 @@
 #include "GUI/homescreen/GUI_homescreen.h"
 #include "GUI/gui.h"
 #include "motor/motor.h"
+#include "sensors/bmi160/bmi160.h"
 
 void initGUIGraphs(void) {
     GraphFrame_init(&GraphBorder, 32, 32, 272, 112, false);
@@ -154,9 +155,15 @@ void initGraphDrawing(void) {
     }
 
     if (graphTypeActive == GRAPH_TYPE_ACCEL) {
-        FrameDraw(&sGUIContext, "Acceleration Tracking");
+        FrameDraw(&sGUIContext, "Acceleration XYZ Tracking");
         TriplePlotGraph_init_display(&GraphBorder, "G [8:1]", "x", "y", "z");
         GraphBorder.descaleEnabled = false;
+    }
+
+    if (graphTypeActive == GRAPH_TYPE_ACCELABS) {
+        FrameDraw(&sGUIContext, "Acceleration Tracking");
+        SinglePlotGraph_init_display(&GraphBorder, "G [8:1]", "G");
+        GraphBorder.descaleEnabled = true;
     }
 
     if (graphTypeActive == GRAPH_TYPE_CURR) {
@@ -260,7 +267,7 @@ void runGUIGraphing(UInt *events) {
     }
 
     if ((*events & EVENT_GRAPH_CURR)  && (graphTypeActive == GRAPH_TYPE_POW)) {
-        drawSinglePlot(&GraphBorder, &Graph_POW, ADC1Window.avg);
+        drawSinglePlot(&GraphBorder, &Graph_POW, ADC1Window.power);
     }
 
     if ((*events & EVENT_GRAPH_SPEED)  && (graphTypeActive == GRAPH_TYPE_SPD)) {
