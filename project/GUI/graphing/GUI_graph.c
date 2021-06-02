@@ -29,6 +29,10 @@ void initGUIGraphs(void) {
 
     GraphData_init(&Graph_ACCABS, 5000);
 
+    GraphData_init(&Graph_POW, 5000);
+
+    GraphData_init(&Graph_SPD, 5000);
+
     graphTypeActive = GRAPH_TYPE_NONE;
 }
 
@@ -172,7 +176,7 @@ Canvas(g_sGraphDisplayBackground, 0, 0, 0,
        CANVAS_STYLE_FILL, ClrBlack, 0, 0, 0, 0, 0, 0);
 
 RectangularButton(g_graphmenuButton, 0, 0, 0,
-      &g_sKentec320x240x16_SSD2119, 192, 192, 100, 25,
+      &g_sKentec320x240x16_SSD2119, 190, 205, 100, 25,
       (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
        PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
        ClrBlue, ClrBlue, ClrWhite, ClrWhite,
@@ -199,6 +203,10 @@ void reset() {
     GraphData_reset(&Graph_CURR);
 
     GraphData_reset(&Graph_ACCABS);
+
+    GraphData_reset(&Graph_POW);
+
+    GraphData_reset(&Graph_SPD);
 }
 
 void clearScreen(void) {
@@ -243,8 +251,21 @@ void runGUIGraphing(UInt *events) {
         // drawSinglePlot(&GraphBorder, &Graph_ACCABS, luxValueFilt.avg);
     }
 
+    if ((*events & EVENT_GRAPH_ACCEL)  && (graphTypeActive == GRAPH_TYPE_ACCELABS)) {
+        //drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
+        drawSinglePlot(&GraphBorder, &Graph_ACCABS, luxValueFilt.avg);
+    }
+
     if ((*events & EVENT_GRAPH_CURR)  && (graphTypeActive == GRAPH_TYPE_CURR)) {
         drawSinglePlot(&GraphBorder, &Graph_CURR, ADC1Window.avg);
+    }
+
+    if ((*events & EVENT_GRAPH_CURR)  && (graphTypeActive == GRAPH_TYPE_POW)) {
+        drawSinglePlot(&GraphBorder, &Graph_POW, ADC1Window.avg);
+    }
+
+    if ((*events & EVENT_GRAPH_CURR)  && (graphTypeActive == GRAPH_TYPE_SPD)) {
+        drawSinglePlot(&GraphBorder, &Graph_SPD, ADC1Window.avg);
     }
 
 

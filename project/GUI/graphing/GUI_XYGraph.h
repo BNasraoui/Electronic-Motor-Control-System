@@ -28,7 +28,7 @@ struct XYGraphData {
     float densitySum;
     uint16_t densityCount;
     bool updateFlag;
-} Graph_LUX, Graph_ACCX, Graph_ACCY, Graph_ACCZ, Graph_CURR, Graph_ACCABS;
+} Graph_LUX, Graph_ACCX, Graph_ACCY, Graph_ACCZ, Graph_CURR, Graph_ACCABS, Graph_POW, Graph_SPD;
 
 struct XYGraphFrame {
     float axis_y_scale;
