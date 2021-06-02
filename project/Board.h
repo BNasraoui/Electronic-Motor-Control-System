@@ -64,8 +64,11 @@ extern "C" {
 #define Board_BUTTON1               EK_TM4C1294XL_USR_SW2
 #define Board_OPT3001               EK_TM4C129XL_OPT3001
 #define Board_BMI160                EK_TM4C129XL_BMI160
+#define Board_Hall_A                EK_TM4C1294XL_HALL_A
+#define Board_Hall_B                EK_TM4C1294XL_HALL_B
+#define Board_Hall_C                EK_TM4C1294XL_HALL_C
 
-#define Board_I2C0                  EK_TM4C1294XL_I2C7
+#define Board_I2C2                  EK_TM4C1294XL_I2C7
 #define Board_I2C1                  EK_TM4C1294XL_I2C8
 #define Board_I2C_TMP               EK_TM4C1294XL_I2C7
 #define Board_I2C_NFC               EK_TM4C1294XL_I2C7

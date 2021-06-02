@@ -34,34 +34,59 @@
 #include "GUI/graphing/GUI_graph.h"
 #include "GUI/homescreen/GUI_homescreen.h"
 #include "GUI/gui.h"
+#include "motor/motor.h"
 
 /* Created libraries for sub-systems */
 #include "general.h"
 
 void WatchDogBite() {
-    UInt gateKey;
+//    UInt gateKey;
+//
+//    if(watchDogCheck == ALLTASKS_CHECKEDIN) {
+//        Watchdog_clear(watchDogHandle);
+//
+//        gateKey = GateHwi_enter(gateHwi);
+//        watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
+//        GateHwi_leave(gateHwi, gateKey);
+//    }
 
-    if(watchDogCheck == ALLTASKS_CHECKEDIN) {
-        Watchdog_clear(watchDogHandle);
-
-        gateKey = GateHwi_enter(gateHwi);
-        watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
-        GateHwi_leave(gateHwi, gateKey);
-    }
-
-    Clock_start(watchDog_ClockHandler);
 }
 
 void TaskStatusCheck() {
-    Event_post(sensors_eventHandle, KICK_DOG);
-    Event_post(GU_eventHandle, KICK_DOG);
+   // Event_post(sensors_eventHandle, KICK_DOG);
+   // Event_post(GU_eventHandle, KICK_DOG);
     //Add event post for motor task
     //Add event post for main GUI if we use it
 }
 
-void UpdateWidgetQueue() {
-    WidgetMessageQueueProcess();
-    Clock_start(widgetQueue_ClockHandler);
+void motorOperation()
+{
+
+   UInt events;
+
+   for(;;) // spin here
+    {
+        events = Event_pend(motor_evtHandle, Event_Id_NONE, START_MOTOR | STOP_MOTOR | ESTOP, BIOS_WAIT_FOREVER); // events to handle motor operation state machine
+
+        switch(events)
+        {
+          case START_MOTOR:
+              startMotorRoutine(); // start motor routine
+              break;
+
+          case STOP_MOTOR: // make Ben change his stop motor event to a change speed event whereby the new speed = 0
+              desiredSpeed = 0;
+              break;
+
+          case ESTOP:
+              desiredSpeed = 0;
+              estopFlag = true;
+              break;
+
+          default:
+              break;
+        }
+    }
 }
 
 /* Sensor Task Function */
@@ -70,17 +95,16 @@ void ReadSensorsFxn() {
     InitI2C_BMI160();
     InitADC1_CurrentSense();
 
-    // enable GPIO Hwis for BMI160 and OPT3001
+//    // enable GPIO Hwis for BMI160 and OPT3001
     GPIO_setCallback(Board_BMI160, (GPIO_CallbackFxn)BMI160Fxn);
-    GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
+//    GPIO_setCallback(Board_OPT3001, (GPIO_CallbackFxn)OPT3001Fxn);
     GPIO_enableInt(Board_BMI160);
-    GPIO_enableInt(Board_OPT3001);
+//    GPIO_enableInt(Board_OPT3001);
 
-    //Start the timing clocks used to periodically trigger opt3001 and bmi160 reads
+//    //Start the timing clocks used to periodically trigger opt3001 and bmi160 reads
     Clock_start(opt3001_ClockHandler);
     Clock_start(adc_ClockHandler);
-    Clock_start(watchDog_ClockHandler);
-    Clock_start(widgetQueue_ClockHandler);
+//    Clock_start(watchDog_ClockHandler);
 
     headLightState = OFF;
 
@@ -99,7 +123,6 @@ void InitTasks(void) {
     Task_Params_init(&taskParams);
 
     /* Sensor Task */
-    Task_Params_init(&taskParams);
     taskParams.stackSize = SENSOR_TASKSTACKSIZE;
     taskParams.stack = &sensorTaskStack;
     taskParams.instance->name = "sensorTask";
@@ -111,6 +134,12 @@ void InitTasks(void) {
     taskParams.stack = &guiTaskStack;
     taskParams.priority = 1;
     Task_construct(&guiTaskStruct, (Task_FuncPtr) GUITaskFxn, &taskParams, NULL);
+
+    // motor operation Task thread
+    taskParams.stackSize = TASKSTACKSIZE;
+    taskParams.stack = &motorTaskStack;
+    taskParams.priority = 3;
+    Task_construct(&motorTaskStruct, (Task_FuncPtr)motorOperation, &taskParams, NULL);
 }
 
 void InitEvents(void) {
@@ -127,6 +156,11 @@ void InitEvents(void) {
 
     sensors_eventHandle = Event_create(&taskEventParams, NULL);
     if(sensors_eventHandle == NULL)  System_abort("Sensors event create failed");
+
+    // Create an Event object - Motor
+    motor_evtHandle = Event_create(&taskEventParams, NULL);
+    if (motor_evtHandle == NULL) System_abort("Event create failed");
+
 }
 
 int main(void) {
@@ -140,6 +174,8 @@ int main(void) {
     InitEvents();
 
     InitSensorDriver();
+    InitGUIDriver();
+    initMotorDriver();
 
     watchDogCheck = WATCHDOG_NOTASKS_CHECKEDIN;
 

@@ -17,14 +17,14 @@ void BMI160Fxn() {
     Event_post(sensors_eventHandle, NEW_ACCEL_DATA);
 }
 
-void OPT3001Fxn() {
-    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
-}
+//void OPT3001Fxn() {
+//    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
+//}
 
 //*************************** INITIALISATION **************************************
 void InitSensorDriver() {
     Watchdog_Params watchDogParams;
-    Error_init(&eb);
+    Clock_Params clockParams;
 
     InitInterrupts();
 
@@ -33,7 +33,7 @@ void InitSensorDriver() {
     I2C_Params_init(&i2cParams);
     i2cParams.bitRate = I2C_100kHz;
     i2cParams.transferMode = I2C_MODE_BLOCKING;
-    i2cHandle = I2C_open(0, &i2cParams);
+    i2cHandle = I2C_open(Board_I2C2, &i2cParams);
     if (i2cHandle == NULL) {
         System_abort("Error Initializing I2C Handle\n");
     }
@@ -52,17 +52,11 @@ void InitSensorDriver() {
      System_abort("adc clock handle create failed");
     }
 
-    clockParams.period = CLOCK_PERIOD_1HZ;
-    watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
-    if (watchDog_ClockHandler == NULL) {
-     System_abort("watchdog clock create failed");
-    }
-
-    clockParams.period = CLOCK_PERIOD_1HZ;
-    widgetQueue_ClockHandler = Clock_create(UpdateWidgetQueue, CLOCK_TIMEOUT_MS, &clockParams, &eb);
-    if (widgetQueue_ClockHandler == NULL) {
-     System_abort("watchdog clock create failed");
-    }
+//    clockParams.period = CLOCK_PERIOD_1HZ;
+//    watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+//    if (watchDog_ClockHandler == NULL) {
+//     System_abort("watchdog clock create failed");
+//    }
 
     //Create Hwi Gate Mutex
     GateHwi_Params_init(&gHwiprms);
@@ -71,21 +65,22 @@ void InitSensorDriver() {
         System_abort("Gate Hwi create failed");
     }
 
-    Watchdog_Params_init(&watchDogParams);
-    watchDogParams.resetMode = Watchdog_RESET_OFF;
-    watchDogParams.callbackFxn = WatchDogBite;
-    watchDogParams.resetMode = Watchdog_RESET_OFF;
-    watchDogHandle = Watchdog_open(EK_TM4C1294XL_WATCHDOG0, &watchDogParams);
-    if (!watchDogHandle) {
-        System_printf("Watchdog did not open");
-    }
+//    Watchdog_Params_init(&watchDogParams);
+//    watchDogParams.resetMode = Watchdog_RESET_OFF;
+//    watchDogParams.callbackFxn = WatchDogBite;
+//    watchDogParams.resetMode = Watchdog_RESET_OFF;
+//    watchDogHandle = Watchdog_open(EK_TM4C1294XL_WATCHDOG0, &watchDogParams);
+//    if (!watchDogHandle) {
+//        System_printf("Watchdog did not open");
+//    }
 }
 
 void InitInterrupts() {
+
     Swi_Params_init(&swiParams);
     swiParams.priority = 1;
     swiParams.trigger = 0;
-    Swi_construct(&swi1Struct, (Swi_FuncPtr)ADC1_FilterFxn, &swiParams, NULL);
+    Swi_construct(&swi1Struct, (Swi_FuncPtr) ADC1_FilterFxn, &swiParams, NULL);
     swiHandle_ADC1DataProc = Swi_handle(&swi1Struct);
     if (swiHandle_ADC1DataProc == NULL) {
      System_abort("SWI 1 ADC1 filter create failed");
@@ -104,7 +99,7 @@ void InitInterrupts() {
     }
 
     Hwi_Params_init(&hwiParams);
-    hwiParams.priority = 0;
+    hwiParams.priority = 1;
     hwi_ADC1 = Hwi_create(ADC1_SEQ1_VEC_NUM, (Hwi_FuncPtr)ADC1_Read, &hwiParams, NULL);
     if (hwi_ADC1 == NULL) {
      System_abort("ADC1 Hwi create failed");
@@ -138,7 +133,7 @@ void ProcessSensorEvents() {
 
         if(absoluteAccel > ACCEL_USER_LIMIT) {
             //Fire e-stop event
-
+            Event_post(motor_evtHandle, ESTOP);
         }
 
         if (graphTypeActive == GRAPH_TYPE_ACCEL) {
@@ -167,7 +162,7 @@ void ProcessSensorEvents() {
     if(events & NEW_ADC1_DATA) {
         //If current limit exceeded, send E-stop event
         if(ADC1Window.current > CURRENT_USER_LIMIT || ADC0Window.current > CURRENT_USER_LIMIT) {
-
+            Event_post(motor_evtHandle, ESTOP);
         }
 
         if (graphTypeActive == GRAPH_TYPE_CURR) {
@@ -178,15 +173,14 @@ void ProcessSensorEvents() {
         //System_printf("ADC1: %f\n", ADC1Window.avg);
     }
 
-    if(events & KICK_DOG) {
-        //System_printf("Setting bit to tell watchdog that this task is ok");
-        gateKey = GateHwi_enter(gateHwi);
-        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_SENSOR;
-        //For testing
-        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_MOTOR;
-        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_GUI;
-        GateHwi_leave(gateHwi, gateKey);
-    }
+//    if(events & KICK_DOG) {
+//        //System_printf("Setting bit to tell watchdog that this task is ok");
+//        gateKey = GateHwi_enter(gateHwi);
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_SENSOR;
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_MOTOR;
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_GUI;
+//        GateHwi_leave(gateHwi, gateKey);
+//    }
 }
 
 float GetLightLevel() {
@@ -201,22 +195,6 @@ void GetAccelData() {
 }
 
 void InitADC1_CurrentSense() {
-    ADC0Window.index = 0;
-    ADC0Window.sum = 0;
-    ADC0Window.avg = 0;
-    ADC0Window.voltage = 0;
-    ADC0Window.current = 0;
-    ADC0Window.power = 0;
-    ADC0Window.startFilter = false;
-
-    ADC1Window.index = 0;
-    ADC1Window.sum = 0;
-    ADC1Window.avg = 0;
-    ADC1Window.voltage = 0;
-    ADC1Window.current = 0;
-    ADC1Window.power = 0;
-    ADC1Window.startFilter = false;
-
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
 
     GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_7);
@@ -234,46 +212,49 @@ void InitADC1_CurrentSense() {
 }
 
 void ADC1_Read() {
-    uint32_t pui32ADC1Value[2];
-
     ADCIntClear(ADC1_BASE, ADC_SEQ);
+    ADCSequenceDataGet(ADC1_BASE, ADC_SEQ , pui32ADC1Value);
+    Swi_post(swiHandle_ADC1DataProc);
+}
+
+void ADC1_FilterFxn() {
+    double Vref = 3.3;
+    double Gcsa = 10;
+    double Rsense = 0.007;
 
     ADC1Window.sum = ADC1Window.sum - ADC1Window.data[ADC1Window.index];
     ADC0Window.sum = ADC0Window.sum - ADC0Window.data[ADC0Window.index];
 
-    ADCSequenceDataGet(ADC1_BASE, ADC_SEQ , pui32ADC1Value);
+    ADC1Window.data[ADC1Window.index] = (int32_t)pui32ADC1Value[0];
+    ADC0Window.data[ADC0Window.index] = (int32_t)pui32ADC1Value[1];
 
-    ADC1Window.data[ADC1Window.index] = pui32ADC1Value[0];
-    ADC0Window.data[ADC0Window.index] = pui32ADC1Value[1];
-
-    Swi_post(swiHandle_ADC1DataProc);
-    //Swi_post(swiHandle_ADC0DataProc);
-}
-
-void ADC1_FilterFxn() {
     ADC1Window.sum = ADC1Window.sum + ADC1Window.data[ADC1Window.index];
     ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
 
-    ADC1Window.index = (ADC1Window.index + 1) % WINDOW_SIZE;
-    ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
+    if(ADC1Window.sum < 0) {
+        int i = 7;
+    }
+
+    ADC1Window.index = (ADC1Window.index + 1) % CURRENT_WINDOW_SIZE;
+    ADC0Window.index = (ADC0Window.index + 1) % CURRENT_WINDOW_SIZE;
 
     if(ADC1Window.startFilter) {
-        ADC1Window.avg = (float)ADC1Window.sum / WINDOW_SIZE;
-        ADC0Window.avg = (float)ADC0Window.sum / WINDOW_SIZE;
+        ADC1Window.avg = (float)ADC1Window.sum / CURRENT_WINDOW_SIZE;
+        ADC0Window.avg = (float)ADC0Window.sum / CURRENT_WINDOW_SIZE;
 
         ADC1Window.voltage = ADC1Window.avg * ADC_RESOLUTION;
         ADC0Window.voltage = ADC0Window.avg * ADC_RESOLUTION;
 
-        ADC1Window.current = ADC1Window.voltage / SHUNT_R_VALUE;
-        ADC0Window.current = ADC0Window.voltage / SHUNT_R_VALUE;
+        ADC1Window.current = ((Vref/2) - ADC1Window.voltage) / (Gcsa * Rsense);
+        ADC0Window.current = ((Vref/2) - ADC0Window.voltage) / (Gcsa * Rsense);
 
         ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
-        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
+        ADC0Window.power = ADC0Window.voltage * ADC0Window.current;
 
-        Event_post(sensors_eventHandle, Event_Id_04);
+        Event_post(sensors_eventHandle, NEW_ADC1_DATA);
     }
 
-    if((ADC1Window.index + 1) == WINDOW_SIZE && ADC1Window.startFilter == false) {
+    if((ADC1Window.index + 1) == CURRENT_WINDOW_SIZE && ADC1Window.startFilter == false) {
         ADC1Window.startFilter = true;
     }
 }

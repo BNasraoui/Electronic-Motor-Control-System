@@ -53,20 +53,8 @@
 #define ADC_SEQ                         1
 #define ADC_STEP                        0
 #define WINDOW_SIZE                     5
+#define CURRENT_WINDOW_SIZE             20
 #define ADC_RESOLUTION                  0.0008
-#define SHUNT_R_VALUE                   0.007
-
-#define CLOCK_PERIOD_150HZ              6    //6ms = ~150Hz
-#define CLOCK_PERIOD_2HZ                500  //500ms = 2Hz
-#define CLOCK_PERIOD_1HZ                1000
-#define CLOCK_PERIOD_10HZ               100
-#define CLOCK_TIMEOUT_MS                   10  //ms
-
-#define LOW_HIGH_LIGHT_EVENT            Event_Id_00
-#define NEW_OPT3001_DATA                Event_Id_01
-#define NEW_ACCEL_DATA                  Event_Id_02
-#define NEW_ADC0_DATA                   Event_Id_03
-#define NEW_ADC1_DATA                   Event_Id_04
 
 #define TURN_HEADLIGHTS_ON              1
 #define TURN_HEADLIGHTS_OFF             0
@@ -75,14 +63,14 @@
 #define OFF                             0
 
 typedef struct Sliding_Window32 {
-    uint8_t index;
+    int index;
     bool startFilter;
-    uint32_t sum;
+    int32_t sum;
     float avg;
     float voltage;
     float current;
     float power;
-    uint32_t data[WINDOW_SIZE];
+    int32_t data[CURRENT_WINDOW_SIZE];
 } SlidingWindow_32;
 
 typedef struct Sliding_Window_16 {
@@ -121,11 +109,9 @@ I2C_Params i2cParams;
 I2C_Transaction i2cTransactionCallback;
 uint8_t rxBuffer_BMI[6];
 
-Clock_Params clockParams;
 Clock_Handle adc_ClockHandler;
 Clock_Handle opt3001_ClockHandler;
 Clock_Handle watchDog_ClockHandler;
-Clock_Handle widgetQueue_ClockHandler;
 
 Watchdog_Handle watchDogHandle;
 
@@ -134,6 +120,8 @@ SlidingWindow_32 ADC1Window;
 SlidingWindow_16 accelXFilt;
 SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
+
+uint32_t pui32ADC1Value[2];
 
 bool headLightState;
 

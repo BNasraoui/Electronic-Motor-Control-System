@@ -103,20 +103,20 @@ Canvas(g_sAccelTitle, 0, 0, 0,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, "Accel (G)", 0, 0);
 
 // Speed
-static char Speed[10] = "0";
+static char Speed[10] = "3000";
 Canvas(g_sSpeedCanvas, 0, 0, 0,
        &g_sKentec320x240x16_SSD2119, 60, 50, 50, 40,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Speed, 0, 0);
 
 RectangularButton(g_sSpeedSubBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 25, 50, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 25, 50, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
                    g_psFontCmss16b, "-", 0, 0, 0, 0, onSpeedChange);
 
 RectangularButton(g_sSpeedAddBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 125, 50, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 115, 50, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
@@ -129,14 +129,14 @@ Canvas(g_sCurrentCanvas, 0, 0, 0,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Current, 0, 0);
 
 RectangularButton(g_sCurrentSubBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 25, 100, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 25, 100, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
                    g_psFontCmss16b, "-", 0, 0, 0, 0, onCurrentChange);
 
 RectangularButton(g_sCurrentAddBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 125, 100, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 115, 100, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
@@ -149,14 +149,14 @@ Canvas(g_sAccelCanvas, 0, 0, 0,
        CANVAS_STYLE_TEXT | CANVAS_STYLE_TEXT_OPAQUE, ClrBlack, 0, ClrWhite, g_psFontCmss16b, Acceleration, 0, 0);
 
 RectangularButton(g_sAccelSubBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 25, 150, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 25, 150, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
                    g_psFontCmss16b, "-", 0, 0, 0, 0, onAccelChange);
 
 RectangularButton(g_sAccelAddBttn, 0, 0, 0,
-                  &g_sKentec320x240x16_SSD2119, 125, 150, 25, 25,
+                  &g_sKentec320x240x16_SSD2119, 115, 150, 40, 40,
                   (PB_STYLE_OUTLINE | PB_STYLE_TEXT_OPAQUE | PB_STYLE_TEXT |
                    PB_STYLE_FILL | PB_STYLE_RELEASE_NOTIFY),
                    ClrBlue, ClrBlue, ClrWhite, ClrWhite,
@@ -174,7 +174,7 @@ void StartStopBttnPress(tWidget *psWidget)
          * the welcome message). */
         WidgetPaint((tWidget *)&g_sStartStopBttn);
 
-       // Event_post(motor_evtHandle, STOP_MOTOR); // Motor Stop Start Event
+        Event_post(motor_evtHandle, STOP_MOTOR); // Motor Stop Start Event
     }
     else
     {
@@ -184,7 +184,7 @@ void StartStopBttnPress(tWidget *psWidget)
 
         WidgetPaint((tWidget *)&g_sStartStopBttn);
 
-      //  Event_post(motor_evtHandle, START_MOTOR); // Motor Stop Start Event
+        Event_post(motor_evtHandle, START_MOTOR); // Motor Stop Start Event
     }
 
 }
@@ -192,16 +192,18 @@ void StartStopBttnPress(tWidget *psWidget)
 /* Handles User Speed Change */
 void onSpeedChange(tWidget *psWidget){
     // Lower Speed 50RPM
-    if(psWidget == ((tWidget *)&g_sSpeedSubBttn) && (SPEED_USER_LIMIT > 0)){
-        SPEED_USER_LIMIT -= 50;
-        usprintf(Speed, "%d", SPEED_USER_LIMIT);
+    if(psWidget == ((tWidget *)&g_sSpeedSubBttn) && (desiredSpeed > 0)){
+        desiredSpeed -= 100;
+        userSpeed = desiredSpeed;
+        usprintf(Speed, "%d", (uint32_t)userSpeed);
         CanvasTextSet(&g_sSpeedCanvas, Speed);
         WidgetPaint((tWidget *)&g_sSpeedCanvas);
      }
     // Increase Speed 50RPM
-    if((psWidget == (tWidget *)&g_sSpeedAddBttn) && (SPEED_USER_LIMIT < SPEED_LIMIT)){
-        SPEED_USER_LIMIT += 50;
-        usprintf(Speed, "%d", SPEED_USER_LIMIT);
+    if((psWidget == (tWidget *)&g_sSpeedAddBttn) && (desiredSpeed < SPEED_LIMIT)){
+        desiredSpeed += 100;
+        userSpeed = desiredSpeed;
+        usprintf(Speed, "%d", (uint32_t)userSpeed);
         CanvasTextSet(&g_sSpeedCanvas, Speed);
         WidgetPaint((tWidget *)&g_sSpeedCanvas);
      }
@@ -450,14 +452,13 @@ void RemoveHomeScreen() {
  */
 
 void initGUIHomescreen(void) {
-    eStop = false;
     graphingTab = false;
     lights = false;
-    motorRunning = 1;
     clockTicks = 0;
-    SPEED_USER_LIMIT = 0;
+    desiredSpeed = 3000;    //RPM
+    userSpeed = desiredSpeed;
     CURRENT_USER_LIMIT = 500;
-    ACCEL_USER_LIMIT = 1;
+    ACCEL_USER_LIMIT = 2;
 
     initTime();
     DrawHomeScreen();

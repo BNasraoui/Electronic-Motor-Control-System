@@ -9,6 +9,7 @@
 #include "GUI/homescreen/GUI_homescreen.h"
 #include "GUI/graphing/GUI_graphscreen.h"
 #include "GUI/gui.h"
+#include "general.h"
 
 void initDisplay(void) {
     Kentec320x240x16_SSD2119Init(SYS_CLK_SPEED);
@@ -17,30 +18,48 @@ void initDisplay(void) {
     TouchScreenCallbackSet(WidgetPointerMessage);
 }
 
+void UpdateWidgetQueue() {
+    WidgetMessageQueueProcess();
+}
+
+void InitGUIDriver() {
+    Clock_Params clockParams;
+    guiScreen = SCREEN_HOME;
+
+    initDisplay();
+    initGUIGraphs();
+    initGUIHomescreen();
+
+    WidgetMessageQueueProcess();
+
+    Clock_Params_init(&clockParams);
+    clockParams.period = CLOCK_PERIOD_100HZ;
+    widgetQueue_ClockHandler = Clock_create(UpdateWidgetQueue, CLOCK_TIMEOUT_MS, &clockParams, NULL);
+    if (widgetQueue_ClockHandler == NULL) {
+     System_abort("watchdog clock create failed");
+    }
+
+    Clock_start(widgetQueue_ClockHandler);
+}
+
 void runGUI(void)
 {
     UInt graphingEvents, homeEvents;
 
-    initDisplay();
-    guiScreen = SCREEN_HOME;
-
-    initGUIGraphs();
-    initGUIHomescreen();
-
     /* GUI */
     while (true) {
-
-        if (guiScreen == SCREEN_GRAPH_DISPLAY) {
-            runGUIGraphing(&graphingEvents);
+        if (graphingTab) {
+            if (guiScreen == SCREEN_GRAPH_DISPLAY) {
+                runGUIGraphing(&graphingEvents);
+            }
+            else if (guiScreen == SCREEN_GRAPH_SELECT) {
+                runGUIGraphSelect(&homeEvents);
+            }
+            else if (guiScreen == SCREEN_HOME)
+            {
+                runGUIHomescreen(&homeEvents);
+            }
         }
-        else if (guiScreen == SCREEN_GRAPH_SELECT) {
-            runGUIGraphSelect(&homeEvents);
-        }
-        else if (guiScreen == SCREEN_HOME)
-        {
-            runGUIHomescreen(&homeEvents);
-        }
-    }
 
     /* END of gui task */
 }

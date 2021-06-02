@@ -13,7 +13,7 @@
 
 #define SYS_CLK_SPEED                   120000000
 
-#define SENSOR_TASKSTACKSIZE            512
+#define SENSOR_TASKSTACKSIZE            1024
 #define GUI_TASKSTACKSIZE               2048
 
 #define LOW_HIGH_LIGHT_EVENT            Event_Id_00
@@ -31,9 +31,10 @@
 #define EVENT_GRAPH_ACCEL               Event_Id_12
 #define EVENT_GRAPH_CURR                Event_Id_13
 #define KICK_DOG                        Event_Id_14
-#define EVENT_GUI_HOME_CLEAR            Event_Id_15
-#define EVENT_GUI_GRAPH1_CLEAR          Event_Id_16
-#define EVENT_GUI_GRAPH2_CLEAR          Event_Id_17
+#define EVENT_GUI_SWITCH                Event_Id_15
+#define START_MOTOR                     Event_Id_16
+#define STOP_MOTOR                      Event_Id_17
+#define ESTOP                           Event_Id_18
 
 #define DEBUG_MODE                      0
 #define WATCHDOG_NOTASKS_CHECKEDIN      0x01
@@ -43,10 +44,22 @@
 #define ALLTASKS_CHECKEDIN              0x07
 char watchDogCheck;
 
-uint8_t motorRunning;
-uint16_t SPEED_USER_LIMIT;
+#define CLOCK_PERIOD_150HZ              6    //6ms = ~150Hz
+#define CLOCK_PERIOD_2HZ                500  //500ms = 2Hz
+#define CLOCK_PERIOD_1HZ                1000
+#define CLOCK_PERIOD_10HZ               100
+#define CLOCK_PERIOD_100HZ              1
+#define CLOCK_TIMEOUT_MS                10  //ms
+
 uint16_t CURRENT_USER_LIMIT;
 uint16_t ACCEL_USER_LIMIT;
+
+// motor conditions
+bool motorRunning; // current motor status
+bool estopFlag; // E-Stop condition flag for GUI and acceleration limits
+double desiredSpeed;
+double userSpeed;
+
 
 /* Tasks */
 Task_Struct sensorTaskStruct;
@@ -58,6 +71,7 @@ Char guiTaskStack[GUI_TASKSTACKSIZE];
 /* Events */
 Event_Handle GU_eventHandle;
 Event_Handle sensors_eventHandle;
+Event_Handle motor_evtHandle;
 Event_Handle gui_event_handle;
 
 #endif /* GENERAL_H_ */
