@@ -5,7 +5,7 @@ void InitI2C_OPT3001() {
     luxValueFilt.index = 0;
     luxValueFilt.sum = 0;
     luxValueFilt.avg = 0;
-    luxValueFilt.startFilter = false;
+    luxValueFilt.filterStarted = false;
     uint8_t data;
     uint16_t val;
 
@@ -31,24 +31,6 @@ void InitI2C_OPT3001() {
     //IntEnable(INT_GPIOM);
 }
 
-
-bool CheckLowLightEventOccured() {
-    uint16_t val;
-    uint16_t rawData;
-    bool success;
-
-    success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
-    if (success) {
-        // Swap bytes
-        rawData = (val << 8) | (val>>8 & 0xFF);
-        if(rawData & CONFIG_LOWLIGHT_BIT) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 bool GetLuxValue(uint16_t *rawData) {
     uint16_t val;
     bool readSuccess = false;
@@ -57,6 +39,27 @@ bool GetLuxValue(uint16_t *rawData) {
     if (readSuccess) *rawData = (val << 8) | (val>>8 & 0xFF);
 
     return (readSuccess);
+}
+
+bool CheckDayNightState(float lightLevel) {
+
+    if (lightLevel < NIGHTTIME_LUX_VAL) {
+        return true;
+    }
+    return false;
+}
+
+bool ToggleHeadlights(bool dayNightState){
+    if((headLightState == ON) && (luxValueFilt.avg > NIGHTTIME_LUX_VAL)){
+        onDayNightChange(false);
+        headLightState = OFF;
+    }
+    else if(dayNightState == NIGHT && headLightState == OFF) {
+        //only turn on the headlights if our filtered data
+        //tells us it's nightime
+        onDayNightChange(true);
+        headLightState = ON;
+    }
 }
 
 void ProcessLuxDataFxn() {
@@ -70,18 +73,13 @@ void ProcessLuxDataFxn() {
     luxValueFilt.sum = luxValueFilt.sum + luxValueFilt.data[luxValueFilt.index];
     luxValueFilt.index = (luxValueFilt.index + 1) % WINDOW_SIZE;
 
-    if(luxValueFilt.startFilter) {
+    if(luxValueFilt.filterStarted) {
         luxValueFilt.avg = (float)luxValueFilt.sum / WINDOW_SIZE;
     }
 
-    if((luxValueFilt.index + 1) == WINDOW_SIZE  && luxValueFilt.startFilter == false) {
-        luxValueFilt.startFilter = true;
+    if((luxValueFilt.index + 1) == WINDOW_SIZE  && luxValueFilt.filterStarted == false) {
+        luxValueFilt.filterStarted = true;
     }
-
-    led_state = !led_state;
-    GPIO_write(Board_LED0, led_state);
-
-    //Event_post(sensors_eventHandle, Event_Id_01);
 }
 
 void ConvertRawDataToLux(uint16_t rawData, float *convertedLux) {

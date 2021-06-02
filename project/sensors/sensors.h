@@ -75,7 +75,7 @@ typedef struct Sliding_Window32 {
 
 typedef struct Sliding_Window_16 {
     uint8_t index;
-    bool startFilter;
+    bool filterStarted;
     int32_t sum;
     float avg;
     float G;
@@ -84,17 +84,18 @@ typedef struct Sliding_Window_16 {
 
 typedef struct Sliding_Window_u16 {
     uint8_t index;
-    bool startFilter;
+    bool filterStarted;
     uint32_t sum;
     float avg;
     uint16_t data[WINDOW_SIZE];
 } SlidingWindow_u16;
 
-float absoluteAccel;
+Error_Block eb;
 
 Hwi_Handle hwi_ADC0;
 Hwi_Handle hwi_ADC1;
 Hwi_Params hwiParams;
+Hwi_Handle hwi_OPT3001;
 GateHwi_Handle gateHwi;
 GateHwi_Params gHwiprms;
 
@@ -102,7 +103,7 @@ Swi_Params swiParams;
 Swi_Struct swi0Struct, swi1Struct, swi2Struct, swi3Struct, swi4Struct;
 Swi_Handle swiHandle_ADC0DataProc, swiHandle_ADC1DataProc, swiHandle_accelDataProc, swiHandle_LuxDataProc, swiHandle_TimeStampProc;
 
-Error_Block eb;
+
 
 I2C_Handle i2cHandle;
 I2C_Params i2cParams;
@@ -113,6 +114,8 @@ Clock_Handle adc_ClockHandler;
 Clock_Handle opt3001_ClockHandler;
 Clock_Handle watchDog_ClockHandler;
 
+
+
 Watchdog_Handle watchDogHandle;
 
 SlidingWindow_32 ADC0Window;
@@ -120,8 +123,7 @@ SlidingWindow_32 ADC1Window;
 SlidingWindow_16 accelXFilt;
 SlidingWindow_16 accelYFilt;
 SlidingWindow_16 accelZFilt;
-
-uint32_t pui32ADC1Value[2];
+SlidingWindow_u16 luxValueFilt;
 
 bool headLightState;
 

@@ -48,7 +48,7 @@ void runGUI(void)
 
     /* GUI */
     while (true) {
-        if (graphingTab) {
+
             if (guiScreen == SCREEN_GRAPH_DISPLAY) {
                 runGUIGraphing(&graphingEvents);
             }
@@ -59,7 +59,7 @@ void runGUI(void)
             {
                 runGUIHomescreen(&homeEvents);
             }
-        }
+    }
 
     /* END of gui task */
 }

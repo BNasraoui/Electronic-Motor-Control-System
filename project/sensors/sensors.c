@@ -17,10 +17,6 @@ void BMI160Fxn() {
     Event_post(sensors_eventHandle, NEW_ACCEL_DATA);
 }
 
-//void OPT3001Fxn() {
-//    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
-//}
-
 //*************************** INITIALISATION **************************************
 void InitSensorDriver() {
     Watchdog_Params watchDogParams;
@@ -52,27 +48,12 @@ void InitSensorDriver() {
      System_abort("adc clock handle create failed");
     }
 
-//    clockParams.period = CLOCK_PERIOD_1HZ;
-//    watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
-//    if (watchDog_ClockHandler == NULL) {
-//     System_abort("watchdog clock create failed");
-//    }
-
     //Create Hwi Gate Mutex
     GateHwi_Params_init(&gHwiprms);
     gateHwi = GateHwi_create(&gHwiprms, NULL);
     if (gateHwi == NULL) {
         System_abort("Gate Hwi create failed");
     }
-
-//    Watchdog_Params_init(&watchDogParams);
-//    watchDogParams.resetMode = Watchdog_RESET_OFF;
-//    watchDogParams.callbackFxn = WatchDogBite;
-//    watchDogParams.resetMode = Watchdog_RESET_OFF;
-//    watchDogHandle = Watchdog_open(EK_TM4C1294XL_WATCHDOG0, &watchDogParams);
-//    if (!watchDogHandle) {
-//        System_printf("Watchdog did not open");
-//    }
 }
 
 void InitInterrupts() {
@@ -114,26 +95,28 @@ void ProcessSensorEvents() {
     events = Event_pend(sensors_eventHandle, Event_Id_NONE, (LOW_HIGH_LIGHT_EVENT + NEW_OPT3001_DATA + NEW_ACCEL_DATA + NEW_ADC1_DATA + KICK_DOG), BIOS_WAIT_FOREVER);
 
     if(events & NEW_OPT3001_DATA) {
-        GetLightLevel();
-        Swi_post(swiHandle_TimeStampProc); // Update Timestamp maybe move somewhere else. kinda ghetto but w/e
+        float lightLevel = GetLightLevel();
+
+        if(luxValueFilt.filterStarted) {
+            bool dayNightState = CheckDayNightState(lightLevel);
+            ToggleHeadlights(dayNightState);
+        }
 
         if (graphTypeActive == GRAPH_TYPE_LIGHT) {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
             Event_post(GU_eventHandle, EVENT_GRAPH_LIGHT);
         }
-        if((headLightState == ON) && (luxValueFilt.avg > NIGHTTIME_LUX_VAL)){
-            onDayNightChange(false);
-            headLightState = OFF;
-        }
     }
 
     if(events & NEW_ACCEL_DATA) {
         GetAccelData();
-        absoluteAccel = CalcAbsoluteAccel();
 
-        if(absoluteAccel > ACCEL_USER_LIMIT) {
-            //Fire e-stop event
-            Event_post(motor_evtHandle, ESTOP);
+        if(accelXFilt.filterStarted) {
+            absoluteAccel = CalcAbsoluteAccel();
+
+            if(absoluteAccel > ACCEL_USER_LIMIT) {
+                Event_post(motor_evtHandle, ESTOP);
+            }
         }
 
         if (graphTypeActive == GRAPH_TYPE_ACCEL) {
@@ -146,21 +129,8 @@ void ProcessSensorEvents() {
         }
     }
 
-    if(events & LOW_HIGH_LIGHT_EVENT) {
-        bool lowLightEventOccured = CheckLowLightEventOccured();
-
-        if(lowLightEventOccured && headLightState == OFF) {
-            //only turn on the headlights if our filtered data
-            //tells us it's nightime
-            if(luxValueFilt.avg < NIGHTTIME_LUX_VAL) {
-                onDayNightChange(true);
-                headLightState = ON;
-            }
-        }
-    }
-
     if(events & NEW_ADC1_DATA) {
-        //If current limit exceeded, send E-stop event
+        //If current limit exceeded on either current sense line, send E-stop event
         if(ADC1Window.current > CURRENT_USER_LIMIT || ADC0Window.current > CURRENT_USER_LIMIT) {
             Event_post(motor_evtHandle, ESTOP);
         }
@@ -169,18 +139,7 @@ void ProcessSensorEvents() {
             if (graphLagStart == 0) graphLagStart = Clock_getTicks();
             Event_post(GU_eventHandle, EVENT_GRAPH_CURR);
         }
-        //Update display
-        //System_printf("ADC1: %f\n", ADC1Window.avg);
     }
-
-//    if(events & KICK_DOG) {
-//        //System_printf("Setting bit to tell watchdog that this task is ok");
-//        gateKey = GateHwi_enter(gateHwi);
-//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_SENSOR;
-//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_MOTOR;
-//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_GUI;
-//        GateHwi_leave(gateHwi, gateKey);
-//    }
 }
 
 float GetLightLevel() {
@@ -193,88 +152,6 @@ void GetAccelData() {
     GetAccelData_BMI160(&accelX, &accelY, &accelZ);
     Swi_post(swiHandle_accelDataProc);
 }
-
-void InitADC1_CurrentSense() {
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC1);
-
-    GPIOPinTypeADC(GPIO_PORTD_BASE, GPIO_PIN_7);
-    GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_3);
-
-    ADCSequenceConfigure(ADC1_BASE, ADC_SEQ , ADC_TRIGGER_PROCESSOR, 0);
-
-    ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ, 0, ADC_CTL_CH0);
-    ADCSequenceStepConfigure(ADC1_BASE, ADC_SEQ, 1, ADC_CTL_IE | ADC_CTL_CH4 | ADC_CTL_END);
-
-    ADCSequenceEnable(ADC1_BASE, ADC_SEQ);
-    ADCIntEnable(ADC1_BASE, ADC_SEQ);
-    ADCIntClear(ADC1_BASE, ADC_SEQ);
-    IntEnable(INT_ADC1SS1);
-}
-
-void ADC1_Read() {
-    ADCIntClear(ADC1_BASE, ADC_SEQ);
-    ADCSequenceDataGet(ADC1_BASE, ADC_SEQ , pui32ADC1Value);
-    Swi_post(swiHandle_ADC1DataProc);
-}
-
-void ADC1_FilterFxn() {
-    double Vref = 3.3;
-    double Gcsa = 10;
-    double Rsense = 0.007;
-
-    ADC1Window.sum = ADC1Window.sum - ADC1Window.data[ADC1Window.index];
-    ADC0Window.sum = ADC0Window.sum - ADC0Window.data[ADC0Window.index];
-
-    ADC1Window.data[ADC1Window.index] = (int32_t)pui32ADC1Value[0];
-    ADC0Window.data[ADC0Window.index] = (int32_t)pui32ADC1Value[1];
-
-    ADC1Window.sum = ADC1Window.sum + ADC1Window.data[ADC1Window.index];
-    ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
-
-    if(ADC1Window.sum < 0) {
-        int i = 7;
-    }
-
-    ADC1Window.index = (ADC1Window.index + 1) % CURRENT_WINDOW_SIZE;
-    ADC0Window.index = (ADC0Window.index + 1) % CURRENT_WINDOW_SIZE;
-
-    if(ADC1Window.startFilter) {
-        ADC1Window.avg = (float)ADC1Window.sum / CURRENT_WINDOW_SIZE;
-        ADC0Window.avg = (float)ADC0Window.sum / CURRENT_WINDOW_SIZE;
-
-        ADC1Window.voltage = ADC1Window.avg * ADC_RESOLUTION;
-        ADC0Window.voltage = ADC0Window.avg * ADC_RESOLUTION;
-
-        ADC1Window.current = ((Vref/2) - ADC1Window.voltage) / (Gcsa * Rsense);
-        ADC0Window.current = ((Vref/2) - ADC0Window.voltage) / (Gcsa * Rsense);
-
-        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
-        ADC0Window.power = ADC0Window.voltage * ADC0Window.current;
-
-        Event_post(sensors_eventHandle, NEW_ADC1_DATA);
-    }
-
-    if((ADC1Window.index + 1) == CURRENT_WINDOW_SIZE && ADC1Window.startFilter == false) {
-        ADC1Window.startFilter = true;
-    }
-}
-
-//void ADC0_FilterFxn() {
-//    ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
-//    ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
-//
-//    if(ADC0Window.startFilter) {
-//        ADC0Window.avg = (float)ADC0Window.sum / WINDOW_SIZE;
-//        ADC0Window.voltage = ADC1Window.avg / ADC_RESOLUTION;
-//        ADC0Window.current = ADC0Window.voltage / SHUNT_R_VALUE;
-//        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
-//        Event_post(sensors_eventHandle, Event_Id_03);
-//    }
-//
-//    if((ADC0Window.index + 1) == WINDOW_SIZE && ADC0Window.startFilter == false) {
-//        ADC0Window.startFilter = true;
-//    }
-//}
 
 //****************************HELPER FUNCTIONS********************************************
 bool ReadHalfWordI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, uint8_t* data) {
@@ -445,3 +322,81 @@ bool WriteByteI2C(I2C_Handle i2cHandle, uint8_t slaveAddress, uint8_t ui8Reg, ui
 //    if (i2cHandle == NULL) {
 //        System_abort("Error Initializing I2C Handle\n");
 //    }
+
+//bool CheckLowLightEventOccured() {
+//    uint16_t val;
+//    uint16_t rawData;
+//    bool success;
+//
+//    success = ReadHalfWordI2C(i2cHandle, OPT3001_SLAVE_ADDRESS, REG_CONFIGURATION, (uint8_t*)&val);
+//    if (success) {
+//        // Swap bytes
+//        rawData = (val << 8) | (val>>8 & 0xFF);
+//        if(rawData & CONFIG_LOWLIGHT_BIT) {
+//            return true;
+//        }
+//    }
+//
+//    return false;
+//}
+
+//    if(events & LOW_HIGH_LIGHT_EVENT) {
+//        bool lowLightEventOccured = CheckLowLightEventOccured();
+//
+//        if(lowLightEventOccured && headLightState == OFF) {
+//            //only turn on the headlights if our filtered data
+//            //tells us it's nightime
+//            if(luxValueFilt.avg < NIGHTTIME_LUX_VAL) {
+//                onDayNightChange(true);
+//                headLightState = ON;
+//            }
+//        }
+//    }
+
+//void ADC0_FilterFxn() {
+//    ADC0Window.sum = ADC0Window.sum + ADC0Window.data[ADC0Window.index];
+//    ADC0Window.index = (ADC0Window.index + 1) % WINDOW_SIZE;
+//
+//    if(ADC0Window.startFilter) {
+//        ADC0Window.avg = (float)ADC0Window.sum / WINDOW_SIZE;
+//        ADC0Window.voltage = ADC1Window.avg / ADC_RESOLUTION;
+//        ADC0Window.current = ADC0Window.voltage / SHUNT_R_VALUE;
+//        ADC1Window.power = ADC1Window.voltage * ADC1Window.current;
+//        Event_post(sensors_eventHandle, Event_Id_03);
+//    }
+//
+//    if((ADC0Window.index + 1) == WINDOW_SIZE && ADC0Window.startFilter == false) {
+//        ADC0Window.startFilter = true;
+//    }
+//}
+
+//    if(events & KICK_DOG) {
+//        //System_printf("Setting bit to tell watchdog that this task is ok");
+//        gateKey = GateHwi_enter(gateHwi);
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_SENSOR;
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_MOTOR;
+//        watchDogCheck = watchDogCheck | WATCHDOG_CHECKIN_GUI;
+//        GateHwi_leave(gateHwi, gateKey);
+//    }
+
+
+//    Watchdog_Params_init(&watchDogParams);
+//    watchDogParams.resetMode = Watchdog_RESET_OFF;
+//    watchDogParams.callbackFxn = WatchDogBite;
+//    watchDogParams.resetMode = Watchdog_RESET_OFF;
+//    watchDogHandle = Watchdog_open(EK_TM4C1294XL_WATCHDOG0, &watchDogParams);
+//    if (!watchDogHandle) {
+//        System_printf("Watchdog did not open");
+//    }
+//}
+
+
+//    clockParams.period = CLOCK_PERIOD_1HZ;
+//    watchDog_ClockHandler = Clock_create(TaskStatusCheck, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+//    if (watchDog_ClockHandler == NULL) {
+//     System_abort("watchdog clock create failed");
+//    }
+
+//void OPT3001Fxn() {
+//    Event_post(sensors_eventHandle, LOW_HIGH_LIGHT_EVENT);
+//}

@@ -706,6 +706,7 @@ typedef enum {
 } BMI160ZeroMotionDuration;
 
 int16_t accelX, accelY, accelZ;
+float absoluteAccel;
 
 typedef struct RawAccelData {
     int16_t x;

@@ -5,7 +5,6 @@
 int pwmPeriod               = 24;    // recommended period
 int dutyCycle               = 0;
 
-
 // speed sensing variables
 uint16_t interruptCounter   = 0;
 double intermediateSpeed    = 0;     // value determined by the PID controller
@@ -183,8 +182,12 @@ void toggleMotorClocks()
 
 void startMotorRoutine()
 {
+
+    GPIO_write(Board_LED0, Board_LED_ON); // Turn on LED when motor starts
+
     desiredSpeed = userSpeed;
     intermediateSpeed = 700;// need this or it doesnt start
+
 
     estopFlag = false;
     motorRunning = true;
@@ -212,6 +215,8 @@ void hasMotorStopped_ClockHandlerFxn()
 {
     if (filteredSpeedData.avg <= 0) // not letting the motor start
     {
+        GPIO_write(Board_LED0, Board_LED_OFF); // Turn on LED when motor starts
+
         motorRunning = false; // set flag
 
         toggleMotorClocks(); // stop all clocks
