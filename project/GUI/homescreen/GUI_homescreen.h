@@ -73,6 +73,8 @@ Char task1Stack[TASKSTACKSIZE];
 Event_Struct evtStruct;
 Event_Handle gui_event_handle;
 
+Clock_Handle rtc_ClockHandler;
+
 //extern void StartStopBttnPress(tWidget *psWidget);
 //extern void onSpeedChange(tWidget *psWidget);
 //extern void onCurrentChange(tWidget *psWidget);

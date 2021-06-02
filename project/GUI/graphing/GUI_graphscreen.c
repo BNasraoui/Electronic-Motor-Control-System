@@ -14,28 +14,24 @@ bool flagGraph = false;
 bool flagHome = false;
 
 void onLightButtonPress(void) {
-
     flagGraph = true;
     graphTypeActive = GRAPH_TYPE_LIGHT;
     Event_post(gui_event_handle, EVENT_GUI_GRAPH1_CLEAR);
 }
 
 void onCurrentButtonPress(void) {
-
     flagGraph = true;
     graphTypeActive = GRAPH_TYPE_CURR;
     Event_post(gui_event_handle, EVENT_GUI_GRAPH1_CLEAR);
 }
 
 void onAccelButtonPress(void) {
-
     flagGraph = true;
     graphTypeActive = GRAPH_TYPE_ACCELABS;
     Event_post(gui_event_handle, EVENT_GUI_GRAPH1_CLEAR);
 }
 
 void onAccelxyzButtonPress(void) {
-
     flagGraph = true;
     graphTypeActive = GRAPH_TYPE_ACCEL;
     Event_post(gui_event_handle, EVENT_GUI_GRAPH1_CLEAR);
@@ -54,7 +50,6 @@ void onSpeedButtonPress(void) {
 }
 
 void onHomeButtonPress(void) {
-
     flagHome = true;
 
     Event_post(gui_event_handle, EVENT_GUI_GRAPH1_CLEAR);

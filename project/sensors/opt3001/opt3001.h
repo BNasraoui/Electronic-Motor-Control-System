@@ -32,9 +32,8 @@
 /* Bit values */
 #define DATA_RDY_BIT                    0x0080  // Data ready
 
-Hwi_Handle hwi_OPT3001;
+#define NIGHT                           1
 
-SlidingWindow_u16 luxValueFilt;
 uint16_t rawData;
 
 extern void InitI2C_OPT3001();
@@ -51,7 +50,9 @@ extern void SetLowLimit(float val);
 
 extern void SetHighLimit(float val);
 
-extern bool CheckLowLightEventOccured();
+extern bool CheckLowLightEventOccured(float lightLevel);
+
+extern bool CheckDayNightState(float lightLevel);
 
 extern uint16_t CalculateLimitReg(float luxValue);
 

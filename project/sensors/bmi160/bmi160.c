@@ -8,17 +8,17 @@ void InitI2C_BMI160() {
     accelXFilt.index = 0;
     accelXFilt.sum = 0;
     accelXFilt.avg = 0;
-    accelXFilt.startFilter = false;
+    accelXFilt.filterStarted = false;
 
     accelYFilt.index = 0;
     accelYFilt.sum = 0;
     accelYFilt.avg = 0;
-    accelXFilt.startFilter = false;
+    accelXFilt.filterStarted = false;
 
     accelZFilt.index = 0;
     accelZFilt.sum = 0;
     accelZFilt.avg = 0;
-    accelXFilt.startFilter = false;
+    accelXFilt.filterStarted = false;
 
     ReadByteI2C(i2cHandle, BMI160_SLAVE_ADDRESS, BMI160_RA_CHIP_ID, &data);
     if(data != BMI160_ID) {
@@ -122,7 +122,7 @@ void ProcessAccelDataFxn() {
     accelYFilt.index = (accelYFilt.index + 1) % WINDOW_SIZE;
     accelZFilt.index = (accelZFilt.index + 1) % WINDOW_SIZE;
 
-    if(accelXFilt.startFilter) {
+    if(accelXFilt.filterStarted) {
         accelXFilt.avg = (float)accelXFilt.sum / WINDOW_SIZE;
         accelYFilt.avg = (float)accelYFilt.sum / WINDOW_SIZE;
         accelZFilt.avg = (float)accelZFilt.sum / WINDOW_SIZE;
@@ -130,8 +130,8 @@ void ProcessAccelDataFxn() {
     }
 
     //All indexes incremented at same time so only check one filter
-    if((accelXFilt.index + 1) == WINDOW_SIZE && accelXFilt.startFilter == false) {
-        accelXFilt.startFilter = true;
+    if((accelXFilt.index + 1) == WINDOW_SIZE && accelXFilt.filterStarted == false) {
+        accelXFilt.filterStarted = true;
     }
 
     //Event_post(sensors_eventHandle, Event_Id_02);

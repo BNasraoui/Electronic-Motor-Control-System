@@ -30,16 +30,16 @@
 #include <math.h>
 #include "general.h"
 
-#define TASKSTACKSIZE       1024
+#define TASKSTACKSIZE       512
 
 #define CLOCK_PERIOD_200Hz  5       // 5ms = 200Hz -> Speed Calculation
-#define CLOCK_PERIOD_1000Hz 1       // 1ms = 1000Hz -> PID loop
+#define CLOCK_PERIOD_1000Hz 2       // 1ms = 1000Hz -> PID loop NOW 500 HZ
 #define CLOCK_PERIOD_500Hz  2       // 2ms = 500Hz -> acceleration limit
 #define CLOCK_TIMEOUT_MS    10      // 10ms
 
 #define WINDOW_SIZE_SPEED    8       // filter window size
 
-#define PID_PERIOD          0.001   // 1ms or 1000Hz
+#define PID_PERIOD          0.002   // 1ms or 1000Hz
 
 #define PID_MIN_SPEED       0
 #define PID_MAX_SPEED       5820    // no load speed at max duty cycle (measured)

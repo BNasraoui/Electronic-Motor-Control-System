@@ -285,11 +285,19 @@ void onTabSwap() {
 
 
 void initTimeStampInterrupt(){
-    Swi_construct(&swi4Struct, (Swi_FuncPtr)getCurrentTime, &swiParams, NULL);
-    swiHandle_TimeStampProc = Swi_handle(&swi4Struct);
-    if (swiHandle_TimeStampProc == NULL) {
-     System_abort("SWI 4 Timestamp create failed");
+//    Swi_construct(&swi4Struct, (Swi_FuncPtr)getCurrentTime, &swiParams, NULL);
+//    swiHandle_TimeStampProc = Swi_handle(&swi4Struct);
+//    if (swiHandle_TimeStampProc == NULL) {
+//     System_abort("SWI 4 Timestamp create failed");
+//    }
+    Clock_Params clockParams;
+    Clock_Params_init(&clockParams);
+    clockParams.period = CLOCK_PERIOD_1HZ;
+    rtc_ClockHandler = Clock_create(getCurrentTime, CLOCK_TIMEOUT_MS, &clockParams, &eb);
+    if (rtc_ClockHandler == NULL) {
+     System_abort("adc clock handle create failed");
     }
+    //Clock_start(rtc_ClockHandler);
 }
 
 /* Initialise Time at the start of the program */

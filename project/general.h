@@ -35,6 +35,9 @@
 #define START_MOTOR                     Event_Id_16
 #define STOP_MOTOR                      Event_Id_17
 #define ESTOP                           Event_Id_18
+#define EVENT_GUI_HOME_CLEAR            Event_Id_19
+#define EVENT_GUI_GRAPH1_CLEAR          Event_Id_20
+#define EVENT_GUI_GRAPH2_CLEAR          Event_Id_21
 
 #define EVENT_GUI_HOME_CLEAR            Event_Id_19
 #define EVENT_GUI_GRAPH1_CLEAR          Event_Id_20
@@ -54,7 +57,7 @@ char watchDogCheck;
 #define CLOCK_PERIOD_2HZ                500  //500ms = 2Hz
 #define CLOCK_PERIOD_1HZ                1000
 #define CLOCK_PERIOD_10HZ               100
-#define CLOCK_PERIOD_100HZ              1
+#define CLOCK_PERIOD_100HZ              100 // slowing it down
 #define CLOCK_TIMEOUT_MS                10  //ms
 
 uint16_t CURRENT_USER_LIMIT;
@@ -65,7 +68,6 @@ bool motorRunning; // current motor status
 bool estopFlag; // E-Stop condition flag for GUI and acceleration limits
 double desiredSpeed;
 double userSpeed;
-
 
 /* Tasks */
 Task_Struct sensorTaskStruct;
