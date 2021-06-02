@@ -15,6 +15,7 @@
 #include "GUI/graphing/GUI_XYGraph.h"
 #include "GUI/homescreen/GUI_homescreen.h"
 #include "GUI/gui.h"
+#include "motor/motor.h"
 
 void initGUIGraphs(void) {
     GraphFrame_init(&GraphBorder, 32, 32, 272, 112, false);
@@ -232,7 +233,7 @@ void removeGraphingWidgets(void) {
 }
 
 void runGUIGraphing(UInt *events) {
-    *events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR + EVENT_GUI_GRAPH2_CLEAR), BIOS_WAIT_FOREVER);
+    *events = Event_pend(GU_eventHandle, Event_Id_NONE, (EVENT_GRAPH_LIGHT + EVENT_GRAPH_RPM + EVENT_GRAPH_ACCEL + EVENT_GRAPH_CURR + EVENT_GRAPH_SPEED + EVENT_GUI_GRAPH2_CLEAR), BIOS_WAIT_FOREVER);
 
     /* Placed first for priority */
     if (*events & EVENT_GUI_GRAPH2_CLEAR) {
@@ -248,12 +249,10 @@ void runGUIGraphing(UInt *events) {
 
     if ((*events & EVENT_GRAPH_ACCEL)  && (graphTypeActive == GRAPH_TYPE_ACCEL)) {
         drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
-        // drawSinglePlot(&GraphBorder, &Graph_ACCABS, luxValueFilt.avg);
     }
 
     if ((*events & EVENT_GRAPH_ACCEL)  && (graphTypeActive == GRAPH_TYPE_ACCELABS)) {
-        //drawTriplePlot(&GraphBorder, &Graph_ACCX, &Graph_ACCY, &Graph_ACCZ, accelXFilt.G, accelYFilt.G, accelZFilt.G);
-        drawSinglePlot(&GraphBorder, &Graph_ACCABS, luxValueFilt.avg);
+        drawSinglePlot(&GraphBorder, &Graph_ACCABS, absoluteAccel);
     }
 
     if ((*events & EVENT_GRAPH_CURR)  && (graphTypeActive == GRAPH_TYPE_CURR)) {
@@ -264,8 +263,8 @@ void runGUIGraphing(UInt *events) {
         drawSinglePlot(&GraphBorder, &Graph_POW, ADC1Window.avg);
     }
 
-    if ((*events & EVENT_GRAPH_CURR)  && (graphTypeActive == GRAPH_TYPE_SPD)) {
-        drawSinglePlot(&GraphBorder, &Graph_SPD, ADC1Window.avg);
+    if ((*events & EVENT_GRAPH_SPEED)  && (graphTypeActive == GRAPH_TYPE_SPD)) {
+        drawSinglePlot(&GraphBorder, &Graph_SPD, filteredSpeedData.avg);
     }
 
 

@@ -31,10 +31,16 @@
 #define EVENT_GRAPH_ACCEL               Event_Id_12
 #define EVENT_GRAPH_CURR                Event_Id_13
 #define KICK_DOG                        Event_Id_14
-#define EVENT_GUI_SWITCH                Event_Id_15
+
 #define START_MOTOR                     Event_Id_16
 #define STOP_MOTOR                      Event_Id_17
 #define ESTOP                           Event_Id_18
+
+#define EVENT_GUI_HOME_CLEAR            Event_Id_19
+#define EVENT_GUI_GRAPH1_CLEAR          Event_Id_20
+#define EVENT_GUI_GRAPH2_CLEAR          Event_Id_21
+
+#define EVENT_GRAPH_SPEED               Event_Id_22
 
 #define DEBUG_MODE                      0
 #define WATCHDOG_NOTASKS_CHECKEDIN      0x01

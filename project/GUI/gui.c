@@ -48,18 +48,17 @@ void runGUI(void)
 
     /* GUI */
     while (true) {
-        if (graphingTab) {
-            if (guiScreen == SCREEN_GRAPH_DISPLAY) {
-                runGUIGraphing(&graphingEvents);
-            }
-            else if (guiScreen == SCREEN_GRAPH_SELECT) {
-                runGUIGraphSelect(&homeEvents);
-            }
-            else if (guiScreen == SCREEN_HOME)
-            {
-                runGUIHomescreen(&homeEvents);
-            }
+        if (guiScreen == SCREEN_GRAPH_DISPLAY) {
+            runGUIGraphing(&graphingEvents);
         }
+        else if (guiScreen == SCREEN_GRAPH_SELECT) {
+            runGUIGraphSelect(&homeEvents);
+        }
+        else if (guiScreen == SCREEN_HOME)
+        {
+            runGUIHomescreen(&homeEvents);
+        }
+    }
 
     /* END of gui task */
 }
