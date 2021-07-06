@@ -1,3 +1,3 @@
-# Group Project as part of an assignment at QUT
+# Motor Control Systems Group Project
 
 Please add to '.gitIgnore' anything that is necessary.
